@@ -1,0 +1,7 @@
+std = "roblox"
+
+[lints]
+# Unused variables are usually bugs in generated code; keep them loud.
+unused_variable = "warn"
+shadowing = "warn"
+global_usage = "deny"

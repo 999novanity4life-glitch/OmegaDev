@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned toolchain (rokit.toml)
+        uses: CompeyDev/setup-rokit@v0.2.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Format check (StyLua)
+        run: stylua --check src tests
+
+      - name: Lint (selene)
+        run: selene src
+
+      - name: Type check (luau-lsp, strict)
+        run: |
+          rojo sourcemap default.project.json --output sourcemap.json
+          curl -sSfLO https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau
+          luau-lsp analyze --platform=roblox --sourcemap=sourcemap.json \
+            --definitions=@roblox=globalTypes.d.luau --base-luaurc=.luaurc \
+            --ignore="Packages/**" src
+
+      - name: Unit tests (Lune)
+        run: lune run tests/run
+
+      - name: Build place (Rojo)
+        run: rojo build default.project.json --output game.rbxl
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: game.rbxl
+          path: game.rbxl

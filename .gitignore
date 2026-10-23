@@ -1,0 +1,12 @@
+/Packages/*
+!/Packages/.gitkeep
+/ServerPackages
+/DevPackages
+sourcemap.json
+globalTypes.d.luau
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+.env
+roblox.yml
