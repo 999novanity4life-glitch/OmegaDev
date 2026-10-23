@@ -7,6 +7,7 @@ Data captured 2026-10-23 from Roblox's public games API (stats and votes) and ro
 ## Why now (Steam signal)
 - **Slowly Sliding Ducks**: up to 50 duck players per pool. It is #34 on Steam's Party-tag Top Wishlists and releases Oct 29, 2026. https://store.steampowered.com/app/2485410/ ; rank: https://store.steampowered.com/search/?filter=popularwishlist&tags=7178
 - Theme borrowed: rubber ducks on sinking foam tiles in a bathtub arena (no IP).
+- Steam community hub members for **Slowly Sliding Ducks**: 1,673 (Steam's own XML endpoint https://steamcommunity.com/games/2485410/memberslistxml/?xml=1, seen 2026-10-23; hub members, not SteamDB followers, which were blocked).
 
 ## Familiar Roblox loop (block drop / spleef)
 - **Rocket Spleef**: 227 playing, 87.9% likes, 4K peak. Rockets destroy the floor, and it has pickups and a ledge grab. https://www.roblox.com/games/126857641130765

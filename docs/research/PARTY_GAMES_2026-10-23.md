@@ -989,3 +989,101 @@ The strongest pattern **(inferred)** is physics-chaos co-op ("clumsy crew", "eve
 - I couldn't open the Roblox chat press release directly (timeout and bot wall), so those facts come from search summaries.
 - SteamDB follower counts are missing (see C).
 - Housekeeping: a temporary sparse clone of Roblox/creator-docs was left at C:\rbxdocs_tmp (the working path was too long for git). A safety check blocked its automatic deletion, so it needs to be removed manually.
+
+---
+
+## Gap fill (second pass, 2026-10-23): timings, feel details, Steam hub members
+
+Fills gaps in `OmegaDev/docs/research/PARTY_GAMES_2026-10-23.md`. All sources accessed 2026-10-23 unless noted. "Inferred" = my judgment, not a sourced fact.
+
+**Source quality warning:** earnaldo.com guides are "free Robux" affiliate pages. Several of their numbers conflict with primary sources: Color Block "up to 50 players" vs the Roblox API's 12; HASE "13 players" and "4 minutes total" vs the wiki and API, which say 14 players and 1 + 4 min. Treat their numbers as low-confidence. Wiki pages and the Roblox API outrank them.
+
+**Method notes:**
+- Fandom pages return HTTP 402 to WebFetch but answer plain curl on the MediaWiki API.
+- YouTube transcripts were pulled as auto-captions with `yt-dlp --skip-download --write-auto-subs` (text only, no video downloaded) and grepped for timing and feel words.
+- No fandom wiki exists (404/410) for Timebomb Duels, Hot Potato, The Floor Is LAVA!, Escape The Lava, Color Block or Rocket Spleef.
+- Bloxodes has a Timebomb Duels page only. The other slugs return 404.
+
+---
+
+### 1. Round timings
+
+| Game | Intermission | Round length | Results screen | Mid-round joiner wait | Sources |
+|---|---|---|---|---|---|
+| Timebomb Duels | not found | Fuse ~10 s per holder (already in catalog). Match = last one standing (FFA / Open Arena), or first to 5 round wins | not found | not found. A joiner picks a mode room in the lobby hub first | allthings.how (upd. 2026-07-29) https://allthings.how/?p=89896 ; bloxodes https://bloxodes.com/wiki/timebomb-duels/game-modes ; earnaldo (upd. 2026-08-27) https://earnaldo.com/blog/timebomb-duels-free-robux-guide |
+| Hot Potato 🥔💥 (Potato Experience) | not found | not found. The description only says "Fast rounds", "final 2 ... duel", "Countdown finish = BOOM" | not found | not found | https://games.roblox.com/v1/games?universeIds=10403820097 |
+| Analogue only: R2DA "Hot Potato" mode (a different game) | — | `time_limit = 30 seconds (per round)`. Rounds repeat until 1 player is left | — | — | https://r2da.fandom.com/api.php?action=parse&page=Hot_Potato&format=json&prop=wikitext |
+| The Floor Is LAVA! | 20 s (earnaldo) | 15 s prep + 40 s lava, ~75 s cycle (already in catalog; earnaldo, pub. 2026-05-02, upd. 2026-07-05) | Not separate. The 20 s intermission covers point payout and map load | not found. Inferred: waits up to ~75 s | https://earnaldo.com/blog/the-floor-is-lava-free-robux-guide |
+| Escape The Lava (STOP INC.) | not found | not found. It is a speed-sim obby, not a round game: the lava rises and recedes in waves ("wait for the lava to go down", "rises every like few seconds") | n/a | n/a (inferred: no rounds, so a joiner plays at once) | YouTube cjJfVyRmWC8 @00:00:22, 00:01:13 ; rMmcruJF9Cg @00:01:09 ; description https://games.roblox.com/v1/games?universeIds=8504461817 |
+| Color Block | Lobby countdown; "lobbies typically fill within 15-30 seconds"; needs ≥4 players to start (earnaldo) | 5-8 s per color call in standard mode, dropping to 3-4 s in rounds 7-12; Speed Mode 3-4 s; platform break takes ~1-2 s (earnaldo, upd. 2026-05-02). A YouTube transcript confirms "the timer is going by quicker" | not found | not found | https://earnaldo.com/blog/color-block-free-robux-guide ; YouTube -cChFwu0ZE4 @00:01:46 |
+| Natural Disaster Survival | not found | "around two to four minutes depending on the disaster type" (earnaldo, upd. 2026-09-12). Wiki: Volcano erupts 15 s after its warning card; lightning strikes every 2 s | Not separate. Wiki: "players have a short window to pause the game before the next map selection begins" (private-server control) | not found. Joiners spawn in the Lobby Tower and watch until the next round (wiki) | https://earnaldo.com/blog/natural-disaster-survival-free-robux-guide ; https://natural-disaster-survival.fandom.com/api.php?action=parse&page=Disasters&format=json&prop=wikitext ; ...page=Round_Control ; ...page=Lobby |
+| Hide and Seek Extreme | not found | Hide 1 min + seek 4 min ("given a minute to hide ... given four minutes to find all the hiders"); needs 2 to 14 players (wiki). CONFLICT: earnaldo (upd. 2026-07-05) says "Each round lasts 4 minutes" total, i.e. 60 s grace + 3 min hunting. Roblox API maxPlayers = 14, which supports the wiki | not found | not found. Inferred: waits out the current round, up to ~5 min | https://hide-and-seek-extreme.fandom.com/api.php?action=parse&page=Hide_and_Seek_Extreme_Wiki&format=json&prop=wikitext ; https://earnaldo.com/blog/hide-and-seek-extreme-free-robux-guide ; https://games.roblox.com/v1/games?universeIds=93740418 |
+| Rocket Spleef | not found | not found. Power-up durations: Lifeline "a chance to live for 10 seconds" (returns you to your last position), Low Gravity 10 s, speed-up 10 s, plus one other effect of "6 seconds" | not found | not found | YouTube 70M0eYENQEc @00:00:18-00:01:05 |
+
+Still missing for every game: an exact intermission for any game except Floor Is LAVA, results-screen length, and seconds until a mid-round joiner plays. No source states these numbers. Inferred next step: time them by hand in a live server, or scrub video timestamps.
+
+---
+
+### 2. Feel details: bomb tag and lava games
+
+**Timebomb Duels**
+- Countdown: "A visible timer on screen counts down"; "The bomb timer is visible on screen" (earnaldo, 2026-08-27). Pro tips call out exact seconds ("when the bomb is at 3 seconds ... when it is 1 second, give it back"), so the timer is read as whole seconds (inferred). YouTube ojFcTNNzX3I @00:00:17 ; tUr5GSX5N84 @00:03:58.
+- Camera: no shake info. Guides push Shift Lock (over-the-shoulder, body faces the camera) as essential for high-level play. https://allthings.how/?p=89896
+- Spectate: eliminated players can spectate ("Wait, I had a spectator", YouTube qjFr_6-Rg4w @00:04:00). The exact UI is not documented.
+- Holder marker / HUD layout: not documented.
+- Mobile: listed as supported (Desktop/Mobile/Tablet/Console/VR, bloxodes). Mobile tag or controls UI is not documented. Passing is contact-only, so no tag button is needed (allthings.how).
+- Elimination look: 33 cosmetic kill effects (already in catalog).
+
+**Hot Potato 🥔💥**: only "Countdown finish = BOOM" (description). No HUD, spectate or camera info.
+
+**R2DA Hot Potato (analogue)**: the bomb holder gets "infinite stamina for a while". That is a catch-up mechanic for the holder. Wiki URL above.
+
+**The Floor Is LAVA!**
+- Spectate: the lobby has "a balcony where eliminated players can spectate the action". That is physical lobby spectating, not a spectate camera (earnaldo).
+- HUD: "Four buttons line the left side of your screen: Shop, Gear Shop, Twitter Codes, and Get Points" (earnaldo).
+- Not documented: on-screen countdown, camera shake, lava-height bar, mobile controls.
+
+**Escape The Lava**: lava comes in waves that rise and recede. No HUD, shake or spectate info found.
+
+**Natural Disaster Survival (disaster/lava-adjacent)**
+- Spectate: dead players teleport to the Lobby Tower, which is "located so that players can get a view of the ongoing round". Blizzard and Sandstorm block the view (wiki Lobby page).
+- Countdown and warning: a disaster warning card is shown to all players at disaster start ("Flash Flood! Seek higher ground!", "Tsunami! Get to higher ground!"). Some disasters give earlier environmental tells: wind audio for Acid Rain, storm clouds for Thunderstorm, Tornado and Flash Flood (wiki Disasters page).
+- Earthquake: earnaldo says the ground "shake[s] violently". That is world shake; camera shake is not documented.
+
+**Color Block**
+- HUD: a color indicator sits at the top of the screen. The color word appears about 0.5 s before the swatch animation finishes (earnaldo).
+- Win: a celebration animation plays, visible to the remaining spectators (earnaldo).
+
+**Hide and Seek Extreme**: hiders can spectate the seeker and zoom out to track it ("always just keep spectating it", YouTube fglmSAKLYXk @00:02:10). Eliminated players spectate from "spectator mode" (earnaldo).
+
+**Rocket Spleef**
+- Mobile: "Shoot - Left Click / Tap / RT"; "Ledge Grab - Hold Jump near the edge of a platform" (description, https://games.roblox.com/v1/games?universeIds=9903685259).
+- Camera: a third-person camera option exists ("let me actually try this in third person", YouTube xXbuDsNFzVQ @00:08:48).
+- Lobby: eliminated players go back to a lobby (same video @00:07:53).
+
+Still not documented anywhere: camera shake on explosion for any game, a holder marker or crown, a lava-height bar, and mobile tag buttons. The inferred defaults in the catalog still stand.
+
+---
+
+### 3. Steam upcoming games: followers
+
+SteamDB returned **HTTP 403** (https://steamdb.info/app/3209660/, 2026-10-23). Per the rules I did not retry or bypass it, and I made no further SteamDB requests.
+
+Substitute: the **Steam Community app-hub group member count** from Steam's own XML endpoint `https://steamcommunity.com/games/<appid>/memberslistxml/?xml=1`, fetched 2026-10-23 ~17:00 UTC.
+- The endpoint returns two numbers: `groupDetails/memberCount` and a top-level `memberCount`. Both are shown.
+- Inferred: SteamDB's "followers" figure is built from this same app-hub group, so the numbers should be close but are not labeled "followers" by Steam.
+- The appreviews JSON endpoint returned an HTML "Welcome to Steam" page instead of JSON (age/region gate, inferred). Most of these games are unreleased, so they have no reviews anyway.
+- Release dates come from `https://store.steampowered.com/api/appdetails?appids=<id>`.
+
+| Game (app) | Release (Steam API) | Hub members (groupDetails) | Hub members (top-level) | Members online / in-game at fetch |
+|---|---|---|---|---|
+| Golf With Your Friends 2 (3209660) | Coming soon | 8,909 | 9,048 | 3,048 / 351 |
+| Rayman Legends Retold (4084710) | Dec 3, 2026 | 10,549 | 10,786 | 3,820 / 589 |
+| Meltdown Crew (4824220) | December 2026 | 2,570 | 2,670 | 1,069 / 192 |
+| Slowly Sliding Ducks (2485410) | Oct 29, 2026 | 1,673 | 1,694 | 579 / 70 |
+| Carry On Together (4776500) | Nov 16, 2026 | 676 | 800 | 236 / 42 |
+| Vikings On Trampolines (748810) | Coming soon | 1,640 | 1,672 | 551 / 56 |
+| Pigs and Wolf (4285870) | Q4 2026 | 734 | 809 | 260 / 48 |
+| Froggin' Around (4005900) | To be announced | 8,494 | 9,141 | 2,172 / 298 |
+
+"Online / in-game" counts members who happen to be online or playing any game. They are not players of these titles.

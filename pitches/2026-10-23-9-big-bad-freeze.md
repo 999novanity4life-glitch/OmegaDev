@@ -7,6 +7,7 @@ Data captured 2026-10-23 from Roblox's public games API (stats and votes) and ro
 ## Why now (Steam signal)
 - **Pigs and Wolf**: a fairy-tale chase game. It is #43 on Steam's Party-tag Top Wishlists and releases Q4 2026. https://store.steampowered.com/app/4285870/ ; rank: https://store.steampowered.com/search/?filter=popularwishlist&tags=7178
 - Theme borrowed: a big-bad tagger chasing piglets who build quick barricades (no IP; a generic fairy tale).
+- Steam community hub members for **Pigs and Wolf**: 734 (Steam's own XML endpoint https://steamcommunity.com/games/4285870/memberslistxml/?xml=1, seen 2026-10-23; hub members, not SteamDB followers, which were blocked).
 
 ## Familiar Roblox loop (freeze tag)
 - **Freeze Tag 🧊** (4 weeks old): 2,925 playing, 81.7% likes, 5K peak. https://www.roblox.com/games/80048951661785

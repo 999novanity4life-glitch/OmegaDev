@@ -81,3 +81,10 @@ LOBBY (free roam + mini obby) → INTERMISSION 15-20 s (map vote, 3-2-1) → ROU
 - New games start as a trial for age-checked 16+ players and reach under-16s after **250 unique plays by highly engaged age-checked users within 60 days**. The creator needs verification, 2-Step Verification, the maturity questionnaire, and a refundable 1,000 R$ fee or 2+ months of Plus/Premium ([Kids & Select](https://create.roblox.com/docs/production/publishing/kids-and-select)). So the launch build must also appeal to teens.
 - Cartoon eliminations with no blood (pop, poof, splash) fit Minimal or Mild, which are eligible for Kids and Select ([content maturity](https://create.roblox.com/docs/production/promotion/content-maturity)).
 - Many kids have chat off; design around emotes and Quick Words ("Pass it!", "Run!", "GG") ([Quick Words](https://create.roblox.com/docs/chat/quick-words)).
+
+## Measured timings from the second pass (2026-10-23)
+- Hide and Seek Extreme: 1 min hide + 4 min seek, 2-14 players ([wiki](https://hide-and-seek-extreme.fandom.com/wiki/Gameplay)); a guide says 60 s + 3 min, so treat 4-5 min as the range.
+- Natural Disaster Survival: rounds of about 2-4 min depending on the disaster; dead players watch from the Lobby Tower ([earnaldo, low confidence](https://earnaldo.com/blog/natural-disaster-survival-free-robux-guide); [wiki](https://natural-disaster-survival.fandom.com/wiki/Lobby_Tower)).
+- Color Block: 5-8 s per call shrinking to 3-4 s, called colour shown at the top of the screen, needs 4+ players (earnaldo, low confidence; timer speed-up confirmed in a gameplay transcript). Full sources in the catalog's "Gap fill" section.
+- Escape The Lava has no rounds: lava rises and falls in waves, so a joiner plays at once (inferred from its description and gameplay).
+- Still unpublished for every game: results-screen length and mid-round joiner wait. Time them in a live server before locking our numbers.

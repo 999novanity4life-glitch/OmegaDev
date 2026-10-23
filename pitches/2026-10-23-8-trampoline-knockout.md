@@ -7,6 +7,7 @@ Data captured 2026-10-23 from Roblox's public games API (stats and votes) and ro
 ## Why now (Steam signal)
 - **Vikings On Trampolines**: a bouncy-arena party game. It is #40 on Steam's Party-tag Top Wishlists and is coming soon. https://store.steampowered.com/app/748810/ ; rank: https://store.steampowered.com/search/?filter=popularwishlist&tags=7178
 - Theme borrowed: a trampoline park where pads break after 3 bounces (no IP).
+- Steam community hub members for **Vikings On Trampolines**: 1,640 (Steam's own XML endpoint https://steamcommunity.com/games/748810/memberslistxml/?xml=1, seen 2026-10-23; hub members, not SteamDB followers, which were blocked).
 
 ## Familiar Roblox loop (sumo / push-off)
 - **Knockout!**: 620,670 all-time peak and 96.1% likes. Everyone aims at once in 7 s turns, the platform shrinks, matches are capped at round 11, and players near an edge get rescued automatically. https://www.roblox.com/games/136764190843219 ; https://www.rotrends.com/game/9384605736 ; https://knockout-roblox.fandom.com/wiki/Guides
