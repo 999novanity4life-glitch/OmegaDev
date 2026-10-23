@@ -13,9 +13,16 @@ function PuzzleRules.valveCount(players: number): number
 	return math.min(clampPlayers(players), 3) + 1
 end
 
--- Plates must all be held at once, so never more plates than players.
+-- Plates must all be held at once. Teams get one plate per player (up to 3);
+-- solo gets 2 plates plus a ballast canister to weigh one down.
 function PuzzleRules.plateCount(players: number): number
-	return math.min(clampPlayers(players), 3)
+	local n = clampPlayers(players)
+	return if n < 2 then 2 else math.min(n, 3)
+end
+
+-- Ballast canisters handed out so every plate can be held at once.
+function PuzzleRules.plateWeights(players: number): number
+	return math.max(0, PuzzleRules.plateCount(players) - clampPlayers(players))
 end
 
 function PuzzleRules.fuseCount(players: number): number

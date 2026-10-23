@@ -180,13 +180,118 @@ local function plates(tier: MapService.TierParts, ctx: Context): Puzzle
 		}, folder)
 		table.insert(list, plate)
 	end
-	local heldFor = 0
+	-- Solo: a heavy ballast canister to carry onto one plate (weights = plates
+	-- the players alone can't cover).
 	local solvedFlag = false
+	local weighted: { [BasePart]: boolean } = {}
+	local weights = PuzzleRules.plateWeights(ctx.playerCount)
+	for w = 1, weights do
+		local homeCf = ringCFrame(ctx.origin, tier.info.hatchAngle + 180 + (w - 1) * 8, 22, floorY + 1.4)
+		local body = part({
+			Name = "Ballast",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(2.4, 1.9, 1.9),
+			CFrame = homeCf * CFrame.Angles(0, 0, math.rad(90)),
+			Color = Color3.fromRGB(70, 74, 92),
+			CanCollide = false,
+		}, folder)
+		local function attach(props: { [string]: any }, offset: CFrame)
+			props.CanCollide = false
+			props.CanQuery = false
+			props.CFrame = body.CFrame * offset
+			local piece = part(props, folder)
+			piece.Anchored = false
+			piece.Massless = true
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = body
+			weld.Part1 = piece
+			weld.Parent = piece
+		end
+		for _, x in { -0.75, 0.75 } do
+			attach({
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.3, 2, 2),
+				Color = Config.Colors.Exit,
+				Material = Enum.Material.SmoothPlastic,
+			}, CFrame.new(x, 0, 0))
+		end
+		attach({ Size = Vector3.new(0.3, 0.3, 1.2), Color = METAL }, CFrame.new(1.35, 0, 0))
+		attach({
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(0.45, 0.45, 0.45),
+			Color = COLORS.Green,
+			Material = Enum.Material.Neon,
+		}, CFrame.new(0.2, 0, -0.95))
+		local onPlate: BasePart? = nil
+		local holder: Player? = nil
+		local pick = prompt(body, "Pick up", "Ballast", 0.3)
+		local function release(player: Player)
+			local character = player.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid.WalkSpeed = 16
+			end
+			local weld = body:FindFirstChild("CarryWeld")
+			if weld then
+				weld:Destroy()
+			end
+			holder = nil
+			body.Anchored = true
+			pick.Enabled = true
+		end
+		pick.Triggered:Connect(function(player)
+			if solvedFlag or holder or not ctx.isClimber(player) then
+				return
+			end
+			local character = player.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			if not root or not humanoid then
+				return
+			end
+			if onPlate then
+				weighted[onPlate] = nil
+				onPlate = nil
+			end
+			holder = player
+			pick.Enabled = false
+			body.Anchored = false
+			body.Massless = true
+			body.CFrame = root.CFrame * CFrame.new(0, 0, -1.6) * CFrame.Angles(0, 0, math.rad(90))
+			local weld = Instance.new("WeldConstraint")
+			weld.Name = "CarryWeld"
+			weld.Part0 = root
+			weld.Part1 = body
+			weld.Parent = body
+			humanoid.WalkSpeed = Config.Puzzles.FuseWalkSpeed
+			humanoid.Died:Once(function()
+				if holder == player then
+					release(player)
+					body.CFrame = homeCf * CFrame.Angles(0, 0, math.rad(90))
+				end
+			end)
+			ctx.onProgress("Valve", body.Position)
+		end)
+		for _, plate in list do
+			local set = prompt(plate, "Set down", "Ballast", 0.3)
+			set.Triggered:Connect(function(player)
+				if holder ~= player or weighted[plate] then
+					return
+				end
+				release(player)
+				body.CFrame = plate.CFrame * CFrame.new(0, 1.4, 0) * CFrame.Angles(0, 0, math.rad(90))
+				weighted[plate] = true
+				onPlate = plate
+				ctx.onProgress("Valve", plate.Position)
+			end)
+		end
+	end
+	local heldFor = 0
 	local lit = 0
 	return {
 		kind = "Plates",
 		title = "PRESSURE PLATES",
-		label = "Stand on every plate together",
+		label = if weights > 0 then "Weigh down a plate, stand on the other" else "Stand on every plate together",
 		focus = ringCFrame(ctx.origin, tier.info.hatchAngle + 180, 15, floorY + 0.2).Position,
 		update = function(dt: number)
 			if solvedFlag then
@@ -194,15 +299,17 @@ local function plates(tier: MapService.TierParts, ctx: Context): Puzzle
 			end
 			lit = 0
 			for _, plate in list do
-				local on = false
-				for _, player in ctx.climbers() do
-					local character = player.Character
-					local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-					if root then
-						local d = root.Position - plate.Position
-						if math.abs(d.X) < 3.4 and math.abs(d.Z) < 3.4 and d.Y > 0 and d.Y < 5 then
-							on = true
-							break
+				local on = weighted[plate] == true
+				if not on then
+					for _, player in ctx.climbers() do
+						local character = player.Character
+						local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+						if root then
+							local d = root.Position - plate.Position
+							if math.abs(d.X) < 3.4 and math.abs(d.Z) < 3.4 and d.Y > 0 and d.Y < 5 then
+								on = true
+								break
+							end
 						end
 					end
 				end

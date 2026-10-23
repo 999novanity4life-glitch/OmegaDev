@@ -6,16 +6,18 @@
 --   Goo:    lumpy goo blob that wobbles while it flies (2x2 Loop)
 --   Drip:   teardrop that points along its fall
 --   Streak: soft air streak for updrafts
+--   Mote:   soft glowing dust mote (light shafts, celebration bursts)
 
 local ParticleArt = {}
 
-export type Kind = "Bubble" | "Goo" | "Drip" | "Streak"
+export type Kind = "Bubble" | "Goo" | "Drip" | "Streak" | "Mote"
 
 local TEXTURES: { [Kind]: string } = {
 	Bubble = "rbxassetid://98099726734333",
 	Goo = "rbxassetid://136986632132995",
 	Drip = "rbxassetid://72061933320294",
 	Streak = "rbxassetid://117948986562706",
+	Mote = "rbxassetid://99309114881530",
 }
 
 function ParticleArt.style(emitter: ParticleEmitter, kind: Kind): ParticleEmitter
@@ -41,6 +43,9 @@ function ParticleArt.style(emitter: ParticleEmitter, kind: Kind): ParticleEmitte
 		emitter.Rotation = NumberRange.new(0, 360)
 		emitter.RotSpeed = NumberRange.new(-60, 60)
 		emitter.LightEmission = 0.1
+	elseif kind == "Mote" then
+		emitter.Orientation = Enum.ParticleOrientation.FacingCamera
+		emitter.LightEmission = 0.8
 	elseif kind == "Drip" then
 		emitter.Orientation = Enum.ParticleOrientation.VelocityParallel
 		emitter.LightEmission = 0.1
