@@ -33,6 +33,10 @@ try {
 	assert.equal(s.review[0].verdict, "pending");
 	assert.equal((await fetch(`${base}/${s.review[0].file}`)).status, 200);
 	assert.equal((await fetch(`${base}/`)).status, 200);
+	const lib = await (await fetch(`${base}/api/library`)).json();
+	assert.ok(lib.some((d) => d.group === "Studio playbook" && d.path.startsWith("vault/")), "library lists the vault");
+	assert.ok(lib.every((d) => typeof d.title === "string" && typeof d.text === "string" && !d.path.includes("..")), "library entries are well formed");
+	assert.equal((await fetch(`${base}/api/library/../../etc/passwd`)).status, 404);
 
 	assert.equal((await post("/api/verdict", { id: reviewId, verdict: "changes", comment: "bigger text" })).status, 200);
 	assert.equal((await post("/api/verdict", { id: "../../etc/passwd", verdict: "approved" })).status, 404);

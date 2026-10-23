@@ -5,9 +5,48 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PITCH_DIRS, STATE, readState } from "../scripts/state.mjs";
+import { execFileSync } from "node:child_process";
+import { PITCH_DIRS, ROOT, STATE, readState } from "../scripts/state.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+// Library: the studio's knowledge, shown read-only in the control room.
+// Order here is the order of the groups on the page.
+const LIBRARY = [
+	{ dir: "vault", group: "Studio playbook" },
+	{ dir: "docs/rulebooks", group: "Rulebooks" },
+	{ dir: "docs/research", group: "Research" },
+	{ dir: "docs", group: "Studio docs" },
+	{ dir: "kits", group: "Code kits", readmes: true },
+];
+
+// Last commit time for a file (falls back to the file's mtime outside git or for new files).
+const lastChanged = (file) => {
+	try {
+		const iso = execFileSync("git", ["log", "-1", "--format=%cI", "--", file], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+		if (iso) return new Date(iso).toISOString();
+	} catch {}
+	return fs.statSync(file).mtime.toISOString();
+};
+
+export function listLibrary() {
+	const out = [];
+	for (const { dir, group, readmes } of LIBRARY) {
+		const full = path.join(ROOT, dir);
+		if (!fs.existsSync(full)) continue;
+		const files = readmes
+			? fs.readdirSync(full, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => path.join(d.name, "README.md"))
+			: fs.readdirSync(full).filter((f) => f.endsWith(".md"));
+		for (const rel of files.sort()) {
+			const file = path.join(full, rel);
+			if (!fs.existsSync(file) || !fs.statSync(file).isFile()) continue;
+			const text = fs.readFileSync(file, "utf8");
+			const title = (text.match(/^#\s+(.+)$/m) || [])[1] || path.basename(rel, ".md");
+			out.push({ path: `${dir}/${rel.split(path.sep).join("/")}`, group, title: title.trim(), updated: lastChanged(file), text });
+		}
+	}
+	return out;
+}
 const MEDIA_TYPES = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".mp4": "video/mp4", ".webm": "video/webm" };
 
 const send = (res, code, body, type = "application/json") => {
@@ -45,6 +84,8 @@ async function handle(req, res) {
 		return send(res, 200, fs.readFileSync(path.join(HERE, "index.html")), "text/html; charset=utf-8");
 	}
 	if (req.method === "GET" && url.pathname === "/api/state") return send(res, 200, readState());
+	// Read-only list of whitelisted Markdown files (no path from the client is ever opened).
+	if (req.method === "GET" && url.pathname === "/api/library") return send(res, 200, listLibrary());
 	if (req.method === "GET" && url.pathname.startsWith("/media/")) {
 		const name = path.basename(url.pathname);
 		const file = path.join(STATE, "review", "media", name);
