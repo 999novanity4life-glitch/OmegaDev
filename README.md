@@ -6,8 +6,11 @@ control room to watch them and approve their work.
 - **14 agents** in `.claude/agents/`: Lead, Pulse, Architect, Builder, Scenic,
   Frame, Librarian, Balance, Splash, Playtest, Kid Tester, Producer, LiveOps,
   Code Reviewer.
-- **Control room** (`control-room/`): Home (what needs you), Team, Tasks,
-  Review (approve / changes / reject), Games, Pitches, Ask the Lead, Pause all.
+- **Control room** (`control-room/`), organised for beginners: **Start here** (Today, Guide),
+  **Make games** (Game ideas with a Build-this-one button, My games), **The team** (Who's working,
+  Work queue), **Check work** (Review) and **Learn** (Library: the vault playbook, `docs/rulebooks/`,
+  `docs/research/` and `kits/`, searchable, with NEW tags). Plus Ask the Lead and Pause all.
+- **Kits** (`kits/`): playtested building blocks to reuse (themed skills + VFX, 3D tilt menu).
 - **Vault** (`vault/`): the studio's design rules, chapters 00–13. Open the
   folder in Obsidian if you like; it's plain Markdown.
 - **Template** (`template/`): Rojo + strict Luau game skeleton with tests.
