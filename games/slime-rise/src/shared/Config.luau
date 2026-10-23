@@ -95,7 +95,7 @@ Config.Lobby = {
 }
 
 Config.Lighting = {
-	Ambient = Color3.fromRGB(84, 80, 118),
+	Ambient = Color3.fromRGB(100, 96, 136),
 	OutdoorAmbient = Color3.fromRGB(70, 82, 100),
 	Brightness = 2,
 	ClockTime = 0,

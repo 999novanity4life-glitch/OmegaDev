@@ -253,6 +253,158 @@ local function buildCore(model: Model, origin: Vector3, height: number)
 	end
 end
 
+-- Floor drains: real trenches ~1.6 deep running along Z, slime flowing in
+-- them (scrolling texture, soft glow) under a see-through walkable grate.
+local TRENCH_X = { -24, -8, 8, 24 }
+local TRENCH_W = 3
+local TRENCH_DEPTH = 1.6
+local SLIME_FLOW = "rbxassetid://100553516752013"
+local BAR_PITCH = 1.4 -- one cross bar every 1.4 studs leaves ~1.1-stud open slots
+
+local function flowLayer(slime: BasePart, w: number, tile: number, speed: number, transparency: number)
+	local flow = Instance.new("Texture")
+	flow.Texture = SLIME_FLOW
+	flow.Face = Enum.NormalId.Top
+	flow.StudsPerTileU = w
+	flow.StudsPerTileV = tile
+	flow.Transparency = transparency
+	flow:SetAttribute("FlowSpeed", speed)
+	flow.Parent = slime
+	CollectionService:AddTag(flow, "SlimeFlow")
+end
+
+-- Open drain channel: dark steel walls, slime flowing ~1 stud below the deck
+-- (two scrolling layers at different speeds for depth), real 3D cross bars on
+-- top and an invisible collider so players walk over it like a solid floor.
+local function trench(parent: Instance, origin: Vector3, top: number, x0: number, x1: number, z0: number, z1: number)
+	local w, len = x1 - x0, z1 - z0
+	local cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
+	local at = function(y: number): Vector3
+		return origin + Vector3.new(cx, y, cz)
+	end
+	LabKit.part({
+		Size = Vector3.new(w, 0.4, len),
+		Position = at(top - TRENCH_DEPTH - 0.2),
+		Kit = "SR_Steel",
+		Tint = Color3.fromRGB(46, 50, 64),
+	}, parent)
+	-- Inner walls, so the channel reads as a cut into the deck from any angle.
+	for _, side in { -1, 1 } do
+		LabKit.deco({
+			Size = Vector3.new(0.2, TRENCH_DEPTH, len),
+			Position = at(top - TRENCH_DEPTH / 2) + Vector3.new(side * (w / 2 - 0.1), 0, 0),
+			Kit = "SR_Steel",
+			Tint = Color3.fromRGB(70, 76, 98),
+		}, parent)
+	end
+	local slime = LabKit.deco({
+		Name = "DrainSlime",
+		Size = Vector3.new(w - 0.4, 0.5, len),
+		Position = at(top - 1.05),
+		Color = Config.Colors.Slime,
+		Material = Enum.Material.SmoothPlastic,
+		Transparency = 0.05,
+	}, parent)
+	flowLayer(slime, w, 6, 2.5, 0)
+	flowLayer(slime, w * 0.7, 9, 4.2, 0.55)
+	local glow = Instance.new("SurfaceLight")
+	glow.Face = Enum.NormalId.Top
+	glow.Color = Config.Colors.Slime
+	glow.Range = 7
+	glow.Brightness = 1.3
+	glow.Parent = slime
+	local bubbles = Instance.new("ParticleEmitter")
+	bubbles.Name = "DrainBubbles"
+	bubbles.Color = ColorSequence.new(Config.Colors.Slime)
+	bubbles.LightEmission = 0.4
+	bubbles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 0.28) })
+	bubbles.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
+	bubbles.Lifetime = NumberRange.new(0.5, 0.9)
+	bubbles.Speed = NumberRange.new(0.6, 1.2)
+	bubbles.EmissionDirection = Enum.NormalId.Top
+	bubbles.Rate = math.clamp(len / 6, 1, 14)
+	bubbles.Parent = slime
+	-- Cross bars sit just under the lips so the open slots show the slime below.
+	local bars = Instance.new("Model")
+	bars.Name = "DrainBars"
+	local count = math.max(1, math.floor(len / BAR_PITCH))
+	local step = len / count
+	for i = 0, count - 1 do
+		LabKit.deco({
+			Size = Vector3.new(w - 0.1, 0.22, 0.26),
+			Position = at(top - 0.13) + Vector3.new(0, 0, -len / 2 + step * (i + 0.5)),
+			Kit = "SR_Steel",
+			Tint = Color3.fromRGB(150, 156, 178),
+		}, bars)
+	end
+	-- One carrier rail down the middle holding the bars up.
+	LabKit.deco({
+		Size = Vector3.new(0.18, 0.3, len),
+		Position = at(top - 0.39),
+		Kit = "SR_Steel",
+		Tint = Color3.fromRGB(110, 116, 140),
+	}, bars)
+	bars.Parent = parent
+	LabKit.part({
+		Name = "DrainGrate",
+		Size = Vector3.new(w + 0.1, 0.12, len),
+		Position = at(top - 0.06),
+		Transparency = 1,
+	}, parent)
+	-- Steel lips along both trench edges.
+	for _, side in { -1, 1 } do
+		LabKit.deco({
+			Size = Vector3.new(0.35, 0.14, len),
+			Position = at(top + 0.02) + Vector3.new(side * (w / 2 + 0.1), 0, 0),
+			Kit = "SR_Steel",
+			Tint = Color3.fromRGB(150, 156, 176),
+		}, parent)
+	end
+end
+
+-- A floor slab over [x0,x1]x[z0,z1] (top at `top`, thickness t), split into
+-- plate strips with drain trenches where the trench lines cross it.
+local function deckSlab(
+	parent: Instance,
+	origin: Vector3,
+	top: number,
+	t: number,
+	x0: number,
+	x1: number,
+	z0: number,
+	z1: number
+)
+	if x1 - x0 < 0.1 or z1 - z0 < 0.1 then
+		return
+	end
+	local cuts = { x0 }
+	for _, tx in TRENCH_X do
+		local a, b = tx - TRENCH_W / 2, tx + TRENCH_W / 2
+		if b > x0 and a < x1 then
+			table.insert(cuts, math.max(a, x0))
+			table.insert(cuts, math.min(b, x1))
+		end
+	end
+	table.insert(cuts, x1)
+	for i = 1, #cuts - 1 do
+		local a, b = cuts[i], cuts[i + 1]
+		if b - a >= 0.1 then
+			local isTrench = i % 2 == 0
+			if isTrench then
+				trench(parent, origin, top, a, b, z0, z1)
+			else
+				part({
+					Name = "Bulkhead",
+					Size = Vector3.new(b - a, t, z1 - z0),
+					Position = origin + Vector3.new((a + b) / 2, top - t / 2, (z0 + z1) / 2),
+					Color = C.Floor,
+					Kit = "SR_Grate",
+				}, parent)
+			end
+		end
+	end
+end
+
 -- Square slab with a square hole (the hatch) at a point, plus two sliding doors.
 local function buildBulkhead(parent: Instance, origin: Vector3, y: number, hole: Vector3): ({ BasePart }, { CFrame })
 	local cfg = Config.Shaft
@@ -262,16 +414,7 @@ local function buildBulkhead(parent: Instance, origin: Vector3, y: number, hole:
 	local cy = y - t / 2
 	local hx, hz = hole.X - origin.X, hole.Z - origin.Z
 	local function slab(x0: number, x1: number, z0: number, z1: number)
-		if x1 - x0 < 0.1 or z1 - z0 < 0.1 then
-			return
-		end
-		part({
-			Name = "Bulkhead",
-			Size = Vector3.new(x1 - x0, t, z1 - z0),
-			Position = origin + Vector3.new((x0 + x1) / 2, cy, (z0 + z1) / 2),
-			Color = C.Floor,
-			Kit = "SR_Grate",
-		}, parent)
+		deckSlab(parent, origin, cy + t / 2, t, x0, x1, z0, z1)
 	end
 	slab(-half, hx - h, -half, half)
 	slab(hx + h, half, -half, half)
@@ -354,6 +497,31 @@ local function dressTier(folder: Instance, origin: Vector3, info: ShaftLayout.Ti
 		local angle = h + 15 + i * 60
 		local y = floorY + (if i % 2 == 0 then 10 else 24)
 		LabKit.lightFixture(folder, ringCFrame(origin, angle, R - 0.6, y), Color3.fromRGB(220, 240, 255), 32)
+	end
+	-- Ceiling light panels under the bulkhead: even fill light for the whole
+	-- tier (wall fixtures alone leave the middle of upper tiers dark).
+	for k = 0, 3 do
+		local angle = h + 45 + k * 90
+		local x, z = ShaftLayout.polar(angle, 17)
+		local pos = origin + Vector3.new(x, info.ceilingY - cfg.BulkheadThickness - 0.4, z)
+		local cf = CFrame.lookAt(pos, Vector3.new(origin.X, pos.Y, origin.Z))
+		LabKit.deco(
+			{ Size = Vector3.new(4.4, 0.5, 11), CFrame = cf, Kit = "SR_Steel", Tint = Color3.fromRGB(70, 74, 92) },
+			folder
+		)
+		local panel = LabKit.deco({
+			Size = Vector3.new(3.4, 0.2, 10),
+			CFrame = cf * CFrame.new(0, -0.3, 0),
+			Color = Color3.fromRGB(230, 242, 255),
+			Material = Enum.Material.Neon,
+		}, folder)
+		local fill = Instance.new("SurfaceLight")
+		fill.Face = Enum.NormalId.Bottom
+		fill.Range = 44
+		fill.Angle = 120
+		fill.Brightness = 1.4
+		fill.Color = Color3.fromRGB(225, 238, 255)
+		fill.Parent = panel
 	end
 	-- Vents low on the wall.
 	for _, angle in { h + 95, h + 265 } do
@@ -486,14 +654,8 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 	buildCore(model, origin, height)
 
 	-- Bottom floor (tier 1).
-	part({
-		Name = "Floor",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(2, cfg.Radius * 2 + 2, cfg.Radius * 2 + 2),
-		CFrame = CFrame.new(origin + Vector3.new(0, -1, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = C.Floor,
-		Kit = "SR_Grate",
-	}, model)
+	local floorHalf = cfg.Radius + 2
+	deckSlab(model, origin, 0, 2, -floorHalf, floorHalf, -floorHalf, floorHalf)
 	-- Leak: cracked pipe at the bottom with slime pouring out.
 	local leak = deco({
 		Name = "Leak",

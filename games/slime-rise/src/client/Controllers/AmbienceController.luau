@@ -149,6 +149,14 @@ function AmbienceController.start()
 				lamp.CFrame *= CFrame.Angles(0, dt * 5, 0)
 			end
 		end
+		-- Slime flowing through the floor drains.
+		for _, flow in CollectionService:GetTagged("SlimeFlow") do
+			if flow:IsA("Texture") then
+				local speed = flow:GetAttribute("FlowSpeed")
+				local rate = if type(speed) == "number" then speed else 2.5
+				flow.OffsetStudsV = (flow.OffsetStudsV + dt * rate) % flow.StudsPerTileV
+			end
+		end
 		for _, fan in CollectionService:GetTagged("Fan") do
 			if fan:IsA("BasePart") then
 				fan.CFrame *= CFrame.Angles(0, 0, dt * 6)
