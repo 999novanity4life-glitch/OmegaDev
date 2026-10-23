@@ -8,6 +8,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local ParticleArt = require(Shared:WaitForChild("ParticleArt"))
 local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
 local LabKit = require(script.Parent.LabKit)
 local CourseBuilder = require(script.Parent.CourseBuilder)
@@ -234,12 +235,12 @@ local function buildCore(model: Model, origin: Vector3, height: number)
 	local bubbles = Instance.new("ParticleEmitter")
 	bubbles.Color = ColorSequence.new(Color3.fromRGB(220, 255, 200))
 	bubbles.LightEmission = 0.7
-	bubbles.Size = NumberSequence.new(0.3, 0.8)
-	bubbles.Transparency = NumberSequence.new(0.2, 1)
+	bubbles.Size = NumberSequence.new(0.7, 1.4)
 	bubbles.Lifetime = NumberRange.new(3, 6)
 	bubbles.Speed = NumberRange.new(4, 9)
 	bubbles.EmissionDirection = Enum.NormalId.Right -- cylinder axis points along X
-	bubbles.Rate = 25
+	bubbles.Rate = 40
+	ParticleArt.style(bubbles, "Bubble")
 	bubbles.Parent = inner
 	-- Steel rings around the tank at every floor.
 	for t = 0, Config.Shaft.Tiers do
@@ -316,12 +317,13 @@ local function trench(parent: Instance, origin: Vector3, top: number, x0: number
 	bubbles.Name = "DrainBubbles"
 	bubbles.Color = ColorSequence.new(Config.Colors.Slime)
 	bubbles.LightEmission = 0.4
-	bubbles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 0.28) })
+	bubbles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 0.45) })
 	bubbles.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
 	bubbles.Lifetime = NumberRange.new(0.5, 0.9)
 	bubbles.Speed = NumberRange.new(0.6, 1.2)
 	bubbles.EmissionDirection = Enum.NormalId.Top
 	bubbles.Rate = math.clamp(len / 6, 1, 14)
+	ParticleArt.style(bubbles, "Bubble")
 	bubbles.Parent = slime
 	-- Cross bars sit just under the lips so the open slots show the slime below.
 	local bars = Instance.new("Model")
@@ -673,6 +675,7 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 	gush.Acceleration = Vector3.new(0, -40, 0)
 	gush.SpreadAngle = Vector2.new(15, 15)
 	gush.Rate = 60
+	ParticleArt.style(gush, "Goo")
 	gush.Parent = leak
 
 	local tiers: { TierParts } = {}

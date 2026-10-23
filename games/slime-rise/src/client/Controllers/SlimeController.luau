@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local ParticleArt = require(Shared:WaitForChild("ParticleArt"))
 local MatchState = require(script.Parent.MatchState)
 
 local SlimeController = {}
@@ -52,8 +53,7 @@ local function makeSlime(): (Model, BasePart, BasePart, ParticleEmitter)
 	glow.Brightness = 1.2
 	glow.Parent = skin
 	local bubbles = Instance.new("ParticleEmitter")
-	bubbles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-	bubbles.Color = ColorSequence.new(Config.Colors.Slime, Color3.fromRGB(220, 255, 200))
+	bubbles.Color = ColorSequence.new(Config.Colors.Slime, Config.Colors.SlimeDeep)
 	bubbles.LightEmission = 0.6
 	bubbles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 1.6) })
 	bubbles.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
@@ -62,6 +62,7 @@ local function makeSlime(): (Model, BasePart, BasePart, ParticleEmitter)
 	bubbles.SpreadAngle = Vector2.new(25, 25)
 	bubbles.EmissionDirection = Enum.NormalId.Top
 	bubbles.Rate = 60
+	ParticleArt.style(bubbles, "Bubble")
 	bubbles.Parent = skin
 	model.Parent = workspace
 	return model, body, skin, bubbles
