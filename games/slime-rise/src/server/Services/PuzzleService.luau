@@ -321,8 +321,8 @@ local function fuses(tier: MapService.TierParts, ctx: Context): Puzzle
 	local socketCf = tier.landing.CFrame * CFrame.new(0, tier.landing.Size.Y / 2 + 1.5, tier.landing.Size.Z / 2 - 1)
 	local socket = part({ Size = Vector3.new(3, 3, 1.4), CFrame = socketCf, Color = DARK }, folder)
 	local inserted = 0
-	local carrying: { [Player]: Part } = {}
-	local fuseParts: { Part } = {}
+	local carrying: { [Player]: BasePart } = {}
+	local fuseParts: { BasePart } = {}
 	local function shelfSpot(i: number): CFrame
 		return shelfCf * CFrame.new((i - (count + 1) / 2) * 2.2, 2.4, 0)
 	end

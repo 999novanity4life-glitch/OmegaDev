@@ -54,12 +54,12 @@ local DECALS: { [string]: string } = {
 
 -- Wall panel rhythm from the research: mostly calm panels, specials weighted,
 -- never the same special twice in a row or stacked.
-local PANEL_WEIGHTS = {
-	{ "SR_WallPlain", 60 },
-	{ "SR_WallVent", 15 },
-	{ "SR_WallPipe", 10 },
-	{ "SR_WallHatch", 10 },
-	{ "SR_WallWindow", 5 },
+local PANEL_WEIGHTS: { { name: string, weight: number } } = {
+	{ name = "SR_WallPlain", weight = 60 },
+	{ name = "SR_WallVent", weight = 15 },
+	{ name = "SR_WallPipe", weight = 10 },
+	{ name = "SR_WallHatch", weight = 10 },
+	{ name = "SR_WallWindow", weight = 5 },
 }
 -- Crisp tileable hazard stripes (rendered in code, art/hazard.png).
 local HAZARD_TEXTURE = "rbxassetid://124914035857571"
@@ -208,14 +208,14 @@ end
 function LabKit.pickPanel(rand: Random, left: string?, below: string?): string
 	local total = 0
 	for _, w in PANEL_WEIGHTS do
-		total += w[2]
+		total += w.weight
 	end
 	for _ = 1, 6 do
 		local roll = rand:NextNumber() * total
 		for _, w in PANEL_WEIGHTS do
-			roll -= w[2]
+			roll -= w.weight
 			if roll <= 0 then
-				local name = w[1]
+				local name = w.name
 				local special = name ~= "SR_WallPlain"
 				if not special or (name ~= left and name ~= below) then
 					return name
@@ -268,7 +268,7 @@ function LabKit.prop(name: string, cf: CFrame, height: number, parent: Instance,
 end
 
 function LabKit.hasProp(name: string): boolean
-	return templates[name] ~= nil
+	return if templates[name] then true else false
 end
 
 -- Railing along the local X axis of cf (cf = centre of the rail base).

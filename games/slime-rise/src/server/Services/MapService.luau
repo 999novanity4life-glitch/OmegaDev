@@ -542,7 +542,7 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 			doorOpen = doorOpen,
 			bridge = bridge,
 			bridgeTargets = targets,
-			landing = landing,
+			landing = landing :: BasePart,
 			pads = pads,
 			opened = false,
 		})

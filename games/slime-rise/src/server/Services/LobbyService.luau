@@ -297,17 +297,41 @@ local function panelWalls(folder: Folder, o: Vector3, w: number, h: number, d: n
 	for p = 1, Config.Party.PodCount do
 		table.insert(podXs, (p - (Config.Party.PodCount + 1) / 2) * 36)
 	end
-	local walls = {
-		-- {start, direction along the wall, inward normal, length, is north wall}
-		{ o + Vector3.new(-w / 2, 0, -d / 2), Vector3.new(1, 0, 0), Vector3.new(0, 0, 1), w, true },
-		{ o + Vector3.new(w / 2, 0, d / 2), Vector3.new(-1, 0, 0), Vector3.new(0, 0, -1), w, false },
-		{ o + Vector3.new(-w / 2, 0, d / 2), Vector3.new(0, 0, -1), Vector3.new(1, 0, 0), d, false },
-		{ o + Vector3.new(w / 2, 0, -d / 2), Vector3.new(0, 0, 1), Vector3.new(-1, 0, 0), d, false },
+	type WallRun = { start: Vector3, dir: Vector3, normal: Vector3, length: number, north: boolean }
+	local walls: { WallRun } = {
+		{
+			start = o + Vector3.new(-w / 2, 0, -d / 2),
+			dir = Vector3.xAxis,
+			normal = Vector3.zAxis,
+			length = w,
+			north = true,
+		},
+		{
+			start = o + Vector3.new(w / 2, 0, d / 2),
+			dir = -Vector3.xAxis,
+			normal = -Vector3.zAxis,
+			length = w,
+			north = false,
+		},
+		{
+			start = o + Vector3.new(-w / 2, 0, d / 2),
+			dir = -Vector3.zAxis,
+			normal = Vector3.xAxis,
+			length = d,
+			north = false,
+		},
+		{
+			start = o + Vector3.new(w / 2, 0, -d / 2),
+			dir = Vector3.zAxis,
+			normal = -Vector3.xAxis,
+			length = d,
+			north = false,
+		},
 	}
 	local below: { [string]: string } = {}
 	for wi, wall in walls do
-		local start: Vector3, dir: Vector3, normal: Vector3 = wall[1], wall[2], wall[3]
-		local length: number, isNorth: boolean = wall[4], wall[5]
+		local start, dir, normal = wall.start, wall.dir, wall.normal
+		local length, isNorth = wall.length, wall.north
 		local cols = math.floor(length / 10)
 		local cellW = length / cols
 		local left: string? = nil

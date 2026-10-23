@@ -41,7 +41,7 @@ local matches: { [string]: Match } = {}
 local slotsUsed: { [number]: boolean } = {}
 local byPlayer: { [Player]: Match } = {}
 local nextId = 0
-local lobbyReturn: (player: Player) -> () = function() end
+local lobbyReturn: (player: Player) -> () = function(_player: Player) end
 
 local function now(): number
 	return workspace:GetServerTimeNow()
