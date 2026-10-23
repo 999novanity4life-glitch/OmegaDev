@@ -63,7 +63,7 @@ State (used by agents)
   task add --game g --agent a --title t [--detail d] [--status queued]
   task set <id> [--status s] [--agent a] [--detail d]
   agent <name> --status idle|working [--line "what I'm doing"] [--game g]
-  review add --game g --agent a --kind image|video|stage --title t [--file path] [--note n]
+  review add --game g --agent a --kind image|video|stage|doc --title t [--file path] [--doc repo/path.md] [--note n]
   review set <id> --verdict approved|changes|rejected [--comment c]
   tryit add --game g --title t --steps "1. ... 2. ..."
   tryit done <id> [--reply r]
@@ -220,10 +220,11 @@ Running
 				id: newId("r"),
 				game: need(args, "game"),
 				agent: oneOf(need(args, "agent"), AGENTS, "agent"),
-				kind: oneOf(need(args, "kind"), ["image", "video", "stage"], "kind"),
+				kind: oneOf(need(args, "kind"), ["image", "video", "stage", "doc"], "kind"),
 				title: need(args, "title"),
 				note: args.note || "",
 				file: null,
+				doc: null,
 				verdict: "pending",
 				comment: "",
 				created: now(),
@@ -237,6 +238,12 @@ Running
 				const name = `${item.id}${path.extname(src)}`;
 				fs.copyFileSync(src, path.join(media, name));
 				item.file = `media/${name}`;
+			}
+			if (args.doc) {
+				// A Markdown file in the repo; the control room opens it in the Library.
+				const rel = String(args.doc).split(path.sep).join("/");
+				if (rel.includes("..") || !rel.endsWith(".md") || !fs.existsSync(path.join(ROOT, rel))) die(`doc not found: ${args.doc}`);
+				item.doc = rel;
 			}
 			writeJson(path.join(dir, `${item.id}.json`), item);
 			log({ kind: "review-add", id: item.id, title: item.title });

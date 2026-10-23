@@ -9,3 +9,8 @@ Studio rules:
 - Reveal UI one piece at a time: core verb → first reward → first menu → the rest. Ten tiles appearing at once looks like chaos.
 - Guide with the world (glowing path, arrow, floating word) before adding text.
 - Log every onboarding step with `AnalyticsService:LogOnboardingFunnelStepEvent` on the server ([funnels](https://create.roblox.com/docs/production/analytics/funnel-events)).
+
+## Party games (added 2026-10-23, see chapter 14)
+- A new joiner is playing within 60 s. Long rounds strand joiners for minutes ([DevForum](https://devforum.roblox.com/t/allow-developers-to-mark-servers-as-unpreferred-for-new-player-joins/3680997/1)); use short rounds, join-in-progress, or a lobby obby that pays a little.
+- Keep any "get ready" card to 3-5 s ([DevForum](https://devforum.roblox.com/t/feedback-on-my-rising-lava/1215711)).
+- Below 4 players, fill with bots or a solo score mode: empty round servers lose players instantly ([DevForum](https://devforum.roblox.com/t/feedbackproblem-hot-potato-slap-counter-game/4450393)).
