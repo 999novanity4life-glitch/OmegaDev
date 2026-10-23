@@ -12,11 +12,11 @@ local SlimeCurve = require(Shared:WaitForChild("SlimeCurve"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Juice = require(script.Parent.Juice)
 local SlimeController = require(script.Parent.SlimeController)
+local MatchState = require(script.Parent.MatchState)
 
 local HudController = {}
 
 local player = Players.LocalPlayer
-local state = ReplicatedStorage:WaitForChild("RoundState")
 local FONT = Font.fromName("FredokaOne")
 local DARK = Color3.fromRGB(24, 18, 38)
 
@@ -199,6 +199,50 @@ function HudController.start()
 	logoGradient.Rotation = 90
 	logoGradient.Parent = logoText
 
+	-- Lobby tip under the logo.
+	local tip = label({
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0.29),
+		Size = UDim2.fromScale(0.4, 0.045),
+		Text = "Step into an ELEVATOR to start a run",
+	}, gui)
+
+	-- Objective panel under the top pill (match only).
+	local objective = panel({
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 62),
+		Size = UDim2.fromScale(0.3, 0.06),
+		Visible = false,
+	}, gui)
+	local objectiveRatio = Instance.new("UIAspectRatioConstraint")
+	objectiveRatio.AspectRatio = 7
+	objectiveRatio.Parent = objective
+	local tierText = label({
+		Size = UDim2.fromScale(0.22, 0.62),
+		Position = UDim2.fromScale(0.03, 0.08),
+		TextColor3 = Config.Colors.Slime,
+	}, objective)
+	local taskText = label({ Size = UDim2.fromScale(0.72, 0.62), Position = UDim2.fromScale(0.26, 0.08) }, objective)
+	taskText.TextXAlignment = Enum.TextXAlignment.Left
+	local barBack = Instance.new("Frame")
+	barBack.AnchorPoint = Vector2.new(0.5, 1)
+	barBack.Position = UDim2.fromScale(0.5, 0.9)
+	barBack.Size = UDim2.fromScale(0.92, 0.16)
+	barBack.BackgroundColor3 = Color3.fromRGB(60, 52, 84)
+	barBack.BorderSizePixel = 0
+	local barCorner = Instance.new("UICorner")
+	barCorner.CornerRadius = UDim.new(1, 0)
+	barCorner.Parent = barBack
+	barBack.Parent = objective
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.fromScale(0, 1)
+	bar.BackgroundColor3 = Config.Colors.Slime
+	bar.BorderSizePixel = 0
+	local barFillCorner = Instance.new("UICorner")
+	barFillCorner.CornerRadius = UDim.new(1, 0)
+	barFillCorner.Parent = bar
+	bar.Parent = barBack
+
 	-- Center: countdown and banners.
 	local banner = label({
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -229,32 +273,49 @@ function HudController.start()
 	end
 
 	local lastCount = -1
+	local labels = {
+		Intro = "SECTOR BRIEFING",
+		Round = "ESCAPE!",
+		Results = "RESULTS",
+	}
 	RunService.RenderStepped:Connect(function()
-		local name = state:GetAttribute("State")
-		local endsAt = state:GetAttribute("EndsAt")
-		local left = if type(endsAt) == "number" and endsAt > 0 then endsAt - workspace:GetServerTimeNow() else 0
-		local labels = {
-			Lobby = "WAITING FOR PLAYERS",
-			Intermission = "NEXT ROUND",
-			Round = "ESCAPE!",
-			Results = "RESULTS",
-		}
-		stateText.Text = if type(name) == "string" then labels[name] or name else ""
-		timerText.Text = if left > 0 then formatTime(left) else ""
+		gui.Enabled = player:GetAttribute("Cutscene") ~= true
+		local folder = MatchState.folder()
+		local name = MatchState.state()
+		local endsAt = MatchState.number("EndsAt")
+		local left = if endsAt then endsAt - workspace:GetServerTimeNow() else 0
+		stateText.Text = if folder then (if name then labels[name] or name else "") else "SLIME LAB"
+		timerText.Text = if left > 0 then formatTime(left) else (if folder then "" else "LOBBY")
 		timerIcon.Visible = left > 0
-		logo.Visible = name ~= "Round"
+		local inPod = player:GetAttribute("InPod") == true
+		logo.Visible = folder == nil and not inPod
+		tip.Visible = folder == nil and not inPod
+
+		-- Objective.
+		local tier = MatchState.number("Tier")
+		local total = MatchState.number("ObjectiveTotal") or 0
+		local done = MatchState.number("ObjectiveDone") or 0
+		local objectiveText = folder and folder:GetAttribute("Objective")
+		objective.Visible = name == "Round" and type(objectiveText) == "string"
+		if objective.Visible then
+			local tiers = Config.Shaft.Tiers
+			tierText.Text = if tier and tier <= tiers then string.format("TIER %d/%d", tier, tiers) else "EXIT"
+			taskText.Text = if total > 0
+				then string.format("%s  %d/%d", objectiveText :: string, done, total)
+				else objectiveText :: string
+			bar.Size = UDim2.fromScale(if total > 0 then done / total else 1, 1)
+		end
 
 		-- 3-2-1 countdown during the head start.
-		local slimeStart = state:GetAttribute("SlimeStart")
-		if name == "Round" and type(slimeStart) == "number" then
-			local untilSlime = slimeStart - workspace:GetServerTimeNow()
-			local count = math.ceil(untilSlime)
+		local slimeStart = MatchState.number("SlimeStart")
+		if name == "Round" and slimeStart then
+			local count = math.ceil(slimeStart - workspace:GetServerTimeNow())
 			if count ~= lastCount and count >= 0 and count <= 3 then
 				lastCount = count
 				if count > 0 then
 					showBanner(tostring(count), Color3.new(1, 1, 1), nil, 0.9)
 				else
-					showBanner("CLIMB!", Config.Colors.Slime, "The slime is rising", 1.2)
+					showBanner("CLIMB!", Config.Colors.Slime, "Fix the leak and get out!", 1.4)
 				end
 			end
 		else
@@ -262,11 +323,11 @@ function HudController.start()
 		end
 
 		-- Slime meter.
-		local exitY = state:GetAttribute("ExitY")
-		local bottomY = state:GetAttribute("BottomY")
+		local exitY = MatchState.number("ExitY")
+		local bottomY = MatchState.number("BottomY")
 		local slimeY = SlimeController.height()
-		meter.Visible = name == "Round" and slimeY ~= nil and type(exitY) == "number"
-		if meter.Visible and slimeY and type(exitY) == "number" and type(bottomY) == "number" then
+		meter.Visible = name == "Round" and slimeY ~= nil and exitY ~= nil
+		if meter.Visible and slimeY and exitY and bottomY then
 			local slimeProgress = SlimeCurve.progress(slimeY, bottomY, exitY)
 			fill.Size = UDim2.fromScale(1, slimeProgress)
 			mascot.Position = UDim2.fromScale(0.5, 1 - slimeProgress)
@@ -280,15 +341,14 @@ function HudController.start()
 
 	Remotes.get("Notify").OnClientEvent:Connect(function(kind: string, data: any)
 		if kind == "Escaped" then
-			showBanner(
-				"ESCAPED!",
-				Config.Colors.Exit,
-				string.format("+%d crowns  ·  #%d  ·  %.1fs", data.crowns, data.place, data.seconds),
-				3
-			)
+			local subText = string.format("+%d crowns  ·  #%d  ·  %.1fs", data.crowns, data.place, data.seconds)
+			if data.best then
+				subText ..= "  ·  NEW BEST!"
+			end
+			showBanner("ESCAPED!", Config.Colors.Exit, subText, 3)
 			Juice.shakeCamera(0.6)
 		elseif kind == "Slimed" then
-			showBanner("SLIMED!", Config.Colors.Slime, "Watch from the lobby until next round", 3)
+			showBanner("SLIMED!", Config.Colors.Slime, "Back to the lab. Try again!", 3)
 		elseif kind == "Results" then
 			local escaped = 0
 			for _, r in data.results do
@@ -296,7 +356,22 @@ function HudController.start()
 					escaped += 1
 				end
 			end
-			showBanner("ROUND OVER", Color3.new(1, 1, 1), string.format("%d escaped the slime", escaped), 4)
+			showBanner("RUN OVER", Color3.new(1, 1, 1), string.format("%d escaped the slime", escaped), 4)
+		elseif kind == "PuzzleSolved" then
+			showBanner(
+				"LEAK SEALED!",
+				Config.Colors.Slime,
+				string.format("Bridge extended  ·  +%d crown team bonus", data.crowns),
+				2.5
+			)
+			Juice.shakeCamera(0.4)
+		elseif kind == "PodLocked" then
+			showBanner(
+				"ELEVATOR LOCKED",
+				Color3.fromRGB(255, 120, 120),
+				if data.mode == "Solo" then "That run is solo" else "That elevator is full",
+				2
+			)
 		end
 	end)
 end

@@ -1,5 +1,5 @@
 --!strict
--- Draws the rising slime locally from the server's RoundState numbers, so it
+-- Draws the rising slime locally from my match folder's numbers, so it
 -- moves smoothly at full frame rate with nothing replicated per frame.
 -- Also tints the screen edges green when the slime is close.
 
@@ -9,13 +9,12 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
-local SlimeCurve = require(Shared:WaitForChild("SlimeCurve"))
+local MatchState = require(script.Parent.MatchState)
 
 local SlimeController = {}
 
-local state = ReplicatedStorage:WaitForChild("RoundState")
 local player = Players.LocalPlayer
-local SIZE = 400
+local SIZE = 76 -- fills the shaft (radius 36) with a little overlap into the walls
 
 local function makeSlime(): (Model, BasePart, BasePart, ParticleEmitter)
 	local model = Instance.new("Model")
@@ -94,36 +93,36 @@ local function makeVignette(): Frame
 	return frame
 end
 
--- Current slime height, or nil when no round is running.
+-- Current slime height: rising in a round, resting at its base during the
+-- intro, nil in the lobby.
 function SlimeController.height(): number?
-	local start = state:GetAttribute("SlimeStart")
-	local duration = state:GetAttribute("SlimeDuration")
-	local topY = state:GetAttribute("SlimeTopY")
-	if type(start) ~= "number" or type(duration) ~= "number" or type(topY) ~= "number" then
-		return nil
-	end
-	return SlimeCurve.height(
-		workspace:GetServerTimeNow(),
-		start,
-		duration,
-		Config.Slime.BaseY,
-		topY,
-		Config.Slime.Exponent
-	)
+	return MatchState.slimeHeight() or MatchState.number("SlimeBaseY")
 end
 
 function SlimeController.start()
 	local model, body, skin, bubbles = makeSlime()
 	local vignette = makeVignette()
-	local origin = Config.Tower.Origin
+	local gurgle = Instance.new("Sound")
+	gurgle.SoundId = Config.Sounds.SlimeBubbles
+	gurgle.Looped = true
+	gurgle.Volume = 0.6
+	gurgle.RollOffMaxDistance = 90
+	gurgle.Parent = skin
 	RunService.RenderStepped:Connect(function()
 		local y = SlimeController.height()
-		if not y then
+		local origin = MatchState.origin()
+		if not y or not origin then
+			if gurgle.IsPlaying then
+				gurgle:Stop()
+			end
 			model.Parent = nil
 			vignette.BackgroundTransparency = 1
 			return
 		end
 		model.Parent = workspace
+		if not gurgle.IsPlaying then
+			gurgle:Play()
+		end
 		local t = os.clock()
 		local wobble = math.sin(t * 2.2) * 0.15
 		body.CFrame = CFrame.new(origin.X, y - 30 + wobble, origin.Z)
@@ -133,7 +132,8 @@ function SlimeController.start()
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		local gap = if root then root.Position.Y - 2.5 - y else math.huge
-		local rising = workspace:GetServerTimeNow() >= (state:GetAttribute("SlimeStart") :: number)
+		local rising = MatchState.inRound()
+			and workspace:GetServerTimeNow() >= (MatchState.number("SlimeStart") or math.huge)
 		local danger = if rising then math.clamp(1 - gap / 8, 0, 1) else 0
 		vignette.BackgroundTransparency = 1 - danger * 0.55
 	end)

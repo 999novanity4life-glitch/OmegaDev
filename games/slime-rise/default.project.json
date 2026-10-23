@@ -26,6 +26,16 @@
       "$properties": {
         "StreamingEnabled": true
       }
+    },
+    "ServerStorage": {
+      "Vendor": {
+        "$path": "vendor"
+      }
+    },
+    "MaterialService": {
+      "SlimeRiseMaterials": {
+        "$path": "materials"
+      }
     }
   }
 }

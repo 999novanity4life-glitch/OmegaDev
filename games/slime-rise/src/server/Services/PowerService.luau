@@ -1,7 +1,7 @@
 --!strict
 -- Validates power use. The client moves its own character for instant feel;
 -- the server checks unlock, cooldown, round state and range, then tells every
--- client to play the effect. Bubble Shield is server-trusted (RoundService reads it).
+-- client to play the effect. Bubble Shield is server-trusted (MatchService reads it).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,7 +12,7 @@ local Powers = require(Shared:WaitForChild("Powers"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Validate = require(Shared:WaitForChild("Validate"))
 local RemoteGuard = require(script.Parent.RemoteGuard)
-local RoundService = require(script.Parent.RoundService)
+local MatchService = require(script.Parent.MatchService)
 
 local PowerService = {}
 
@@ -39,7 +39,7 @@ function PowerService.start()
 	RemoteGuard.connect(usePower, function(id: any, target: any)
 		return Validate.oneOf(id, ACTIVE) and (target == nil or validVector(target))
 	end, function(player: Player, id: string, target: Vector3?)
-		if not RoundService.isClimbing(player) then
+		if not MatchService.isClimbing(player) then
 			return
 		end
 		local crowns = player:GetAttribute("Crowns")
