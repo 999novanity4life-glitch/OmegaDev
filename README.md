@@ -1,52 +1,57 @@
-# OmegaDev game template
+# OmegaDev
 
-A Roblox game template for building with AI agents: Rojo files as the source
-of truth, strict Luau, lint/format/type/test gates in CI, Roblox Studio MCP
-for playtesting, and reviewer agents.
+An AI game studio for Roblox, run by a team of Claude Code agents, with a local
+control room to watch them and approve their work.
 
-## One-time setup (your computer)
-1. Install Roblox Studio.
-2. Install Rokit: `curl -sSf https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.sh | bash`
-   (Windows: see https://github.com/rojo-rbx/rokit).
-3. In this folder: `rokit install` (installs the exact versions in `rokit.toml`).
-4. `rojo plugin install` to add the Rojo plugin to Studio.
-5. In VS Code, install the "Luau Language Server" extension for live types.
-6. Turn on Studio's MCP server: open Assistant → … → Manage MCP Servers →
-   "Enable Studio as MCP server", then use Quick connect for Claude Code.
-   Manual alternative: copy `.mcp.json.example` to `.mcp.json` (macOS path;
-   on Windows the command is `cmd.exe /c %LOCALAPPDATA%\Roblox\mcp.bat`).
-   The playtester agent expects the server to be named `Roblox_Studio`.
+- **14 agents** in `.claude/agents/`: Lead, Pulse, Architect, Builder, Scenic,
+  Frame, Librarian, Balance, Splash, Playtest, Kid Tester, Producer, LiveOps,
+  Code Reviewer.
+- **Control room** (`control-room/`): Home (what needs you), Team, Tasks,
+  Review (approve / changes / reject), Games, Pitches, Ask the Lead, Pause all.
+- **Vault** (`vault/`): the studio's design rules, chapters 00–13. Open the
+  folder in Obsidian if you like; it's plain Markdown.
+- **Template** (`template/`): Rojo + strict Luau game skeleton with tests.
+  Every game in `games/` starts as a copy of it.
+- **CI**: format, lint, strict types, Lune tests and a Rojo build for the
+  template and every game, plus a control-room smoke test.
 
-## Every session
-```
-rojo serve            # then press Connect in the Studio Rojo plugin
-claude                # in a second terminal; it reads CLAUDE.md
-```
+## One-time setup (Windows or macOS)
+1. Install Roblox Studio, Node 18+, and Claude Code (`npm i -g @anthropic-ai/claude-code`, then `claude` to log in).
+2. Install Rokit: https://github.com/rojo-rbx/rokit, then in this folder run `rokit install`.
+3. `rojo plugin install` to add the Rojo plugin to Studio.
+4. Download Roblox types for the type checker:
+   `curl -sSfLo globalTypes.d.luau https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau`
+5. Turn on Studio's MCP server: Assistant → … → Manage MCP Servers → "Enable Studio as MCP server",
+   then Quick connect → Claude Code. The agents expect the server to be named `Roblox_Studio`;
+   if Quick connect names it differently, copy `.mcp.json.example` to `.mcp.json` instead
+   (Windows command: `cmd.exe /c %LOCALAPPDATA%\Roblox\mcp.bat`).
 
-## Checks (same as CI)
+## Daily use
 ```
-stylua --check src tests
-selene src
-rojo sourcemap default.project.json --output sourcemap.json
-curl -sSfLO https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau
-luau-lsp analyze --platform=roblox --sourcemap=sourcemap.json --definitions=@roblox=globalTypes.d.luau --base-luaurc=.luaurc --ignore="Packages/**" src
-lune run tests/run
-rojo build default.project.json --output game.rbxl
+node scripts/omega.mjs room                  # control room at http://localhost:4321
+node scripts/omega.mjs lead                  # one Lead cycle
+node scripts/omega.mjs lead --cycles 20      # keep going (e.g. overnight), 2 min apart
+node scripts/omega.mjs pause                 # or the Pause all button
 ```
+For a game in progress, keep Studio open on its place with `rojo serve` running
+in `games/<slug>/` so Playtest can test it.
+
+`.claude/settings.json` pre-approves the safe commands the agents need
+(omega, rojo, selene, stylua, luau-lsp, lune, git status/diff/add/commit, the
+Studio MCP), so cycles can run without you clicking "allow". Review it before
+running overnight. Pushing to GitHub and publishing to Roblox stay manual.
 
 ## Publishing
-`.github/workflows/publish.yml` builds and uploads with Open Cloud when you run
-it by hand. Add repo secrets `ROBLOX_API_KEY` (scope `universe-places:write`),
-`ROBLOX_UNIVERSE_ID`, `ROBLOX_PLACE_ID`. Use `Saved` to test privately first.
+Run the **Publish** workflow by hand with the game folder name. Put
+`universeId` and `placeId` in `games/<slug>/game.json` and the repo secret
+`ROBLOX_API_KEY` (scope `universe-places:write`). Publish `Saved` first.
 
-## What is in here
-- `src/shared/Config.luau`: all tunable numbers.
-- `src/shared/Progression.luau`, `RateLimiter.luau`, `Validate.luau`: pure, unit-tested.
-- `src/server/Services/RemoteGuard.luau`: rate limit + validation on every remote.
-- `src/client/Controllers/Juice.luau`: button press, pop-in, sound, camera shake (Reduced Motion aware).
-- `.claude/agents/`: planner, code reviewer, feel reviewer, playtester.
-- `docs/QUALITY_CHECKLIST.md`: score every build against it.
+## Honest limits
+- Agents can't make painted art; Splash captures real gameplay and writes
+  prompts for your image tool.
+- Studio's device emulator and Roblox uploads need your Studio session.
+- "Builds games while you sleep" depends on Studio staying open and the MCP
+  connected; check the Review and Home tabs in the morning, not just the log.
 
-Not yet included: player data (add ProfileStore by loleris,
-https://devforum.roblox.com/t/profilestore/3190543), and in-engine tests
-(Jest-Lua via Open Cloud Luau Execution) for code that needs Roblox services.
+See `docs/RESEARCH.md` (sources), `docs/VIDEO_ANALYSIS.md` (the TikTok setup
+this matches) and `docs/QUALITY_CHECKLIST.md` (shipping gate).

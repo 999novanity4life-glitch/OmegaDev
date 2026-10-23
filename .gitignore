@@ -1,7 +1,7 @@
-/Packages/*
-!/Packages/.gitkeep
-/ServerPackages
-/DevPackages
+**/Packages/*
+!**/Packages/.gitkeep
+**/ServerPackages
+**/DevPackages
 sourcemap.json
 globalTypes.d.luau
 *.rbxl
@@ -10,3 +10,7 @@ globalTypes.d.luau
 *.rbxlx.lock
 .env
 roblox.yml
+.mcp.json
+# Live studio state (tasks, review queue, inbox). Local to your machine.
+.omegadev/
+.obsidian/workspace*.json
