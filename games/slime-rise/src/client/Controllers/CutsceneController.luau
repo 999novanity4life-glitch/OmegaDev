@@ -1,8 +1,8 @@
 --!strict
 -- Two cutscenes: the elevator ride down (doors close, lights flicker, floor
--- counter, shake, fade) and the map flyover (IntroPath: opens on the leak,
--- glides up through every tier, opening each hatch as it rises through, and
--- ends on the exit). The camera always goes back to Custom.
+-- counter, shake, fade) and the map intro (IntroPath: per tier a wide shot
+-- then a push-in on its puzzle, a quick dip to black between floors, and the
+-- exit last). The camera always goes back to Custom.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -204,81 +204,69 @@ local function toVector(origin: Vector3, p: { number }): Vector3
 	return origin + Vector3.new(p[1], p[2], p[3])
 end
 
-local function validKeys(keys: any): boolean
-	if type(keys) ~= "table" or #keys < 2 then
+local function validShots(shots: any): boolean
+	if type(shots) ~= "table" or #shots < 1 then
 		return false
 	end
-	for _, k in keys do
-		if type(k) ~= "table" or type(k.t) ~= "number" or type(k.pos) ~= "table" or type(k.look) ~= "table" then
+	for _, shot in shots do
+		if type(shot) ~= "table" or type(shot.t) ~= "number" or type(shot.keys) ~= "table" or #shot.keys < 2 then
 			return false
+		end
+		for _, k in shot.keys do
+			if type(k) ~= "table" or type(k.t) ~= "number" or type(k.pos) ~= "table" or type(k.look) ~= "table" then
+				return false
+			end
 		end
 	end
 	return true
 end
 
--- Slides one hatch's doors open just before the camera rises through, then
--- closed again behind it. Local only: the server still owns the real doors.
-local function playHatch(token: number, start: number, hatch: any, restore: { [BasePart]: CFrame })
-	if type(hatch) ~= "table" or type(hatch.t) ~= "number" or type(hatch.doors) ~= "table" then
-		return
-	end
-	local doors: { BasePart } = {}
-	local opens: { CFrame } = {}
-	for i, door in hatch.doors do
-		local open = type(hatch.open) == "table" and hatch.open[i]
-		if typeof(door) == "Instance" and door:IsA("BasePart") and typeof(open) == "CFrame" then
-			table.insert(doors, door)
-			table.insert(opens, open)
-			restore[door] = restore[door] or door.CFrame
-		end
-	end
-	local slide = TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
-	task.delay(math.max(0, start + hatch.t - 1.2 - os.clock()), function()
-		if token ~= playing then
-			return
-		end
-		for i, door in doors do
-			TweenService:Create(door, slide, { CFrame = opens[i] }):Play()
-		end
-		task.wait(2.2)
-		for _, door in doors do
-			if restore[door] then
-				TweenService:Create(door, slide, { CFrame = restore[door] }):Play()
-			end
-		end
-	end)
-end
-
 local function flyover(data: { [string]: any })
-	local keys, origin = data.keys, data.origin
-	if not validKeys(keys) or typeof(origin) ~= "Vector3" then
+	local origin = data.origin
+	if not validShots(data.shots) or typeof(origin) ~= "Vector3" then
 		return
 	end
-	local seconds = tonumber(data.seconds) or keys[#keys].t
+	local path: IntroPath.Path = {
+		shots = data.shots,
+		cuts = if type(data.cuts) == "table" then data.cuts else {},
+		captions = {},
+		seconds = tonumber(data.seconds) or 0,
+	}
+	local seconds = path.seconds
 	local token = begin()
 	local camera = workspace.CurrentCamera
-	local pos, look = IntroPath.sample(keys, 0)
+	local pos, look = IntroPath.sample(path, 0)
 	camera.CFrame = CFrame.lookAt(toVector(origin, pos), toVector(origin, look))
 	camera.FieldOfView = 58
-	fade(1, 1.2)
+	fade(1, 0.9)
 	local start = os.clock()
+	local function at(t: number, fn: () -> ())
+		task.delay(math.max(0, start + t - os.clock()), function()
+			if token == playing then
+				fn()
+			end
+		end)
+	end
 	if type(data.captions) == "table" then
 		for _, c in data.captions do
 			if type(c) == "table" and type(c.t) == "number" then
-				task.delay(c.t + 0.5, function()
-					if token == playing then
-						local main = tostring(c.main)
-						showCaption(main, tostring(c.sub), Config.Colors.Slime)
-						hideCaptionLater(token, main, 3)
-					end
+				at(c.t, function()
+					local main = tostring(c.main)
+					showCaption(main, tostring(c.sub), Config.Colors.Slime)
+					hideCaptionLater(token, main, 2.6)
 				end)
 			end
 		end
 	end
-	local restore: { [BasePart]: CFrame } = {}
-	if type(data.hatches) == "table" then
-		for _, hatch in data.hatches do
-			playHatch(token, start, hatch, restore)
+	-- Floor changes: a quick dip to black, cut while dark, fade back in.
+	for _, cut in path.cuts do
+		if type(cut) == "number" then
+			at(cut - Config.Intro.DipOut, function()
+				fade(0, Config.Intro.DipOut)
+			end)
+			at(cut + 0.05, function()
+				fade(1, Config.Intro.DipIn)
+			end)
 		end
 	end
 	local conn: RBXScriptConnection
@@ -288,7 +276,7 @@ local function flyover(data: { [string]: any })
 			return
 		end
 		local t = os.clock() - start
-		local p, l = IntroPath.sample(keys, t)
+		local p, l = IntroPath.sample(path, t)
 		camera.CFrame = CFrame.lookAt(toVector(origin, p), toVector(origin, l))
 		if t >= seconds then
 			conn:Disconnect()
@@ -298,9 +286,6 @@ local function flyover(data: { [string]: any })
 	if token == playing then
 		fade(0, 0.5)
 		task.wait(0.6)
-	end
-	for door, cf in restore do
-		door.CFrame = cf
 	end
 	finish(token)
 end

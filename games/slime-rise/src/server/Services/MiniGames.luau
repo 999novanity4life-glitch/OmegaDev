@@ -216,9 +216,12 @@ function MiniGames.create(kind: string, tier: any, ctx: Context): any
 			sendOpen(station, player)
 		end)
 	end
+	local middle = list[math.ceil(#list / 2)]
 	return {
 		kind = kind,
+		title = LABELS[kind].title,
 		label = LABELS[kind].task,
+		focus = middle.part.Position + Vector3.new(0, 2.5, 0),
 		update = function(_dt: number) end,
 		progress = function()
 			return solvedCount, count

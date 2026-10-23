@@ -69,17 +69,20 @@ Config.Shaft = {
 	CoreRadius = 5, -- glass slime tank in the middle
 }
 
--- Map intro camera (IntroPath): a calm glide up through every tier.
+-- Map intro camera (IntroPath): per tier a wide shot then a push-in on the
+-- puzzle, with a quick dip to black between floors.
 Config.Intro = {
-	Speed = 10, -- studs per second along the path
-	MaxSeconds = 28, -- the moving part is sped up to fit if longer
-	MinStep = 0.6,
-	LeakSeconds = 2.6, -- push-in on the leak under the title card
-	ExitSeconds = 2.2, -- hold on the exit at the end
-	OrbitRadius = 10, -- camera distance from the shaft centre
-	HatchApproach = 14, -- degrees short of the hatch where the orbit ends
-	CeilingClearance = 6.5, -- studs below the next floor while orbiting
-	RiseAbove = 6, -- studs above a floor after rising through its hatch
+	FirstWideSeconds = 3.6, -- tier 1 wide carries the sector title
+	WideSeconds = 2.8,
+	PuzzleSeconds = 3.2,
+	ExitSeconds = 3.2,
+	DipOut = 0.25, -- fade to black before a floor change
+	DipIn = 0.3, -- fade back in on the next floor
+	WideRadius = 26, -- wide camera distance from the shaft centre
+	WideOffset = 130, -- degrees around from the route (keeps the core out of the middle)
+	WideRise = 9, -- wide camera height above the middle of the route
+	FloorClearance = 2.5, -- camera stays this far above a floor
+	CeilingClearance = 2.5, -- and this far below the slab above
 }
 
 Config.Party = {

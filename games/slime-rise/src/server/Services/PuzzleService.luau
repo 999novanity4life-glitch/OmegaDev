@@ -27,7 +27,9 @@ export type Context = {
 }
 export type Puzzle = {
 	kind: string,
+	title: string, -- shown on the intro push-in
 	label: string,
+	focus: Vector3, -- where the intro camera frames this puzzle
 	update: (dt: number) -> (),
 	progress: () -> (number, number),
 	solved: () -> boolean,
@@ -76,9 +78,13 @@ local function valves(tier: MapService.TierParts, ctx: Context): Puzzle
 	folder.Parent = tier.folder
 	local done = 0
 	local pads = tier.info.pads
+	local focus = Vector3.zero
 	for i = 1, count do
 		local pad = pads[math.clamp(math.floor((i - 0.5) * #pads / count) + 1, 1, #pads)]
 		local base = ringCFrame(ctx.origin, pad.angle + 9, Config.Shaft.Radius - 1.2, pad.y + 3.2)
+		if i == 1 then
+			focus = base.Position
+		end
 		-- Steel wall bracket with a generated valve on it and a status lamp.
 		LabKit.part({
 			Size = Vector3.new(3.6, 0.5, 3),
@@ -136,7 +142,9 @@ local function valves(tier: MapService.TierParts, ctx: Context): Puzzle
 	end
 	return {
 		kind = "Valves",
+		title = "VALVE CONTROL",
 		label = "Turn the valves",
+		focus = focus,
 		update = function() end,
 		progress = function()
 			return done, count
@@ -177,7 +185,9 @@ local function plates(tier: MapService.TierParts, ctx: Context): Puzzle
 	local lit = 0
 	return {
 		kind = "Plates",
+		title = "PRESSURE PLATES",
 		label = "Stand on every plate together",
+		focus = ringCFrame(ctx.origin, tier.info.hatchAngle + 180, 15, floorY + 0.2).Position,
 		update = function(dt: number)
 			if solvedFlag then
 				return
@@ -291,7 +301,14 @@ local function colors(tier: MapService.TierParts, ctx: Context): Puzzle
 	end
 	return {
 		kind = "Colors",
+		title = "OVERRIDE CODE",
 		label = "Match the override code",
+		focus = ringCFrame(
+			ctx.origin,
+			tier.info.hatchAngle + 160 + ((#code + 1) / 2 - 2) * 22,
+			Config.Shaft.Radius - 2,
+			tier.info.floorY + 2
+		).Position,
 		update = function() end,
 		progress = function()
 			local right = 0
@@ -421,7 +438,9 @@ local function fuses(tier: MapService.TierParts, ctx: Context): Puzzle
 	end)
 	return {
 		kind = "Fuses",
+		title = "FUSE RUN",
 		label = "Carry the fuses to the socket",
+		focus = shelfCf.Position,
 		update = function()
 			for player in carrying do
 				if not ctx.isClimber(player) then
