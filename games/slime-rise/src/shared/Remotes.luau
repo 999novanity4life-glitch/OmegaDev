@@ -7,7 +7,8 @@ local RunService = game:GetService("RunService")
 local NAMES = {
 	"UsePower", -- client -> server: power id (+ grapple target), validated server-side
 	"PowerFx", -- server -> all clients: someone used a power, play its effect
-	"Notify", -- server -> client: escaped, slimed, round results
+	"Notify", -- server -> client: escaped, slimed, results, cutscenes, puzzle events
+	"PartyAction", -- client -> server: elevator host picks mode / max size / go
 }
 
 local FOLDER_NAME = "Remotes"

@@ -33,34 +33,75 @@ Config.Juice = {
 	CameraShakeDecay = 6,
 }
 
-Config.Round = {
-	MinPlayers = 1, -- prototype value so one player can test; launch with 2 + bots
-	IntermissionSeconds = 15,
-	RoundSeconds = 75,
-	HeadStartSeconds = 3,
+-- One match = one elevator party, built far from the lobby in this server.
+Config.Match = {
+	HeadStartSeconds = 4, -- after the flyover, before the slime moves
+	Seconds = 150, -- whole match, head start included
 	ResultsSeconds = 6,
 	RespawnSeconds = 3,
+	FirstOrigin = Vector3.new(0, 0, 3000), -- match slot 1; later slots step along X
+	Spacing = 1200,
 }
 
 Config.Slime = {
-	BaseY = -15, -- slime starts below the tower floor (about 8 s before it reaches the floor)
-	TopMargin = 10, -- slime ends this far above the Exit Pad
+	BaseDepth = 15, -- slime starts this far below the shaft floor
+	TopMargin = 10, -- slime ends this far above the exit
 	Exponent = 1.25, -- above 1 = slow start, fast finish
 	DamagePerSecond = 50,
 	CheckInterval = 0.2,
 	ContactMargin = 0.5, -- studs above the surface that still count as touching
 }
 
-Config.Tower = {
+-- The containment shaft: tiers stacked between bulkhead floors.
+Config.Shaft = {
+	Tiers = 4,
+	TierHeight = 42, -- floor top to next floor top
+	Radius = 36, -- inner wall radius
+	WallSegments = 24,
+	PadsPerTier = 6, -- wall pads from the floor up to the landing
+	PadRise = 4.5,
+	PadRadius = 27,
+	LandingHeight = 30, -- landing top above the tier floor
+	HatchSize = 12, -- square hole in each bulkhead
+	BridgePads = 3, -- slide out from the wall after the tier puzzle
+	BulkheadThickness = 2,
+	ExitRadius = 6,
+	CoreRadius = 5, -- glass slime tank in the middle
+}
+
+Config.Party = {
+	MaxPlayers = 8,
+	DefaultMax = 4,
+	AutoStartSeconds = 10, -- public pod starts by itself this long after filling
+	RideSeconds = 5.5, -- elevator cutscene
+	FlyoverSeconds = 7, -- map intro cutscene
+	PodCount = 3,
+}
+
+Config.Puzzles = {
+	Order = { "Valves", "Plates", "Colors", "Fuses" },
+	ValveHoldSeconds = 2,
+	PlateHoldSeconds = 1.5,
+	ColorLevers = 3,
+	ColorNames = { "Green", "Purple", "Teal", "Orange" },
+	FuseWalkSpeed = 12,
+	PromptDistance = 9,
+}
+
+Config.Lobby = {
 	Origin = Vector3.new(0, 0, 0),
-	Pads = 48, -- spiral pads from the floor to the Exit Pad
-	RisePerPad = 4.5,
-	DegreesPerPad = 22,
-	SpiralRadius = 20,
-	PillarRadius = 7,
-	FloorRadius = 42,
-	ExitRadius = 6, -- distance from the Exit Pad that counts as escaping
-	LobbyOffset = Vector3.new(110, 40, 0),
+	Size = Vector3.new(140, 36, 96),
+}
+
+Config.Lighting = {
+	Ambient = Color3.fromRGB(84, 80, 118),
+	OutdoorAmbient = Color3.fromRGB(70, 82, 100),
+	Brightness = 2,
+	ClockTime = 0,
+	FogColor = Color3.fromRGB(18, 30, 26),
+	Haze = 0.8,
+	AtmosphereColor = Color3.fromRGB(150, 200, 175),
+	Bloom = 0.6,
 }
 
 Config.Crowns = {
@@ -70,6 +111,7 @@ Config.Crowns = {
 	PodiumBonus = 1,
 	PodiumSize = 3,
 	StudioStartingCrowns = 25, -- so every power can be tested in Studio
+	TeamBonus = 1, -- to everyone alive when a tier puzzle is solved
 }
 
 local powers: { [string]: PowerDef } = {
@@ -103,6 +145,26 @@ Config.Icons = {
 	Timer = "rbxassetid://112379933179878",
 	Exit = "rbxassetid://89572959893618",
 	Lock = "rbxassetid://123936364277261",
+}
+
+-- Roblox audio library only (ProSoundEffects / APM are licensed for Roblox use).
+Config.Sounds = {
+	LabHum = "rbxassetid://9114330975",
+	LobbyMusic = "rbxassetid://9048216729",
+	MatchMusic = "rbxassetid://9040002805",
+	Alarm = "rbxassetid://97456442012504",
+	SlimeBubbles = "rbxassetid://9120303776",
+	ElevatorDing = "rbxassetid://18192219147",
+	ElevatorHum = "rbxassetid://1843730431",
+	DoorSeal = "rbxassetid://613368945",
+	Dash = "rbxassetid://9120718689",
+	Shield = "rbxassetid://9120341147",
+	Grapple = "rbxassetid://9114520162",
+	Slimed = "rbxassetid://9114520600",
+	Valve = "rbxassetid://9113969124",
+	Hydraulic = "rbxassetid://9113055250",
+	Solve = "rbxassetid://9041915227",
+	Escape = "rbxassetid://9044820101",
 }
 
 return table.freeze(Config)

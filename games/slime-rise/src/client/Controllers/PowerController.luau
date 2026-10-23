@@ -15,11 +15,11 @@ local Config = require(Shared:WaitForChild("Config"))
 local Powers = require(Shared:WaitForChild("Powers"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Juice = require(script.Parent.Juice)
+local MatchState = require(script.Parent.MatchState)
 
 local PowerController = {}
 
 local player = Players.LocalPlayer
-local state = ReplicatedStorage:WaitForChild("RoundState")
 local FONT = Font.fromName("FredokaOne")
 local DARK = Color3.fromRGB(24, 18, 38)
 local NAMES = { Dash = "DASH", Shield = "BUBBLE", Grapple = "GOO HOOK" }
@@ -50,8 +50,7 @@ local function parts(): (Model?, BasePart?, Humanoid?)
 end
 
 local function inRound(): boolean
-	local slimeStart = state:GetAttribute("SlimeStart")
-	return state:GetAttribute("State") == "Round" and type(slimeStart) == "number"
+	return MatchState.inRound()
 end
 
 -- Effects ------------------------------------------------------------------
@@ -575,6 +574,7 @@ function PowerController.start()
 	end)
 
 	RunService.RenderStepped:Connect(function()
+		gui.Enabled = MatchState.folder() ~= nil and player:GetAttribute("Cutscene") ~= true
 		local id = active[selected]
 		local def = Powers.def(id) :: Config.PowerDef
 		local have = crowns()

@@ -26,6 +26,11 @@
       "$properties": {
         "StreamingEnabled": true
       }
+    },
+    "ServerStorage": {
+      "Vendor": {
+        "$path": "vendor"
+      }
     }
   }
 }

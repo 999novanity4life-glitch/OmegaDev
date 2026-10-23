@@ -1,8 +1,14 @@
 --!strict
--- Slime Rise server entry: start the round loop, then accept power requests.
+-- Slime Rise server entry: mood, saved data, matches, the lobby, then powers.
 
-local RoundService = require(script.Services.RoundService)
+local LightingService = require(script.Services.LightingService)
+local DataService = require(script.Services.DataService)
+local MatchService = require(script.Services.MatchService)
+local LobbyService = require(script.Services.LobbyService)
 local PowerService = require(script.Services.PowerService)
 
-RoundService.start()
+LightingService.start()
+DataService.start()
+MatchService.start()
+LobbyService.start()
 PowerService.start()
