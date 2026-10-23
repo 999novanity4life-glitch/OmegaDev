@@ -6,8 +6,31 @@
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
--- Roblox datatypes (Vector3, Color3, CFrame...) so Config modules load under Lune.
+-- Roblox datatypes so Config modules load under Lune. Lune's own types when it
+-- has them, else tiny stand-ins (enough for config tables, not for math).
 local hasRoblox, roblox = pcall(require, "@lune/roblox")
+local STUBS = {
+	Vector3 = {
+		new = function(x, y, z)
+			return { X = x or 0, Y = y or 0, Z = z or 0 }
+		end,
+		zero = { X = 0, Y = 0, Z = 0 },
+		one = { X = 1, Y = 1, Z = 1 },
+	},
+	Color3 = {
+		new = function(r, g, b)
+			return { R = r or 0, G = g or 0, B = b or 0 }
+		end,
+		fromRGB = function(r, g, b)
+			return { R = (r or 0) / 255, G = (g or 0) / 255, B = (b or 0) / 255 }
+		end,
+	},
+	CFrame = {
+		new = function(x, y, z)
+			return { X = x or 0, Y = y or 0, Z = z or 0 }
+		end,
+	},
+}
 
 local cache = {}
 local loadModule
@@ -57,8 +80,11 @@ function loadModule(path: string)
 	}, {
 		__index = function(_, key)
 			local value = getfenv()[key]
-			if value == nil and hasRoblox then
-				return roblox[key]
+			if value == nil and hasRoblox and type(roblox) == "table" then
+				value = roblox[key]
+			end
+			if value == nil then
+				value = STUBS[key]
 			end
 			return value
 		end,

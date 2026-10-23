@@ -233,6 +233,33 @@ local function aimPoint(range: number): Vector3?
 	return if hit then hit.Position else nil
 end
 
+-- Aim assist for kids: the best pad above you, in front of the camera, in range.
+local function autoTarget(root: BasePart, range: number): Vector3?
+	local map = workspace:FindFirstChild("Map")
+	local camera = workspace.CurrentCamera
+	if not map or not camera then
+		return nil
+	end
+	local look = camera.CFrame.LookVector
+	local best: Vector3? = nil
+	local bestScore = -math.huge
+	for _, item in map:GetDescendants() do
+		if item:IsA("BasePart") and (string.match(item.Name, "^Pad%d") or item.Name == "ExitPad") then
+			local top = item.Position + Vector3.new(0, item.Size.Y / 2 + 3, 0)
+			local offset = top - root.Position
+			local distance = offset.Magnitude
+			if distance <= range and distance > 6 and offset.Y > 1 then
+				local score = offset.Unit:Dot(look) + offset.Y / range
+				if score > bestScore then
+					bestScore = score
+					best = top
+				end
+			end
+		end
+	end
+	return best
+end
+
 local function tryUse(id: string): boolean
 	local character, root, humanoid = parts()
 	local def = Powers.def(id)
@@ -254,6 +281,9 @@ local function tryUse(id: string): boolean
 		local range = def.Range or 40
 		target = aimPoint(range)
 		if not target or (target - root.Position).Magnitude > range then
+			target = autoTarget(root, range)
+		end
+		if not target then
 			return false
 		end
 		local duration = def.Duration or 0.6
@@ -389,6 +419,10 @@ function PowerController.start()
 		local id = active[selected]
 		if tryUse(id) then
 			Juice.popIn(button)
+		else
+			-- Nothing happened: a quick red flash so the press never feels dead.
+			stroke.Color = Color3.fromRGB(255, 80, 80)
+			TweenService:Create(stroke, TweenInfo.new(0.35), { Color = Config.Colors.Slime }):Play()
 		end
 	end
 	local function cycle()
