@@ -5,10 +5,9 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readState } from "../scripts/omega.mjs";
+import { STATE, readState } from "../scripts/state.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const STATE = process.env.OMEGADEV_STATE ? path.resolve(process.env.OMEGADEV_STATE) : path.resolve(HERE, "..", ".omegadev");
 const MEDIA_TYPES = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".mp4": "video/mp4", ".webm": "video/webm" };
 
 const send = (res, code, body, type = "application/json") => {
