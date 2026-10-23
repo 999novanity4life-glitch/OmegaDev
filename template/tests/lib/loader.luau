@@ -89,6 +89,11 @@ function loadModule(path: string)
 			return value
 		end,
 	})
+	-- Lune copies only plain keys from the environment, so set datatypes directly.
+	for name, stub in STUBS do
+		local real = if hasRoblox and type(roblox) == "table" then roblox[name] else nil
+		env[name] = real or stub
+	end
 	local chunk = luau.load(fs.readFile(file), { debugName = file, environment = env })
 	local result = chunk()
 	cache[file] = result
