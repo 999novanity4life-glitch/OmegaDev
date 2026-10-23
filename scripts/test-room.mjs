@@ -19,6 +19,8 @@ fs.writeFileSync(png, Buffer.from("89504e470d0a1a0a", "hex"));
 const reviewId = omega("review", "add", "--game", "demo", "--agent", "splash", "--kind", "image", "--title", "Icon A", "--file", png);
 const cardId = omega("tryit", "add", "--game", "demo", "--title", "Two-account raid", "--steps", "1. Join on PC 2. Quick join on phone");
 assert.throws(() => omega("task", "add", "--game", "demo", "--agent", "nobody", "--title", "x"), /agent must be one of/);
+const docReview = omega("review", "add", "--game", "demo", "--agent", "pulse", "--kind", "doc", "--title", "Chapter", "--doc", "vault/00 Start Here.md");
+assert.throws(() => omega("review", "add", "--game", "demo", "--agent", "pulse", "--kind", "doc", "--title", "x", "--doc", "../secrets.md"), /doc not found/);
 
 const { startRoom } = await import("../control-room/server.mjs");
 const server = startRoom(0);

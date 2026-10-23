@@ -25,3 +25,8 @@ Rules:
 - Bottom corners belong to Roblox's controls on phones. Nothing tappable there.
 - Draw this map for PC and phone before building any screen.
 - **No-HUD-clutter rule:** when a player is confused, the fix is never a new permanent widget. Try, in order: something already on screen, the world (glow, arrow, floating word), a contextual hint, and only then a new widget, saying what it replaces.
+
+## Party games (added 2026-10-23, see chapter 14)
+- Round HUD: timer, players left, crowns, one power button. Hazard state readable at a glance: bomb holder outline + timer above the head, lava height bar.
+- Color games ship a colorblind mode with symbols on tiles; color sets include confusable pairs ([earnaldo, unverified](https://earnaldo.com/blog/color-block-free-robux-guide)).
+- Musical Chairs sells a "Music Timer" information edge and sits at 66.4% likes (games votes API, universe 6688157118): never sell HUD information.
