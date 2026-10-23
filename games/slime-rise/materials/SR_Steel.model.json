@@ -4,10 +4,8 @@
     "BaseMaterial": {
       "Enum": 272
     },
-    "ColorMap": "rbxassetid://99999065093978",
-    "NormalMap": "rbxassetid://131542765225665",
-    "MetalnessMap": "rbxassetid://106329400856813",
-    "RoughnessMap": "rbxassetid://108427478324934",
+    "ColorMap": "rbxassetid://116212546989216",
+    "NormalMap": "rbxassetid://127394749855423",
     "StudsPerTile": 8
   }
 }

@@ -15,7 +15,7 @@ local LabKit = {}
 
 type MaterialDef = { Base: Enum.Material }
 
--- Stylized (clean, hand-painted) AI materials picked from a swatch sheet.
+-- Hand-designed stylized materials (art/textures.py: one palette, one light, tileable, with normal maps).
 -- The variants themselves ship in the place: materials/*.model.json (Rojo).
 local MATERIALS: { [string]: MaterialDef } = {
 	SR_Panel = { Base = Enum.Material.SmoothPlastic },
@@ -128,6 +128,11 @@ function LabKit.mat(part: BasePart, name: string, color: Color3?)
 	if def and available[name] then
 		part.Material = def.Base
 		part.MaterialVariant = name
+		-- The textures carry their own designed colours; only pads take a tint.
+		if name ~= "SR_Pad" then
+			part.Color = Color3.new(1, 1, 1)
+			return
+		end
 	else
 		part.Material = Enum.Material.SmoothPlastic
 	end
