@@ -1,6 +1,6 @@
 // Smoke test for the state CLI and control room, against a throwaway state dir.
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -45,6 +45,18 @@ try {
 	assert.match(omega("inbox", "take"), /make the boss harder/);
 	omega("pause");
 	assert.equal((await (await fetch(`${base}/api/state`)).json()).paused, true);
+	// The CLI entry point must start the server too (it once deadlocked on a circular import).
+	const cli = spawn("node", [path.join(ROOT, "scripts/omega.mjs"), "room", "--port", "43219"], { env: process.env });
+	try {
+		let ok = false;
+		for (let i = 0; i < 50 && !ok; i++) {
+			await new Promise((r) => setTimeout(r, 100));
+			ok = await fetch("http://127.0.0.1:43219/api/state").then((r) => r.ok, () => false);
+		}
+		assert.ok(ok, "`omega room` did not start the control room");
+	} finally {
+		cli.kill();
+	}
 	console.log("control room smoke test: PASS");
 } finally {
 	server.close();

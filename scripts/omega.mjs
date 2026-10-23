@@ -7,26 +7,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const STATE = process.env.OMEGADEV_STATE ? path.resolve(process.env.OMEGADEV_STATE) : path.join(ROOT, ".omegadev");
-const GAMES = path.join(ROOT, "games");
+import { AGENTS, GAMES, ROOT, STATE, readJson, readState } from "./state.mjs";
 
-export const AGENTS = [
-	"lead", "pulse", "architect", "builder", "scenic", "frame", "librarian",
-	"balance", "splash", "playtest", "kid-tester", "producer", "liveops", "code-reviewer",
-];
 const TASK_STATUSES = ["queued", "working", "blocked", "needs_you", "done", "later"];
 const VERDICTS = ["pending", "approved", "changes", "rejected"];
 
 const now = () => new Date().toISOString();
 const ensure = (dir) => fs.mkdirSync(dir, { recursive: true });
-const readJson = (file, fallback) => {
-	try {
-		return JSON.parse(fs.readFileSync(file, "utf8"));
-	} catch {
-		return fallback;
-	}
-};
 const writeJson = (file, value) => {
 	ensure(path.dirname(file));
 	const tmp = `${file}.${process.pid}.tmp`;
@@ -60,41 +47,6 @@ function parseArgs(argv) {
 const need = (args, key) => (args[key] === undefined || args[key] === true ? die(`missing --${key}`) : args[key]);
 const oneOf = (value, allowed, name) =>
 	allowed.includes(value) ? value : die(`${name} must be one of: ${allowed.join(", ")} (got "${value}")`);
-
-// ---------- state readers (also used by the control room) ----------
-export function readState() {
-	const list = (dir) => {
-		const full = path.join(STATE, dir);
-		if (!fs.existsSync(full)) return [];
-		return fs
-			.readdirSync(full)
-			.filter((f) => f.endsWith(".json"))
-			.map((f) => readJson(path.join(full, f), null))
-			.filter(Boolean);
-	};
-	const games = fs.existsSync(GAMES)
-		? fs
-				.readdirSync(GAMES, { withFileTypes: true })
-				.filter((d) => d.isDirectory())
-				.map((d) => ({ slug: d.name, ...readJson(path.join(GAMES, d.name, "game.json"), {}) }))
-		: [];
-	const agents = Object.fromEntries(
-		AGENTS.map((name) => [name, readJson(path.join(STATE, "agents", `${name}.json`), { status: "idle", line: "" })]),
-	);
-	const pitches = fs.existsSync(path.join(STATE, "pitches"))
-		? fs.readdirSync(path.join(STATE, "pitches")).filter((f) => f.endsWith(".md"))
-		: [];
-	return {
-		paused: fs.existsSync(path.join(STATE, "paused")),
-		studioLock: readJson(path.join(STATE, "locks", "studio.json"), null),
-		tasks: readJson(path.join(STATE, "tasks.json"), []),
-		agents,
-		games,
-		review: list("review"),
-		tryit: list("tryit"),
-		pitches,
-	};
-}
 
 // ---------- commands ----------
 const commands = {
