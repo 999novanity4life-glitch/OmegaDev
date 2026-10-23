@@ -217,15 +217,12 @@ function LabKit.railing(parent: Instance, cf: CFrame, length: number, height: nu
 		parent
 	)
 	-- Invisible wall so players don't slip off.
-	LabKit.part(
-		{
-			Size = Vector3.new(length, h, 0.4),
-			CFrame = cf * CFrame.new(0, h / 2, 0),
-			Transparency = 1,
-			CanQuery = false,
-		},
-		parent
-	)
+	LabKit.part({
+		Size = Vector3.new(length, h, 0.4),
+		CFrame = cf * CFrame.new(0, h / 2, 0),
+		Transparency = 1,
+		CanQuery = false,
+	}, parent)
 end
 
 -- Caged wall light: housing, glowing tube, cage bars and a real light.

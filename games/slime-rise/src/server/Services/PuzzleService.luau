@@ -27,7 +27,7 @@ export type Context = {
 export type Puzzle = {
 	kind: string,
 	label: string,
-	tick: (dt: number) -> (),
+	update: (dt: number) -> (),
 	progress: () -> (number, number),
 	solved: () -> boolean,
 	cleanup: () -> (),
@@ -136,7 +136,7 @@ local function valves(tier: MapService.TierParts, ctx: Context): Puzzle
 	return {
 		kind = "Valves",
 		label = "Turn the valves",
-		tick = function() end,
+		update = function() end,
 		progress = function()
 			return done, count
 		end,
@@ -177,7 +177,7 @@ local function plates(tier: MapService.TierParts, ctx: Context): Puzzle
 	return {
 		kind = "Plates",
 		label = "Stand on every plate together",
-		tick = function(dt: number)
+		update = function(dt: number)
 			if solvedFlag then
 				return
 			end
@@ -253,7 +253,6 @@ local function colors(tier: MapService.TierParts, ctx: Context): Puzzle
 		swatch.Parent = gui
 	end
 	local current: { number } = {}
-	local lamps: { Part } = {}
 	local solvedFlag = false
 	for i = 1, #code do
 		current[i] = (code[i] % #names) + 1 -- start wrong on purpose
@@ -275,7 +274,6 @@ local function colors(tier: MapService.TierParts, ctx: Context): Puzzle
 			Color = METAL,
 			CanCollide = false,
 		}, folder)
-		table.insert(lamps, lamp)
 		local p = prompt(lever, "Switch color", "Lever " .. i, 0)
 		p.Triggered:Connect(function(player)
 			if solvedFlag or not ctx.isClimber(player) then
@@ -293,7 +291,7 @@ local function colors(tier: MapService.TierParts, ctx: Context): Puzzle
 	return {
 		kind = "Colors",
 		label = "Match the override code",
-		tick = function() end,
+		update = function() end,
 		progress = function()
 			local right = 0
 			for i, v in current do
@@ -423,7 +421,7 @@ local function fuses(tier: MapService.TierParts, ctx: Context): Puzzle
 	return {
 		kind = "Fuses",
 		label = "Carry the fuses to the socket",
-		tick = function()
+		update = function()
 			for player in carrying do
 				if not ctx.isClimber(player) then
 					drop(player)

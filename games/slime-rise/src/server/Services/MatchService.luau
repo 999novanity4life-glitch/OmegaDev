@@ -141,10 +141,10 @@ local function onEscape(match: Match, player: Player, entry: Entry)
 	end)
 end
 
-local function tick(match: Match, dt: number)
+local function tickMatch(match: Match, dt: number)
 	local slimeY = slimeHeight(match)
 	for _, puzzle in match.puzzles do
-		puzzle.tick(dt)
+		puzzle.update(dt)
 	end
 	refreshObjective(match)
 	for player, entry in match.entries do
@@ -311,7 +311,7 @@ function MatchService.create(party: { Player })
 	folder:SetAttribute("State", "Round")
 
 	while now() < match.endsAt and #climbers(match) > 0 do
-		tick(match, task.wait(Config.Slime.CheckInterval))
+		tickMatch(match, task.wait(Config.Slime.CheckInterval))
 	end
 	finish(match)
 end

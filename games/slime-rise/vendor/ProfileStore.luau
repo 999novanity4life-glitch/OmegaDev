@@ -1,3 +1,5 @@
+--!nocheck
+-- (Vendored third-party file: excluded from strict type checks. See docs/VENDOR.md.)
 --[[
 MAD STUDIO (by loleris)
 
