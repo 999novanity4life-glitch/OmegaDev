@@ -52,7 +52,13 @@ end
 function ShaftLayout.build(seed: number): Layout
 	local cfg = Config.Shaft
 	local rand = lcg(seed)
-	local puzzles = shuffled(Config.Puzzles.Order, rand)
+	-- Every run gets the three mini-games plus one physical puzzle, shuffled.
+	local order = Config.Puzzles.Order
+	local pool = { order[1], order[2], order[3] }
+	if #order > 3 then
+		table.insert(pool, order[4 + math.floor(rand() * (#order - 3))])
+	end
+	local puzzles = shuffled(pool, rand)
 	local tiers: { Tier } = {}
 	local hatchAngle = rand() * 360
 	for index = 1, cfg.Tiers do

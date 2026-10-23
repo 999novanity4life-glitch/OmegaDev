@@ -79,7 +79,8 @@ Config.Party = {
 }
 
 Config.Puzzles = {
-	Order = { "Valves", "Plates", "Colors", "Fuses" },
+	-- Real mini-games first; Plates (team) and Fuses (carry) add physical variety.
+	Order = { "Pipes", "Wires", "Memory", "Fuses", "Plates" },
 	ValveHoldSeconds = 2,
 	PlateHoldSeconds = 1.5,
 	ColorLevers = 3,
@@ -101,7 +102,7 @@ Config.Lighting = {
 	FogColor = Color3.fromRGB(18, 30, 26),
 	Haze = 0.8,
 	AtmosphereColor = Color3.fromRGB(150, 200, 175),
-	Bloom = 0.6,
+	Bloom = 0.3,
 }
 
 Config.Crowns = {
@@ -145,6 +146,26 @@ Config.Icons = {
 	Timer = "rbxassetid://112379933179878",
 	Exit = "rbxassetid://89572959893618",
 	Lock = "rbxassetid://123936364277261",
+}
+
+-- Mini-game art (art/puzzle_art.py): pipe tiles off/on and tintable symbols.
+Config.PuzzleArt = {
+	Pipe = {
+		["end"] = { off = "rbxassetid://132553462568565", on = "rbxassetid://114173798067856" },
+		straight = { off = "rbxassetid://84307288781424", on = "rbxassetid://127606729718843" },
+		elbow = { off = "rbxassetid://80010993571282", on = "rbxassetid://116184627948434" },
+		tee = { off = "rbxassetid://83587321495017", on = "rbxassetid://103849791979694" },
+		cross = { off = "rbxassetid://108381586353374", on = "rbxassetid://78162542822728" },
+	},
+	-- Colour + symbol pairs, so the puzzles work for colour-blind players.
+	Symbols = {
+		{ name = "circle", image = "rbxassetid://130643239446591", color = Color3.fromRGB(107, 255, 61) },
+		{ name = "square", image = "rbxassetid://75235242033368", color = Color3.fromRGB(166, 107, 255) },
+		{ name = "triangle", image = "rbxassetid://100358450635364", color = Color3.fromRGB(61, 232, 255) },
+		{ name = "star", image = "rbxassetid://100095636492190", color = Color3.fromRGB(255, 150, 40) },
+		{ name = "diamond", image = "rbxassetid://106431767464518", color = Color3.fromRGB(255, 201, 60) },
+		{ name = "heart", image = "rbxassetid://139696653372849", color = Color3.fromRGB(255, 90, 120) },
+	},
 }
 
 -- Roblox audio library only (ProSoundEffects / APM are licensed for Roblox use).

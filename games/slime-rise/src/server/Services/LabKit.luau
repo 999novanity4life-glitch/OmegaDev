@@ -141,6 +141,14 @@ function LabKit.start()
 	end
 end
 
+-- Neon glows by colour brightness, and Bloom blows bright neon out. Keep every
+-- glow at about 60% brightness and slightly see-through: still glowing, not blinding.
+function LabKit.soften(part: BasePart)
+	local h, sat, v = part.Color:ToHSV()
+	part.Color = Color3.fromHSV(h, math.min(1, sat * 1.05), v * 0.62)
+	part.Transparency = math.max(part.Transparency, 0.12)
+end
+
 -- Applies a kit material (base + PBR variant) and a tint.
 -- Applies a kit material (base + stylized variant) and a tint. Without the
 -- variant in the place it falls back to clean SmoothPlastic in the same tint.
@@ -191,6 +199,9 @@ function LabKit.part(props: { [string]: any }, parent: Instance): Part
 	end
 	if type(matName) == "string" then
 		LabKit.mat(p, matName)
+	end
+	if p.Material == Enum.Material.Neon then
+		LabKit.soften(p)
 	end
 	p.Parent = parent
 	return p

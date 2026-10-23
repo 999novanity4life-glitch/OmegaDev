@@ -9,6 +9,7 @@ local NAMES = {
 	"PowerFx", -- server -> all clients: someone used a power, play its effect
 	"Notify", -- server -> client: escaped, slimed, results, cutscenes, puzzle events
 	"PartyAction", -- client -> server: elevator host picks mode / max size / go
+	"MiniGame", -- client -> server: puzzle move (rotate pipe, connect wire, press pad)
 }
 
 local FOLDER_NAME = "Remotes"

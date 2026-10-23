@@ -44,8 +44,8 @@ function LightingService.start()
 	atmosphere.Haze = cfg.Haze
 	local bloom = ensure("BloomEffect", "LabBloom") :: BloomEffect
 	bloom.Intensity = cfg.Bloom
-	bloom.Size = 30
-	bloom.Threshold = 1.4
+	bloom.Size = 20
+	bloom.Threshold = 2.1
 	local grade = ensure("ColorCorrectionEffect", "LabGrade") :: ColorCorrectionEffect
 	grade.Contrast = 0.12
 	grade.Saturation = 0.15

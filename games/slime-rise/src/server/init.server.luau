@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Create every remote first so clients never wait while the map builds.
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
-for _, name in { "UsePower", "PowerFx", "Notify", "PartyAction" } do
+for _, name in { "UsePower", "PowerFx", "Notify", "PartyAction", "MiniGame" } do
 	Remotes.get(name)
 end
 
@@ -15,6 +15,7 @@ local DataService = require(script.Services.DataService)
 local MatchService = require(script.Services.MatchService)
 local LobbyService = require(script.Services.LobbyService)
 local PowerService = require(script.Services.PowerService)
+local MiniGames = require(script.Services.MiniGames)
 
 LabKit.start()
 LightingService.start()
@@ -22,3 +23,4 @@ DataService.start()
 MatchService.start()
 LobbyService.start()
 PowerService.start()
+MiniGames.start()

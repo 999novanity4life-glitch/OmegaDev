@@ -12,6 +12,7 @@ local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
 local PuzzleRules = require(Shared:WaitForChild("PuzzleRules"))
 local MapService = require(script.Parent.MapService)
 local LabKit = require(script.Parent.LabKit)
+local MiniGames = require(script.Parent.MiniGames)
 
 local PuzzleService = {}
 
@@ -443,11 +444,27 @@ local function fuses(tier: MapService.TierParts, ctx: Context): Puzzle
 	}
 end
 
+local function miniGame(kind: string): (MapService.TierParts, Context) -> Puzzle
+	return function(tier: MapService.TierParts, ctx: Context): Puzzle
+		return MiniGames.create(kind, tier, {
+			origin = ctx.origin,
+			playerCount = ctx.playerCount,
+			seed = ctx.seed + tier.info.index * 31,
+			isClimber = ctx.isClimber,
+			onSolved = ctx.onSolved,
+			onProgress = ctx.onProgress,
+		})
+	end
+end
+
 local BUILDERS: { [string]: (MapService.TierParts, Context) -> Puzzle } = {
 	Valves = valves,
 	Plates = plates,
 	Colors = colors,
 	Fuses = fuses,
+	Pipes = miniGame("Pipes"),
+	Wires = miniGame("Wires"),
+	Memory = miniGame("Memory"),
 }
 
 function PuzzleService.create(tier: MapService.TierParts, ctx: Context): Puzzle
