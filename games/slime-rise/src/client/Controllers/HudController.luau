@@ -60,6 +60,18 @@ local function panel(props: { [string]: any }, parent: Instance): Frame
 	return f
 end
 
+local function icon(image: string, props: { [string]: any }, parent: Instance): ImageLabel
+	local i = Instance.new("ImageLabel")
+	i.BackgroundTransparency = 1
+	i.Image = image
+	i.ScaleType = Enum.ScaleType.Fit
+	for key, value in props do
+		(i :: any)[key] = value
+	end
+	i.Parent = parent
+	return i
+end
+
 local function formatTime(seconds: number): string
 	local s = math.max(0, math.ceil(seconds))
 	return string.format("%d:%02d", s // 60, s % 60)
@@ -81,10 +93,15 @@ function HudController.start()
 	local ratio = Instance.new("UIAspectRatioConstraint")
 	ratio.AspectRatio = 5
 	ratio.Parent = top
-	local stateText = label({ Size = UDim2.fromScale(0.62, 0.8), Position = UDim2.fromScale(0.04, 0.1) }, top)
+	local stateText = label({ Size = UDim2.fromScale(0.54, 0.76), Position = UDim2.fromScale(0.04, 0.12) }, top)
+	local timerIcon = icon(Config.Icons.Timer, {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0.59, 0.5),
+		Size = UDim2.fromScale(0.13, 0.86),
+	}, top)
 	local timerText = label({
-		Size = UDim2.fromScale(0.3, 0.8),
-		Position = UDim2.fromScale(0.66, 0.1),
+		Size = UDim2.fromScale(0.26, 0.8),
+		Position = UDim2.fromScale(0.72, 0.1),
 		TextColor3 = Config.Colors.Slime,
 	}, top)
 
@@ -97,14 +114,21 @@ function HudController.start()
 	local crownRatio = Instance.new("UIAspectRatioConstraint")
 	crownRatio.AspectRatio = 3.2
 	crownRatio.Parent = crownPanel
+	icon(Config.Icons.Crown, {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, -10, 0.5, -2),
+		Size = UDim2.fromScale(0.42, 1.35),
+		Rotation = -12,
+		ZIndex = 2,
+	}, crownPanel)
 	local crownText = label({
-		Size = UDim2.fromScale(0.9, 0.8),
-		Position = UDim2.fromScale(0.05, 0.1),
+		Size = UDim2.fromScale(0.58, 0.78),
+		Position = UDim2.fromScale(0.36, 0.11),
 		TextColor3 = Config.Colors.Exit,
 	}, crownPanel)
 	local function refreshCrowns()
 		local value = player:GetAttribute("Crowns")
-		crownText.Text = "CROWNS " .. tostring(if type(value) == "number" then value else 0)
+		crownText.Text = tostring(if type(value) == "number" then value else 0)
 	end
 	player:GetAttributeChangedSignal("Crowns"):Connect(function()
 		refreshCrowns()
@@ -138,14 +162,42 @@ function HudController.start()
 	meCorner.CornerRadius = UDim.new(1, 0)
 	meCorner.Parent = me
 	me.Parent = meter
-	local exitMark = label({
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(1.3, 0),
-		Size = UDim2.fromOffset(60, 18),
-		Text = "EXIT",
-		TextColor3 = Config.Colors.Exit,
+	-- Exit flag on top, slime mascot riding the fill.
+	icon(Config.Icons.Exit, {
+		AnchorPoint = Vector2.new(0.3, 1),
+		Position = UDim2.new(0.5, 0, 0, -4),
+		Size = UDim2.fromOffset(40, 40),
 	}, meter)
-	exitMark.TextXAlignment = Enum.TextXAlignment.Left
+	local mascot = icon(Config.Icons.Slime, {
+		AnchorPoint = Vector2.new(0.5, 0.75),
+		Position = UDim2.fromScale(0.5, 1),
+		Size = UDim2.fromOffset(34, 34),
+		ZIndex = 3,
+	}, meter)
+
+	-- Game logo between rounds.
+	local logo = Instance.new("Frame")
+	logo.BackgroundTransparency = 1
+	logo.AnchorPoint = Vector2.new(0.5, 0)
+	logo.Position = UDim2.fromScale(0.5, 0.15)
+	logo.Size = UDim2.fromScale(0.42, 0.13)
+	logo.Parent = gui
+	local logoRatio = Instance.new("UIAspectRatioConstraint")
+	logoRatio.AspectRatio = 4.4
+	logoRatio.Parent = logo
+	icon(Config.Icons.Slime, { Size = UDim2.fromScale(0.24, 1.1), Position = UDim2.fromScale(0, -0.05) }, logo)
+	local logoText = label({
+		Size = UDim2.fromScale(0.76, 1),
+		Position = UDim2.fromScale(0.24, 0),
+		Text = "SLIME RISE",
+		TextColor3 = Config.Colors.Slime,
+	}, logo)
+	local logoStroke = logoText:FindFirstChildOfClass("UIStroke") :: UIStroke
+	logoStroke.Thickness = 5
+	local logoGradient = Instance.new("UIGradient")
+	logoGradient.Color = ColorSequence.new(Color3.fromRGB(214, 255, 170), Config.Colors.SlimeDeep)
+	logoGradient.Rotation = 90
+	logoGradient.Parent = logoText
 
 	-- Center: countdown and banners.
 	local banner = label({
@@ -189,6 +241,8 @@ function HudController.start()
 		}
 		stateText.Text = if type(name) == "string" then labels[name] or name else ""
 		timerText.Text = if left > 0 then formatTime(left) else ""
+		timerIcon.Visible = left > 0
+		logo.Visible = name ~= "Round"
 
 		-- 3-2-1 countdown during the head start.
 		local slimeStart = state:GetAttribute("SlimeStart")
@@ -213,7 +267,9 @@ function HudController.start()
 		local slimeY = SlimeController.height()
 		meter.Visible = name == "Round" and slimeY ~= nil and type(exitY) == "number"
 		if meter.Visible and slimeY and type(exitY) == "number" and type(bottomY) == "number" then
-			fill.Size = UDim2.fromScale(1, SlimeCurve.progress(slimeY, bottomY, exitY))
+			local slimeProgress = SlimeCurve.progress(slimeY, bottomY, exitY)
+			fill.Size = UDim2.fromScale(1, slimeProgress)
+			mascot.Position = UDim2.fromScale(0.5, 1 - slimeProgress)
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 			if root then

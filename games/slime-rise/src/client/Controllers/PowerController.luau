@@ -23,6 +23,8 @@ local state = ReplicatedStorage:WaitForChild("RoundState")
 local FONT = Font.fromName("FredokaOne")
 local DARK = Color3.fromRGB(24, 18, 38)
 local NAMES = { Dash = "DASH", Shield = "BUBBLE", Grapple = "GOO HOOK" }
+local ICONS: { [string]: string } =
+	{ Dash = Config.Icons.Dash, Shield = Config.Icons.Shield, Grapple = Config.Icons.Grapple }
 
 local active = Powers.activeIds()
 local selected = 1
@@ -395,8 +397,63 @@ function PowerController.start()
 		l.Parent = button
 		return l
 	end
-	local nameLabel = makeLabel(0.42, 0.3)
-	local infoLabel = makeLabel(0.7, 0.2)
+	local nameLabel = makeLabel(-0.2, 0.26)
+	nameLabel.Size = UDim2.fromScale(1.5, 0.26)
+	nameLabel.TextColor3 = Config.Colors.Slime
+	local infoLabel = makeLabel(0.8, 0.2)
+
+	local function image(props: { [string]: any }, parent: Instance): ImageLabel
+		local i = Instance.new("ImageLabel")
+		i.BackgroundTransparency = 1
+		i.ScaleType = Enum.ScaleType.Fit
+		for key, value in props do
+			(i :: any)[key] = value
+		end
+		i.Parent = parent
+		return i
+	end
+	-- Power icon sits under the cooldown sweep so recharging darkens it.
+	local powerIcon = image({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.43),
+		Size = UDim2.fromScale(0.62, 0.62),
+		ZIndex = 1,
+	}, button)
+	local lockBadge = image({
+		Image = Config.Icons.Lock,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.86, 0.14),
+		Size = UDim2.fromScale(0.38, 0.38),
+		ZIndex = 4,
+	}, button)
+
+	-- Passive Double Jump badge to the left of the button.
+	local jumpBadge = Instance.new("Frame")
+	jumpBadge.AnchorPoint = Vector2.new(1, 0.5)
+	jumpBadge.Position = UDim2.new(0, -10, 0.62, 0)
+	jumpBadge.Size = UDim2.fromScale(0.5, 0.5)
+	jumpBadge.BackgroundColor3 = DARK
+	jumpBadge.Parent = button
+	local jumpCorner = Instance.new("UICorner")
+	jumpCorner.CornerRadius = UDim.new(1, 0)
+	jumpCorner.Parent = jumpBadge
+	local jumpStroke = Instance.new("UIStroke")
+	jumpStroke.Thickness = 3
+	jumpStroke.Color = Color3.fromRGB(166, 107, 255)
+	jumpStroke.Parent = jumpBadge
+	local jumpIcon = image({
+		Image = Config.Icons.DoubleJump,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.72, 0.72),
+	}, jumpBadge)
+	local jumpLock = image({
+		Image = Config.Icons.Lock,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.85, 0.15),
+		Size = UDim2.fromScale(0.5, 0.5),
+		ZIndex = 2,
+	}, jumpBadge)
 
 	-- Small hint under the button for keyboard players.
 	local hint = Instance.new("TextLabel")
@@ -446,6 +503,13 @@ function PowerController.start()
 		local def = Powers.def(id) :: Config.PowerDef
 		local have = crowns()
 		nameLabel.Text = NAMES[id] or id
+		powerIcon.Image = ICONS[id] or ""
+		local jumpReady = Powers.isUnlocked("DoubleJump", have)
+		jumpIcon.ImageTransparency = if jumpReady then 0 else 0.55
+		jumpLock.Visible = not jumpReady
+		local locked = not Powers.isUnlocked(id, have)
+		lockBadge.Visible = locked
+		powerIcon.ImageColor3 = if locked then Color3.fromRGB(150, 145, 170) else Color3.new(1, 1, 1)
 		if not Powers.isUnlocked(id, have) then
 			infoLabel.Text = string.format("%d crowns", Powers.crownsNeeded(id, have))
 			stroke.Color = Color3.fromRGB(120, 110, 140)
