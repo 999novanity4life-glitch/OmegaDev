@@ -42,10 +42,12 @@ local function pedestal(parent: Instance, cf: CFrame, height: number, width: num
 	if height <= 0.2 then
 		return
 	end
-	LabKit.part(
-		{ Size = Vector3.new(width, height, width), CFrame = cf * CFrame.new(0, height / 2, 0), Kit = "SR_Steel" },
-		parent
-	)
+	LabKit.part({
+		Size = Vector3.new(width, height, width),
+		CFrame = cf * CFrame.new(0, height / 2, 0),
+		Kit = "SR_Steel",
+		Tint = Color3.fromRGB(96, 100, 120),
+	}, parent)
 	LabKit.deco({
 		Size = Vector3.new(width + 0.3, 0.5, width + 0.3),
 		CFrame = cf * CFrame.new(0, height - 0.25, 0),

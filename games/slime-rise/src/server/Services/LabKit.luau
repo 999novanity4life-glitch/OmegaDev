@@ -175,9 +175,9 @@ function LabKit.mat(part: BasePart, name: string, color: Color3?)
 	if def and available[name] then
 		part.Material = def.Base
 		part.MaterialVariant = name
-		-- The textures carry their own designed colours; only pads take a tint.
+		-- The textures carry their own designed colours; tint only when asked.
 		if name ~= "SR_Pad" then
-			part.Color = Color3.new(1, 1, 1)
+			part.Color = color or Color3.new(1, 1, 1)
 			return
 		end
 	else
@@ -195,12 +195,14 @@ function LabKit.part(props: { [string]: any }, parent: Instance): Part
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Material = Enum.Material.Metal
 	local matName = props.Kit
+	local tint = props.Tint
 	props.Kit = nil
+	props.Tint = nil
 	for key, value in props do
 		(p :: any)[key] = value
 	end
 	if type(matName) == "string" then
-		LabKit.mat(p, matName)
+		LabKit.mat(p, matName, if typeof(tint) == "Color3" then tint else nil)
 	end
 	if p.Material == Enum.Material.Neon then
 		LabKit.soften(p)
@@ -228,7 +230,7 @@ local KIT_LOOK: { [string]: (MeshPart) -> () } = {
 		m.Color = Color3.fromRGB(66, 52, 102)
 	end,
 	Steel = function(m)
-		LabKit.mat(m, "SR_Steel")
+		LabKit.mat(m, "SR_Steel", Color3.fromRGB(176, 182, 200))
 	end,
 	Dark = function(m)
 		m.Material = Enum.Material.SmoothPlastic
@@ -286,7 +288,7 @@ local function meshTemplate(meshName: string, fidelity: Enum.CollisionFidelity):
 	return mesh
 end
 
-export type KitOptions = { collide: boolean?, fidelity: Enum.CollisionFidelity?, name: string? }
+export type KitOptions = { collide: boolean?, fidelity: Enum.CollisionFidelity?, name: string?, scale: Vector3? }
 
 -- Builds a Blender kit piece at cf (piece origin = base centre, front = -Z).
 -- Returns the model, or nil when the kit meshes aren't imported yet.
@@ -308,8 +310,9 @@ function LabKit.kit(piece: string, cf: CFrame, parent: Instance, opts: KitOption
 			return nil
 		end
 		local m = template:Clone()
-		m.Size = info.size
-		m.CFrame = cf * CFrame.new(info.offset)
+		local scale = (opts and opts.scale) or Vector3.one
+		m.Size = info.size * scale
+		m.CFrame = cf * CFrame.new(info.offset * scale)
 		local look = KIT_LOOK[group]
 		if look then
 			look(m)

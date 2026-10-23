@@ -75,6 +75,14 @@ local function ringCFrame(origin: Vector3, angle: number, radius: number, y: num
 	return CFrame.lookAt(pos, centre)
 end
 
+-- Texture variant -> Blender wall bay that gives it real depth.
+local KIT_BAYS: { [string]: string } = {
+	SR_WallPlain = "WallPlain",
+	SR_WallVent = "WallVent",
+	SR_WallWindow = "WallWindow",
+	SR_WallPipe = "WallPipes",
+}
+
 -- Walls as a grid of individual panels (4 rows per tier), each picked from the
 -- surface-specific variants: kick band at the bottom, weighted specials in the
 -- middle (never repeated next to or above each other), control panels and the
@@ -132,6 +140,12 @@ local function buildWalls(model: Model, origin: Vector3, height: number, layout:
 					CFrame = ringCFrame(origin, angle, cfg.Radius + 1, y),
 					Kit = kit,
 				}, folder)
+				-- Real 3D wall bay (Blender kit) in front of the panel where one exists.
+				local bay = KIT_BAYS[kit]
+				if bay then
+					local bayCf = ringCFrame(origin, angle, cfg.Radius - 0.05, y - rowH / 2)
+					LabKit.kit(bay, bayCf, folder, { scale = Vector3.new((width - 0.3) / 8, rowH / 10.5, 1) })
+				end
 				if row == 1 then
 					-- Soft contact shadow where wall meets floor.
 					LabKit.decal(panel, "Shadow", Enum.NormalId.Front, nil, 0.15)
@@ -190,8 +204,9 @@ local function buildWalls(model: Model, origin: Vector3, height: number, layout:
 				Shape = Enum.PartType.Cylinder,
 				Size = Vector3.new(height, 1.4, 1.4),
 				CFrame = pipe * CFrame.Angles(0, 0, math.rad(90)),
-				Color = if i % 8 == 1 then Config.Colors.Slime else C.Pipe,
-				Material = if i % 8 == 1 then Enum.Material.Neon else Enum.Material.Metal,
+				Color = if i % 8 == 1 then Config.Colors.SlimeDeep else C.Pipe,
+				Material = if i % 8 == 1 then Enum.Material.Glass else Enum.Material.Metal,
+				Transparency = if i % 8 == 1 then 0.35 else 0,
 			}, folder)
 		end
 	end
@@ -214,8 +229,8 @@ local function buildCore(model: Model, origin: Vector3, height: number)
 		Size = Vector3.new(height, cfg.CoreRadius * 2 - 1.2, cfg.CoreRadius * 2 - 1.2),
 		CFrame = core.CFrame,
 		Color = Config.Colors.Slime,
-		Material = Enum.Material.Neon,
-		Transparency = 0.55,
+		Material = Enum.Material.Glass,
+		Transparency = 0.78,
 	}, model)
 	local bubbles = Instance.new("ParticleEmitter")
 	bubbles.Color = ColorSequence.new(Color3.fromRGB(220, 255, 200))
