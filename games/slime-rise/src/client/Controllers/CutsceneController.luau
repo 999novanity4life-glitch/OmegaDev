@@ -1,17 +1,20 @@
 --!strict
 -- Two cutscenes: the elevator ride down (doors close, lights flicker, floor
--- counter, shake, fade) and the map flyover (camera spirals down the shaft
--- to the leak with a title card). The camera always goes back to Custom.
+-- counter, shake, fade) and the map flyover (IntroPath: opens on the leak,
+-- glides up through every tier, opening each hatch as it rises through, and
+-- ends on the exit). The camera always goes back to Custom.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local GuiService = game:GetService("GuiService")
+local StarterGui = game:GetService("StarterGui")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local IntroPath = require(Shared:WaitForChild("IntroPath"))
 
 local CutsceneController = {}
 
@@ -62,8 +65,16 @@ local function controls(enabled: boolean)
 	end
 end
 
+-- The player list covers the shot; hide it while a cutscene plays.
+local function playerList(enabled: boolean)
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, enabled)
+	end)
+end
+
 local function begin(): number
 	playing += 1
+	playerList(false)
 	player:SetAttribute("Cutscene", true)
 	controls(false)
 	local camera = workspace.CurrentCamera
@@ -93,6 +104,7 @@ local function finish(token: number)
 	caption.Visible = false
 	subCaption.Visible = false
 	player:SetAttribute("Cutscene", false)
+	playerList(true)
 	controls(true)
 end
 
@@ -174,67 +186,122 @@ local function elevatorRide(podName: string, seconds: number, camFrom: Vector3, 
 		strip.Transparency = 0
 	end
 	-- Stay black until the flyover starts; finish anyway if it never comes.
-	task.delay(4, function()
+	task.delay(20, function()
 		finish(token)
 	end)
 end
 
--- Catmull-Rom through a list of points (smooth camera path).
-local function catmull(points: { Vector3 }, t: number): Vector3
-	local n = #points
-	local f = math.clamp(t, 0, 1) * (n - 1)
-	local i = math.clamp(math.floor(f) + 1, 1, n - 1)
-	local u = f - (i - 1)
-	local p0 = points[math.max(i - 1, 1)]
-	local p1 = points[i]
-	local p2 = points[i + 1]
-	local p3 = points[math.min(i + 2, n)]
-	local u2, u3 = u * u, u * u * u
-	return 0.5 * ((2 * p1) + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u2 + (-p0 + 3 * p1 - 3 * p2 + p3) * u3)
-end
-
-local function flyover(path: { { Vector3 } }, seconds: number, title: string)
-	if #path < 2 then
-		return
-	end
-	local token = begin()
-	local camera = workspace.CurrentCamera
-	local positions, targets = {}, {}
-	for _, pair in path do
-		table.insert(positions, pair[1])
-		table.insert(targets, pair[2])
-	end
-	camera.CFrame = CFrame.lookAt(positions[1], targets[1])
-	camera.FieldOfView = 65
-	fade(1, 0.8)
-	task.delay(0.6, function()
-		if token == playing then
-			showCaption(title, "The lab is flooding. Fix the leak. Climb out!", Config.Colors.Slime)
+local function hideCaptionLater(token: number, text: string, seconds: number)
+	task.delay(seconds, function()
+		if token == playing and caption.Text == text then
+			caption.Visible = false
+			subCaption.Visible = false
 		end
 	end)
+end
+
+local function toVector(origin: Vector3, p: { number }): Vector3
+	return origin + Vector3.new(p[1], p[2], p[3])
+end
+
+local function validKeys(keys: any): boolean
+	if type(keys) ~= "table" or #keys < 2 then
+		return false
+	end
+	for _, k in keys do
+		if type(k) ~= "table" or type(k.t) ~= "number" or type(k.pos) ~= "table" or type(k.look) ~= "table" then
+			return false
+		end
+	end
+	return true
+end
+
+-- Slides one hatch's doors open just before the camera rises through, then
+-- closed again behind it. Local only: the server still owns the real doors.
+local function playHatch(token: number, start: number, hatch: any, restore: { [BasePart]: CFrame })
+	if type(hatch) ~= "table" or type(hatch.t) ~= "number" or type(hatch.doors) ~= "table" then
+		return
+	end
+	local doors: { BasePart } = {}
+	local opens: { CFrame } = {}
+	for i, door in hatch.doors do
+		local open = type(hatch.open) == "table" and hatch.open[i]
+		if typeof(door) == "Instance" and door:IsA("BasePart") and typeof(open) == "CFrame" then
+			table.insert(doors, door)
+			table.insert(opens, open)
+			restore[door] = restore[door] or door.CFrame
+		end
+	end
+	local slide = TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+	task.delay(math.max(0, start + hatch.t - 1.2 - os.clock()), function()
+		if token ~= playing then
+			return
+		end
+		for i, door in doors do
+			TweenService:Create(door, slide, { CFrame = opens[i] }):Play()
+		end
+		task.wait(2.2)
+		for _, door in doors do
+			if restore[door] then
+				TweenService:Create(door, slide, { CFrame = restore[door] }):Play()
+			end
+		end
+	end)
+end
+
+local function flyover(data: { [string]: any })
+	local keys, origin = data.keys, data.origin
+	if not validKeys(keys) or typeof(origin) ~= "Vector3" then
+		return
+	end
+	local seconds = tonumber(data.seconds) or keys[#keys].t
+	local token = begin()
+	local camera = workspace.CurrentCamera
+	local pos, look = IntroPath.sample(keys, 0)
+	camera.CFrame = CFrame.lookAt(toVector(origin, pos), toVector(origin, look))
+	camera.FieldOfView = 58
+	fade(1, 1.2)
 	local start = os.clock()
+	if type(data.captions) == "table" then
+		for _, c in data.captions do
+			if type(c) == "table" and type(c.t) == "number" then
+				task.delay(c.t + 0.5, function()
+					if token == playing then
+						local main = tostring(c.main)
+						showCaption(main, tostring(c.sub), Config.Colors.Slime)
+						hideCaptionLater(token, main, 3)
+					end
+				end)
+			end
+		end
+	end
+	local restore: { [BasePart]: CFrame } = {}
+	if type(data.hatches) == "table" then
+		for _, hatch in data.hatches do
+			playHatch(token, start, hatch, restore)
+		end
+	end
 	local conn: RBXScriptConnection
 	conn = RunService.RenderStepped:Connect(function()
 		if token ~= playing then
 			conn:Disconnect()
 			return
 		end
-		local t = (os.clock() - start) / seconds
-		-- Ease in-out so the camera glides instead of starting with a jerk.
-		local e = t * t * (3 - 2 * t)
-		local pos = catmull(positions, e)
-		local look = catmull(targets, math.min(1, e + 0.02))
-		camera.CFrame = CFrame.lookAt(pos, look)
-		if t >= 1 then
+		local t = os.clock() - start
+		local p, l = IntroPath.sample(keys, t)
+		camera.CFrame = CFrame.lookAt(toVector(origin, p), toVector(origin, l))
+		if t >= seconds then
 			conn:Disconnect()
 		end
 	end)
-	task.wait(seconds - 0.5)
-	if token ~= playing then
-		return
+	task.wait(math.max(0, seconds - 0.6))
+	if token == playing then
+		fade(0, 0.5)
+		task.wait(0.6)
 	end
-	fade(0, 0.35)
-	task.wait(0.4)
+	for door, cf in restore do
+		door.CFrame = cf
+	end
 	finish(token)
 end
 
@@ -295,7 +362,7 @@ function CutsceneController.start()
 				)
 			end
 		elseif kind == "MatchIntro" and type(data) == "table" then
-			task.spawn(flyover, data.path, tonumber(data.seconds) or Config.Party.FlyoverSeconds, tostring(data.title))
+			task.spawn(flyover, data)
 		end
 	end)
 	-- Safety: dying mid-cutscene must never leave the camera stuck.

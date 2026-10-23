@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local SlimeCurve = require(Shared:WaitForChild("SlimeCurve"))
 local Crowns = require(Shared:WaitForChild("Crowns"))
+local IntroPath = require(Shared:WaitForChild("IntroPath"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local MapService = require(script.Parent.MapService)
 local PuzzleService = require(script.Parent.PuzzleService)
@@ -294,12 +295,24 @@ function MatchService.create(party: { Player })
 	refreshObjective(match)
 
 	-- Intro: every client plays the flyover, then the head start, then slime.
+	local labels: { string } = {}
+	for i, puzzle in match.puzzles do
+		labels[i] = puzzle.label
+	end
+	local intro = IntroPath.build(map.layout, labels, string.format("SECTOR %d: SLIME LEAK", slot + 6))
+	local hatches = {}
+	for _, h in intro.hatches do
+		local tier = map.tiers[h.tier]
+		table.insert(hatches, { t = h.t, doors = tier.doors, open = tier.doorOpen })
+	end
 	fireMatch(match, "MatchIntro", {
-		path = map.cameraPath,
-		seconds = Config.Party.FlyoverSeconds,
-		title = string.format("SECTOR %d: SLIME LEAK", slot + 6),
+		origin = map.origin,
+		keys = intro.keys,
+		captions = intro.captions,
+		hatches = hatches,
+		seconds = intro.seconds,
 	})
-	task.wait(Config.Party.FlyoverSeconds)
+	task.wait(intro.seconds)
 	if not match.live then
 		return
 	end
