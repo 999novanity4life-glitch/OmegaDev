@@ -16,27 +16,22 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Format check (StyLua)
-        run: stylua --check src tests
-
-      - name: Lint (selene)
-        run: selene src
-
-      - name: Type check (luau-lsp, strict)
-        run: |
-          rojo sourcemap default.project.json --output sourcemap.json
-          curl -sSfLO https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau
-          luau-lsp analyze --platform=roblox --sourcemap=sourcemap.json \
-            --definitions=@roblox=globalTypes.d.luau --base-luaurc=.luaurc \
-            --ignore="Packages/**" src
-
-      - name: Unit tests (Lune)
-        run: lune run tests/run
-
-      - name: Build place (Rojo)
-        run: rojo build default.project.json --output game.rbxl
-
-      - uses: actions/upload-artifact@v4
+      - uses: actions/setup-node@v4
         with:
-          name: game.rbxl
-          path: game.rbxl
+          node-version: 22
+
+      - name: Roblox type definitions for luau-lsp
+        run: curl -sSfLo globalTypes.d.luau https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau
+
+      - name: Check template and every game
+        run: |
+          status=0
+          node scripts/omega.mjs check template || status=1
+          for game in games/*/; do
+            [ -f "$game/default.project.json" ] || continue
+            node scripts/omega.mjs check "$(basename "$game")" || status=1
+          done
+          exit $status
+
+      - name: Control room smoke test
+        run: node scripts/test-room.mjs

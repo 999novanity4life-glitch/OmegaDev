@@ -1,9 +1,10 @@
-# OmegaDev game project: rules for AI agents
+# OmegaDev studio: rules for AI agents
 
-This is a Roblox game built with Rojo. The files in `src/` are the source of truth;
-Studio is a view of them. Read this whole file before changing anything.
+This repo is an AI game studio for Roblox. Read `vault/00 For Any AI.md` first.
+Each game lives in `games/<slug>/` as its own Rojo project (copied from
+`template/`). The files are the source of truth; Studio is a view of them.
 
-## Layout (see default.project.json)
+## Layout of a game (see games/<slug>/default.project.json)
 - `src/shared`  -> ReplicatedStorage.Shared   (pure logic + config, used by both sides)
 - `src/server`  -> ServerScriptService.Server (all authority: data, currency, damage, purchases)
 - `src/client`  -> StarterPlayerScripts.Client (input, UI, camera, sounds, effects)
@@ -34,22 +35,21 @@ Studio is a view of them. Read this whole file before changing anything.
    check https://create.roblox.com/docs/reference/engine or run it in Studio
    via the MCP `execute_luau` tool before relying on it.
 
-## Definition of done (run all of these, paste the output)
+## Definition of done (paste the output)
 ```
-stylua --check src tests
-selene src
-rojo sourcemap default.project.json --output sourcemap.json
-luau-lsp analyze --platform=roblox --sourcemap=sourcemap.json --definitions=@roblox=globalTypes.d.luau --base-luaurc=.luaurc --ignore="Packages/**" src
-lune run tests/run
-rojo build default.project.json --output game.rbxl
+node scripts/omega.mjs check <slug>
 ```
+It runs StyLua, selene, Rojo sourcemap, luau-lsp strict analysis, Lune tests and
+a Rojo build for that game. Every line must say PASS.
 Then, if Roblox Studio MCP is connected: start a playtest (`start_stop_play`),
 read `get_console_output` (zero errors/warnings from our scripts), take a
 `screen_capture` of each new screen, and stop the playtest. A change is not
 done because it compiles; it is done when the playtest evidence matches the spec.
 
 ## Workflow
-Use the subagents in `.claude/agents/`: `omega-planner` writes the spec,
-you implement, `omega-code-reviewer` and `omega-feel-reviewer` review,
-`omega-playtester` proves it in Studio. Fix every blocker they raise before
-moving on. Score the build with `docs/QUALITY_CHECKLIST.md` before shipping.
+The Lead (`.claude/agents/lead.md`) runs the studio: Pulse pitches, Architect
+specs, Balance tunes, Scenic/Frame/Librarian make the world and assets, Builder
+codes, code-reviewer reviews, Playtest and Kid Tester prove it in Studio,
+Producer gates quality against `docs/QUALITY_CHECKLIST.md`, Splash makes store
+art, LiveOps runs it after launch. Shared state goes through
+`node scripts/omega.mjs` only. One agent in Studio at a time (`omega lock studio`).

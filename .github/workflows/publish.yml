@@ -1,11 +1,15 @@
 name: Publish
 
-# Manual only. Builds the place and publishes it with Open Cloud.
-# Needs repo secrets: ROBLOX_API_KEY (scope universe-places:write for this
-# experience), ROBLOX_UNIVERSE_ID, ROBLOX_PLACE_ID.
+# Manual only. Builds one game and publishes it with Open Cloud.
+# Needs repo secret ROBLOX_API_KEY (scope universe-places:write for the
+# experiences you publish) and "universeId" + "placeId" in games/<game>/game.json.
 on:
   workflow_dispatch:
     inputs:
+      game:
+        description: "Game folder under games/"
+        required: true
+        type: string
       version_type:
         description: "Saved (private test) or Published (live)"
         required: true
@@ -21,13 +25,16 @@ jobs:
       - uses: CompeyDev/setup-rokit@v0.2.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - run: rojo build default.project.json --output game.rbxl
-      - name: Upload place version
+      - name: Build and upload place version
         env:
           API_KEY: ${{ secrets.ROBLOX_API_KEY }}
-          UNIVERSE_ID: ${{ secrets.ROBLOX_UNIVERSE_ID }}
-          PLACE_ID: ${{ secrets.ROBLOX_PLACE_ID }}
+          GAME: ${{ inputs.game }}
         run: |
+          [[ "$GAME" =~ ^[a-z0-9-]+$ ]] || { echo "bad game name"; exit 1; }
+          UNIVERSE_ID=$(jq -r '.universeId // empty' "games/$GAME/game.json")
+          PLACE_ID=$(jq -r '.placeId // empty' "games/$GAME/game.json")
+          [ -n "$UNIVERSE_ID" ] && [ -n "$PLACE_ID" ] || { echo "set universeId and placeId in games/$GAME/game.json"; exit 1; }
+          (cd "games/$GAME" && rojo build default.project.json --output ../../game.rbxl)
           curl -sSf -X POST \
             "https://apis.roblox.com/universes/v1/${UNIVERSE_ID}/places/${PLACE_ID}/versions?versionType=${{ inputs.version_type }}" \
             -H "x-api-key: ${API_KEY}" \
