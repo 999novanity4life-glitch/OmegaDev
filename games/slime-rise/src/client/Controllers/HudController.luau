@@ -140,7 +140,7 @@ function HudController.start()
 	me.Parent = meter
 	local exitMark = label({
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(1.3, 0, 0, 0),
+		Position = UDim2.fromScale(1.3, 0),
 		Size = UDim2.fromOffset(60, 18),
 		Text = "EXIT",
 		TextColor3 = Config.Colors.Exit,

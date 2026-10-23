@@ -43,7 +43,7 @@ Config.Round = {
 }
 
 Config.Slime = {
-	BaseY = -3, -- slime starts below the tower floor
+	BaseY = -15, -- slime starts below the tower floor (about 8 s before it reaches the floor)
 	TopMargin = 10, -- slime ends this far above the Exit Pad
 	Exponent = 1.25, -- above 1 = slow start, fast finish
 	DamagePerSecond = 50,

@@ -6,6 +6,8 @@
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
+-- Roblox datatypes (Vector3, Color3, CFrame...) so Config modules load under Lune.
+local hasRoblox, roblox = pcall(require, "@lune/roblox")
 
 local cache = {}
 local loadModule
@@ -52,7 +54,15 @@ function loadModule(path: string)
 			end
 			return require(target)
 		end,
-	}, { __index = getfenv() })
+	}, {
+		__index = function(_, key)
+			local value = getfenv()[key]
+			if value == nil and hasRoblox then
+				return roblox[key]
+			end
+			return value
+		end,
+	})
 	local chunk = luau.load(fs.readFile(file), { debugName = file, environment = env })
 	local result = chunk()
 	cache[file] = result

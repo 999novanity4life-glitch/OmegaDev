@@ -229,9 +229,9 @@ function RoundService.start()
 			end
 			setState("Intermission", Config.Round.IntermissionSeconds)
 			task.wait(Config.Round.IntermissionSeconds)
-			local ok, err = pcall(runRound, os.time())
-			if not ok then
-				warn("[RoundService] round failed: " .. tostring(err))
+			local result = { pcall(runRound, os.time()) }
+			if not result[1] then
+				warn("[RoundService] round failed: " .. tostring(result[2]))
 				task.wait(3)
 			end
 		end

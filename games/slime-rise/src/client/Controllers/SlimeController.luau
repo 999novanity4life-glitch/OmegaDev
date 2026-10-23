@@ -129,11 +129,12 @@ function SlimeController.start()
 		body.CFrame = CFrame.new(origin.X, y - 30 + wobble, origin.Z)
 		skin.CFrame = CFrame.new(origin.X, y + 0.25 + wobble, origin.Z)
 		bubbles.Rate = 40 + 20 * (1 + math.sin(t))
-		-- Green screen edges when the slime is within 10 studs below you.
+		-- Green screen edges when the rising slime is within 8 studs below you.
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		local gap = if root then root.Position.Y - 2.5 - y else math.huge
-		local danger = math.clamp(1 - gap / 10, 0, 1)
+		local rising = workspace:GetServerTimeNow() >= (state:GetAttribute("SlimeStart") :: number)
+		local danger = if rising then math.clamp(1 - gap / 8, 0, 1) else 0
 		vignette.BackgroundTransparency = 1 - danger * 0.55
 	end)
 end
