@@ -21,9 +21,9 @@
 		--chrome-hi: #f4f6f8;
 		--chrome-mid: #a7adb6;
 		--chrome-lo: #4b5058;
-		--neon: #ff7a1a;          /* Omega orange */
-		--neon-hot: #ffb15c;
-		--neon-glow: rgba(255, 122, 26, 0.55);
+		--neon: #d0773f;          /* Omega orange, muted */
+		--neon-hot: #e0a072;
+		--neon-glow: rgba(208, 119, 63, 0.3);
 		--ok: #3ddc84; --warn: #ffb020; --bad: #ff4d5e;
 		--font-display: "Chakra Petch", "Eurostile", "Segoe UI", system-ui, sans-serif;
 		--font-body: "Barlow", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -38,7 +38,7 @@
 		background-color: var(--void);
 		/* Carbon-fiber twill: two offset checker weaves with a soft sheen on top. */
 		background-image:
-			radial-gradient(120% 80% at 70% -10%, rgba(255, 122, 26, 0.07), transparent 60%),
+			radial-gradient(120% 80% at 70% -10%, rgba(208, 119, 63, 0.035), transparent 60%),
 			linear-gradient(27deg, var(--carbon-b) 5px, transparent 5px),
 			linear-gradient(207deg, var(--carbon-b) 5px, transparent 5px),
 			linear-gradient(27deg, var(--carbon-a) 5px, transparent 5px),
@@ -65,13 +65,13 @@
 	.logo span {
 		width: 36px; height: 36px; display: grid; place-items: center; background: #0d0e11;
 		clip-path: inherit; font: 700 22px/1 var(--font-display); color: var(--neon);
-		text-shadow: 0 0 8px var(--neon-glow), 0 0 18px var(--neon-glow);
+		text-shadow: 0 0 6px var(--neon-glow);
 	}
 	.brand b {
 		display: block; font: 700 18px/1.1 var(--font-display); letter-spacing: 0.12em; text-transform: uppercase;
 		background: var(--chrome); -webkit-background-clip: text; background-clip: text; color: transparent;
 	}
-	.brand small { color: var(--neon); font: 600 10px/1 var(--font-mono); letter-spacing: 0.22em; text-transform: uppercase; }
+	.brand small { color: var(--chrome-mid); font: 600 10px/1 var(--font-mono); letter-spacing: 0.22em; text-transform: uppercase; }
 	nav h6 { margin: 16px 10px 6px; color: var(--chrome-mid); font: 600 10px/1 var(--font-mono); letter-spacing: 0.24em; text-transform: uppercase; }
 	nav button {
 		all: unset; cursor: pointer; padding: 9px 10px; border-radius: 4px; display: flex; gap: 10px; align-items: center;
@@ -80,19 +80,19 @@
 	}
 	nav button svg { width: 18px; height: 18px; flex: none; stroke: currentColor; transition: filter 0.15s; }
 	nav button .badge { margin-left: auto; }
-	nav button:hover, nav button:focus-visible { color: var(--neon-hot); background: rgba(255, 122, 26, 0.06); }
-	nav button:hover svg, nav button:focus-visible svg { filter: drop-shadow(0 0 4px var(--neon)) drop-shadow(0 0 10px var(--neon-glow)); }
-	nav button.on { color: var(--text); background: linear-gradient(90deg, rgba(255, 122, 26, 0.16), rgba(255, 122, 26, 0.02)); box-shadow: inset 2px 0 0 var(--neon), -6px 0 16px -6px var(--neon-glow); }
-	nav button.on svg { color: var(--neon); filter: drop-shadow(0 0 4px var(--neon-glow)); }
+	nav button:hover, nav button:focus-visible { color: var(--neon-hot); background: rgba(208, 119, 63, 0.04); }
+	nav button:hover svg, nav button:focus-visible svg { filter: drop-shadow(0 0 3px var(--neon-glow)); }
+	nav button.on { color: var(--text); background: linear-gradient(90deg, rgba(208, 119, 63, 0.09), transparent); box-shadow: inset 2px 0 0 var(--neon); }
+	nav button.on svg { color: var(--neon); }
 	.badge {
-		background: var(--neon); color: #160800; border-radius: 3px; padding: 2px 7px; font: 700 11px/1.2 var(--font-mono);
-		box-shadow: 0 0 10px var(--neon-glow);
+		background: transparent; color: var(--neon-hot); border: 1px solid var(--neon); border-radius: 3px; padding: 2px 7px; font: 700 11px/1.2 var(--font-mono);
+
 	}
 	.foot {
 		margin-top: auto; padding: 12px; color: var(--dim); font: 12px/1.6 var(--font-mono);
 		background: rgba(0, 0, 0, 0.35); border: 1px solid var(--seam); clip-path: var(--chamfer);
 	}
-	.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--neon); margin-right: 8px; box-shadow: 0 0 8px var(--neon); animation: pulse 2s ease-in-out infinite; }
+	.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--neon); margin-right: 8px; box-shadow: 0 0 5px var(--neon-glow); animation: pulse 2s ease-in-out infinite; }
 	.dot.off { background: var(--chrome-lo); box-shadow: none; animation: none; }
 	@keyframes pulse { 50% { opacity: 0.45; } }
 
@@ -102,15 +102,15 @@
 		flex: 1; min-width: 220px; background: rgba(10, 11, 14, 0.85); border: 1px solid var(--seam); color: var(--text);
 		padding: 12px 14px; font: 15px var(--font-body); clip-path: var(--chamfer); outline: none; transition: border-color 0.15s, box-shadow 0.15s;
 	}
-	.top input:focus { border-color: var(--neon); box-shadow: inset 0 0 0 1px var(--neon), 0 0 18px var(--neon-glow); }
+	.top input:focus { border-color: var(--neon); box-shadow: 0 0 8px var(--neon-glow); }
 	.btn {
 		position: relative; background: linear-gradient(180deg, #23262d, #15171c); border: 1px solid var(--chrome-lo); color: var(--text);
 		padding: 9px 14px; cursor: pointer; font: 600 13px/1 var(--font-display); letter-spacing: 0.08em; text-transform: uppercase;
 		clip-path: var(--chamfer); transition: color 0.15s, box-shadow 0.15s, border-color 0.15s;
 	}
-	.btn:hover, .btn:focus-visible { color: var(--neon-hot); border-color: var(--neon); box-shadow: inset 0 0 14px rgba(255, 122, 26, 0.25); outline: none; }
-	.btn.primary { background: linear-gradient(180deg, var(--neon-hot), var(--neon) 55%, #d65a00); color: #1a0900; border-color: var(--neon-hot); }
-	.btn.primary:hover, .btn.primary:focus-visible { color: #1a0900; box-shadow: 0 0 22px var(--neon-glow); }
+	.btn:hover, .btn:focus-visible { color: var(--neon-hot); border-color: var(--neon); box-shadow: inset 0 0 10px rgba(208, 119, 63, 0.12); outline: none; }
+	.btn.primary { background: linear-gradient(180deg, var(--plate-2), var(--plate)); color: var(--neon-hot); border-color: var(--neon); }
+	.btn.primary:hover, .btn.primary:focus-visible { color: var(--text); box-shadow: inset 0 0 10px rgba(208, 119, 63, 0.18), 0 0 8px var(--neon-glow); }
 	.btn.ok:hover { color: var(--ok); border-color: var(--ok); box-shadow: inset 0 0 14px rgba(61, 220, 132, 0.2); }
 	.btn.bad:hover { color: var(--bad); border-color: var(--bad); box-shadow: inset 0 0 14px rgba(255, 77, 94, 0.2); }
 
@@ -127,9 +127,10 @@
 	}
 	/* Chrome top edge on every plate, and a neon seam that lights up on hover. */
 	.card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: var(--chrome); opacity: 0.6; }
-	.card::after { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 2px; background: var(--neon); opacity: 0; box-shadow: 0 0 10px var(--neon); transition: opacity 0.2s; }
+	.card::after { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 2px; background: var(--neon); opacity: 0; box-shadow: 0 0 6px var(--neon-glow); transition: opacity 0.2s; }
 	.card:hover::after, .card.alert::after { opacity: 1; }
-	.card .k { color: var(--neon); font: 600 11px/1.4 var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px; }
+	.card.alert .k { color: var(--neon-hot); }
+	.card .k { color: var(--chrome-mid); font: 600 11px/1.4 var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px; }
 	.card b { font-weight: 600; }
 	.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
@@ -140,12 +141,12 @@
 		clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); transition: filter 0.15s;
 	}
 	.av span { width: 34px; height: 34px; display: grid; place-items: center; background: #0d0e11; clip-path: inherit; font: 700 15px/1 var(--font-display); color: var(--chrome-mid); }
-	.agent.working .av span { color: var(--neon); text-shadow: 0 0 8px var(--neon-glow); }
-	.agent:hover .av { filter: drop-shadow(0 0 6px var(--neon)) drop-shadow(0 0 14px var(--neon-glow)); }
+	.agent.working .av span { color: var(--neon); }
+	.agent:hover .av { filter: drop-shadow(0 0 4px var(--neon-glow)); }
 	.agent b { font: 600 15px/1.2 var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; }
 	.agent .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.st { font: 600 10px/1 var(--font-mono); letter-spacing: 0.16em; padding: 4px 8px; border: 1px solid var(--seam); color: var(--dim); background: rgba(0, 0, 0, 0.3); }
-	.st.working { color: var(--neon); border-color: var(--neon); box-shadow: 0 0 10px rgba(255, 122, 26, 0.35); }
+	.st.working { color: var(--neon-hot); border-color: rgba(208, 119, 63, 0.6); }
 	.st.needs_you { color: var(--warn); border-color: var(--warn); }
 	.st.blocked { color: var(--bad); border-color: var(--bad); }
 	.st.done { color: var(--ok); border-color: rgba(61, 220, 132, 0.5); }
@@ -158,17 +159,17 @@
 		color: var(--dim); border: 1px solid var(--seam); background: rgba(0, 0, 0, 0.35); clip-path: var(--chamfer); transition: color 0.15s, border-color 0.15s;
 	}
 	.tabs button:hover, .tabs button:focus-visible { color: var(--neon-hot); border-color: var(--neon); }
-	.tabs button.on { color: #1a0900; background: var(--neon); border-color: var(--neon); box-shadow: 0 0 14px var(--neon-glow); }
+	.tabs button.on { color: var(--text); background: rgba(208, 119, 63, 0.1); border-color: var(--neon); }
 	.table-wrap { overflow-x: auto; }
 	table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 	td, th { text-align: left; padding: 10px; border-bottom: 1px solid var(--seam); vertical-align: top; }
 	th { color: var(--chrome-mid); font: 600 10px/1 var(--font-mono); letter-spacing: 0.2em; text-transform: uppercase; }
-	tr:hover td { background: rgba(255, 122, 26, 0.04); }
+	tr:hover td { background: rgba(208, 119, 63, 0.03); }
 	textarea {
 		width: 100%; background: rgba(0, 0, 0, 0.4); color: var(--text); border: 1px solid var(--seam); padding: 8px 10px; min-height: 52px;
 		font: 14px var(--font-body); margin-top: 8px; outline: none; resize: vertical;
 	}
-	textarea:focus { border-color: var(--neon); box-shadow: 0 0 12px rgba(255, 122, 26, 0.3); }
+	textarea:focus { border-color: var(--neon); box-shadow: 0 0 6px var(--neon-glow); }
 	.muted { color: var(--dim); }
 	.mono { font-family: var(--font-mono); font-size: 12px; }
 	pre { white-space: pre-wrap; margin: 6px 0; font: inherit; }
