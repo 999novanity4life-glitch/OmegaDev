@@ -5,7 +5,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { STATE, readState } from "../scripts/state.mjs";
+import { PITCH_DIRS, STATE, readState } from "../scripts/state.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MEDIA_TYPES = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".mp4": "video/mp4", ".webm": "video/webm" };
@@ -54,8 +54,8 @@ async function handle(req, res) {
 	}
 	if (req.method === "GET" && url.pathname.startsWith("/pitch/")) {
 		const name = path.basename(url.pathname);
-		const file = path.join(STATE, "pitches", name);
-		if (!name.endsWith(".md") || !fs.existsSync(file)) return send(res, 404, { error: "not found" });
+		const file = PITCH_DIRS.map((d) => path.join(d, name)).find((f) => fs.existsSync(f));
+		if (!name.endsWith(".md") || !file) return send(res, 404, { error: "not found" });
 		return send(res, 200, fs.readFileSync(file, "utf8"), "text/plain; charset=utf-8");
 	}
 	if (req.method !== "POST") return send(res, 404, { error: "not found" });
