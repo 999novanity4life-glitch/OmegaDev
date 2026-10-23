@@ -319,6 +319,29 @@ function CourseBuilder.build(parent: Instance, origin: Vector3, info: ShaftLayou
 	folder.Name = "Course"
 	folder.Parent = parent
 	local surfaces: { BasePart } = {}
+	-- "Climb here" marker: a lit sign on a post beside the first piece of gear.
+	local first = info.course[1]
+	if first then
+		local postCf = ringCFrame(origin, first.angle - 9, first.radius - 3, info.floorY)
+		LabKit.part(
+			{ Size = Vector3.new(0.5, 6, 0.5), CFrame = postCf * CFrame.new(0, 3, 0), Kit = "SR_Steel" },
+			folder
+		)
+		LabKit.sign(
+			folder,
+			postCf * CFrame.new(0, 6.6, -0.3),
+			Vector2.new(4.6, 1.8),
+			"CLIMB  >",
+			Color3.fromRGB(255, 220, 90)
+		)
+		LabKit.deco({
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.1, 7, 7),
+			CFrame = ringCFrame(origin, first.angle, first.radius, info.floorY + 0.05)
+				* CFrame.Angles(0, 0, math.rad(90)),
+			Kit = "SR_Hazard",
+		}, folder)
+	end
 	for _, e in info.course do
 		local s = build(folder, origin, info.floorY, e)
 		if s then

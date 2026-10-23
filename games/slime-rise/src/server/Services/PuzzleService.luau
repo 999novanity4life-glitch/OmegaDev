@@ -317,7 +317,7 @@ local function fuses(tier: MapService.TierParts, ctx: Context): Puzzle
 	local folder = Instance.new("Folder")
 	folder.Name = "Fuses"
 	folder.Parent = tier.folder
-	local shelfCf = ringCFrame(ctx.origin, tier.info.hatchAngle + 180, Config.Shaft.Radius - 3, tier.info.floorY + 1.5)
+	local shelfCf = ringCFrame(ctx.origin, tier.info.hatchAngle + 70, Config.Shaft.Radius - 3, tier.info.floorY + 1.5)
 	part({ Size = Vector3.new(8, 3, 3), CFrame = shelfCf, Color = DARK }, folder)
 	local socketCf = tier.landing.CFrame * CFrame.new(0, tier.landing.Size.Y / 2 + 1.5, tier.landing.Size.Z / 2 - 1)
 	local socket = part({ Size = Vector3.new(3, 3, 1.4), CFrame = socketCf, Color = DARK }, folder)

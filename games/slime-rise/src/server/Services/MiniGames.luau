@@ -163,7 +163,8 @@ function MiniGames.create(kind: string, tier: any, ctx: Context): any
 	local info = tier.info
 	for i = 1, count do
 		nextId += 1
-		local angle = info.hatchAngle + 150 + (i - 1) * 45
+		-- Consoles stand in the free arc between the landing and the route start.
+		local angle = info.hatchAngle + 38 + (i - 1) * 34
 		local x, z = ShaftLayout.polar(angle, Config.Shaft.Radius - 4)
 		local pos = ctx.origin + Vector3.new(x, info.floorY, z)
 		local cf = CFrame.lookAt(pos, Vector3.new(ctx.origin.X, pos.Y, ctx.origin.Z))
