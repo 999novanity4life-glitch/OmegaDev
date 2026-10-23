@@ -475,8 +475,8 @@ function LabKit.lightFixture(parent: Instance, cf: CFrame, color: Color3?, range
 	}, parent)
 	local light = Instance.new("PointLight")
 	light.Color = glow
-	light.Range = range or 28
-	light.Brightness = 1.6
+	light.Range = (range or 28) + 4
+	light.Brightness = 2.1
 	light.Shadows = false
 	light.Parent = tube
 end
