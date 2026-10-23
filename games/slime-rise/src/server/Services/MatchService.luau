@@ -295,21 +295,25 @@ function MatchService.create(party: { Player })
 	refreshObjective(match)
 
 	-- Intro: every client plays the flyover, then the head start, then slime.
-	local labels: { string } = {}
+	local tierInfo: { IntroPath.TierInfo } = {}
 	for i, puzzle in match.puzzles do
-		labels[i] = puzzle.label
+		local rel = puzzle.focus - origin
+		tierInfo[i] = {
+			title = puzzle.title,
+			label = puzzle.label,
+			focus = {
+				angle = math.deg(math.atan2(rel.Z, rel.X)),
+				radius = math.sqrt(rel.X * rel.X + rel.Z * rel.Z),
+				y = rel.Y,
+			},
+		}
 	end
-	local intro = IntroPath.build(map.layout, labels, string.format("SECTOR %d: SLIME LEAK", slot + 6))
-	local hatches = {}
-	for _, h in intro.hatches do
-		local tier = map.tiers[h.tier]
-		table.insert(hatches, { t = h.t, doors = tier.doors, open = tier.doorOpen })
-	end
+	local intro = IntroPath.build(map.layout, tierInfo, string.format("SECTOR %d: SLIME LEAK", slot + 6))
 	fireMatch(match, "MatchIntro", {
 		origin = map.origin,
-		keys = intro.keys,
+		shots = intro.shots,
+		cuts = intro.cuts,
 		captions = intro.captions,
-		hatches = hatches,
 		seconds = intro.seconds,
 	})
 	task.wait(intro.seconds)

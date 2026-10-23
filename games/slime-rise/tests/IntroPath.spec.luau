@@ -5,13 +5,32 @@ return function(t, load)
 	local IntroPath = load("src/shared/IntroPath")
 	local describe, it, expect = t.describe, t.it, t.expect
 	local shaft = Config.Shaft
-	local labels = { "Repair the slime pipes", "Reconnect the power wires", "Crack the door code", "Flip the fuses" }
 
-	-- Every problem with one sampled camera frame, or nil when it is clean.
+	-- Puzzle focus points where PuzzleService/MiniGames really put them.
+	local function tierInfo(layout)
+		local out = {}
+		for i, tier in layout.tiers do
+			local kind = (i - 1) % 4
+			local focus
+			if kind == 0 then -- mini-game console
+				focus = { angle = tier.hatchAngle + 38, radius = shaft.Radius - 4, y = tier.floorY + 2.5 }
+			elseif kind == 1 then -- pressure plates on the floor
+				focus = { angle = tier.hatchAngle + 180, radius = 15, y = tier.floorY + 0.2 }
+			elseif kind == 2 then -- valve on the wall by a course pad
+				local pad = tier.pads[#tier.pads]
+				focus = { angle = pad.angle + 9, radius = shaft.Radius - 1.2, y = pad.y + 3.2 }
+			else -- fuse shelf
+				focus = { angle = tier.hatchAngle + 70, radius = shaft.Radius - 3, y = tier.floorY + 1.5 }
+			end
+			out[i] = { title = "PUZZLE", label = "Do the thing", focus = focus }
+		end
+		return out
+	end
+
 	local function problem(layout, pos, look)
 		local x, y, z = pos[1], pos[2], pos[3]
 		local r = math.sqrt(x * x + z * z)
-		if y < 2.5 then
+		if y < 2 then
 			return "below the bottom floor"
 		end
 		if r < shaft.CoreRadius + 3 then
@@ -20,22 +39,22 @@ return function(t, load)
 		if r > shaft.Radius - 3 then
 			return "in the wall"
 		end
-		local h = shaft.HatchSize / 2 - 1.5
 		for _, tier in layout.tiers do
 			local ceil = tier.ceilingY
-			if y > ceil - shaft.BulkheadThickness - 0.6 and y < ceil + 0.6 then
-				local hx, hz = ShaftLayout.polar(tier.hatchAngle, tier.hatchRadius)
-				if math.abs(x - hx) > h or math.abs(z - hz) > h then
-					return string.format("through the tier %d floor at y=%.1f", tier.index, y)
-				end
+			if y > ceil - shaft.BulkheadThickness - 1 and y < ceil + 1 then
+				return string.format("in the tier %d floor slab at y=%.1f", tier.index, y)
 			end
 		end
 		local dx, dy, dz = look[1] - x, look[2] - y, look[3] - z
 		local flat = math.sqrt(dx * dx + dz * dz)
-		if flat < 0.2 * math.sqrt(flat * flat + dy * dy) then
+		if flat < 0.25 * math.sqrt(flat * flat + dy * dy) then
 			return "looking straight up or down"
 		end
 		return nil
+	end
+
+	local function yaw(pos, look)
+		return math.deg(math.atan2(look[3] - pos[3], look[1] - pos[1]))
 	end
 
 	describe("IntroPath", function()
@@ -43,61 +62,69 @@ return function(t, load)
 			local bad = {}
 			for seed = 1, 60 do
 				local layout = ShaftLayout.build(seed * 7919)
-				local path = IntroPath.build(layout, labels, "SECTOR 7")
-				local step = 1 / 60
+				local path = IntroPath.build(layout, tierInfo(layout), "SECTOR 7")
 				local time = 0
 				while time <= path.seconds do
-					local pos, look = IntroPath.sample(path.keys, time)
+					local pos, look = IntroPath.sample(path, time)
 					local issue = problem(layout, pos, look)
 					if issue then
 						table.insert(bad, string.format("seed %d t=%.2f %s", seed, time, issue))
 						break
 					end
-					time += step
+					time += 1 / 60
 				end
 			end
 			expect(table.concat(bad, " | ", 1, math.min(#bad, 12))).toBe("")
-			if #bad > 0 then
-				print(table.concat(bad, "\n"))
-			end
 		end)
 
-		it("is calm: fits the time cap and never rushes", function()
+		it("never spins: each shot turns the view only a little, and slowly", function()
+			local bad = {}
 			for seed = 1, 60 do
 				local layout = ShaftLayout.build(seed * 104729)
-				local path = IntroPath.build(layout, labels, "SECTOR 7")
-				expect(path.seconds <= Config.Intro.MaxSeconds + 1e-6).toBe(true)
-				expect(path.seconds >= 15).toBe(true)
-				local fastest = 0
-				local prev = IntroPath.sample(path.keys, 0)
-				local step = 1 / 30
-				local time = step
-				while time <= path.seconds do
-					local pos = IntroPath.sample(path.keys, time)
-					local d = math.sqrt((pos[1] - prev[1]) ^ 2 + (pos[2] - prev[2]) ^ 2 + (pos[3] - prev[3]) ^ 2)
-					fastest = math.max(fastest, d / step)
-					prev = pos
-					time += step
+				local path = IntroPath.build(layout, tierInfo(layout), "SECTOR 7")
+				for index, s in path.shots do
+					local t0, t1 = s.t, s.keys[#s.keys].t
+					local p0, l0 = IntroPath.sample(path, t0 + 1e-3)
+					local startYaw = yaw(p0, l0)
+					local prevYaw = startYaw
+					local time = t0 + 1 / 30
+					while time < t1 do
+						local p, l = IntroPath.sample(path, time)
+						local a = yaw(p, l)
+						local step = math.abs((a - prevYaw + 180) % 360 - 180)
+						local total = math.abs((a - startYaw + 180) % 360 - 180)
+						if step * 30 > 30 or total > 35 then
+							table.insert(bad, string.format("seed %d shot %d turns %.0f deg", seed, index, total))
+							break
+						end
+						prevYaw = a
+						time += 1 / 30
+					end
 				end
-				-- Peak speed stays near the glide speed (no whip pans or jumps).
-				expect(fastest < Config.Intro.Speed * 2.2).toBe(true)
 			end
+			expect(table.concat(bad, " | ", 1, math.min(#bad, 12))).toBe("")
 		end)
 
-		it("crosses every hatch in order and captions every tier", function()
+		it("shows every tier wide, then settles on its puzzle", function()
 			local layout = ShaftLayout.build(42)
-			local path = IntroPath.build(layout, labels, "SECTOR 7")
-			expect(#path.hatches).toBe(shaft.Tiers)
-			for i, h in path.hatches do
-				expect(h.tier).toBe(i)
-				local pos = IntroPath.sample(path.keys, h.t)
-				-- At the crossing time the camera is right at that floor.
-				expect(math.abs(pos[2] - layout.tiers[i].ceilingY) < 4).toBe(true)
+			local info = tierInfo(layout)
+			local path = IntroPath.build(layout, info, "SECTOR 7")
+			expect(#path.shots).toBe(shaft.Tiers * 2 + 1)
+			for i = 1, shaft.Tiers do
+				local push = path.shots[i * 2]
+				expect(push.tier).toBe(i)
+				local last = push.keys[#push.keys]
+				local fx, fz = ShaftLayout.polar(info[i].focus.angle, info[i].focus.radius)
+				local d =
+					math.sqrt((last.pos[1] - fx) ^ 2 + (last.pos[2] - info[i].focus.y) ^ 2 + (last.pos[3] - fz) ^ 2)
+				expect(d < 11).toBe(true)
 			end
-			expect(#path.captions).toBe(shaft.Tiers + 2)
-			expect(path.captions[2].sub).toBe(labels[1])
+			-- One dip to black per floor change (into tiers 2..4 and the roof).
+			expect(#path.cuts).toBe(shaft.Tiers)
+			expect(path.seconds <= 30).toBe(true)
+			expect(#path.captions).toBe(shaft.Tiers * 2 + 1)
 			for i = 2, #path.captions do
-				expect(path.captions[i].t >= path.captions[i - 1].t).toBe(true)
+				expect(path.captions[i].t > path.captions[i - 1].t).toBe(true)
 			end
 		end)
 	end)
