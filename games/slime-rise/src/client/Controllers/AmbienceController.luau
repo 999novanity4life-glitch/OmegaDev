@@ -140,11 +140,32 @@ function AmbienceController.start()
 		end
 	end)
 
-	-- Spin every alarm lamp in the shaft (local only, so no network cost).
+	-- Local-only motion so the lab feels alive with no network cost:
+	-- alarm lamps spin, vent fans turn, rack LEDs blink, gauge needles twitch.
+	local blinkClock = 0
 	RunService.RenderStepped:Connect(function(dt: number)
 		for _, lamp in CollectionService:GetTagged("AlarmLight") do
 			if lamp:IsA("BasePart") then
 				lamp.CFrame *= CFrame.Angles(0, dt * 5, 0)
+			end
+		end
+		for _, fan in CollectionService:GetTagged("Fan") do
+			if fan:IsA("BasePart") then
+				fan.CFrame *= CFrame.Angles(0, 0, dt * 6)
+			end
+		end
+		blinkClock += dt
+		if blinkClock > 0.35 then
+			blinkClock = 0
+			for _, led in CollectionService:GetTagged("Blink") do
+				if led:IsA("BasePart") and math.random() < 0.3 then
+					led.Transparency = if led.Transparency > 0 then 0 else 0.85
+				end
+			end
+			for _, needle in CollectionService:GetTagged("Needle") do
+				if needle:IsA("BasePart") then
+					needle.CFrame *= CFrame.Angles(0, 0, (math.random() - 0.5) * 0.25)
+				end
 			end
 		end
 	end)

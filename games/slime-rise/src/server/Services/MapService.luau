@@ -9,6 +9,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
+local LabKit = require(script.Parent.LabKit)
 
 local MapService = {}
 
@@ -36,9 +37,9 @@ export type Map = {
 }
 
 local C = {
-	Wall = Color3.fromRGB(46, 38, 66),
+	Wall = Color3.fromRGB(170, 160, 200),
 	WallDark = Color3.fromRGB(30, 25, 44),
-	Floor = Color3.fromRGB(58, 54, 74),
+	Floor = Color3.fromRGB(150, 150, 170),
 	Hazard = Color3.fromRGB(255, 196, 40),
 	HazardDark = Color3.fromRGB(28, 24, 30),
 	Pad = Color3.fromRGB(56, 182, 196),
@@ -50,16 +51,7 @@ local C = {
 }
 
 local function part(props: { [string]: any }, parent: Instance): Part
-	local p = Instance.new("Part")
-	p.Anchored = true
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Material = Enum.Material.Metal
-	for key, value in props do
-		(p :: any)[key] = value
-	end
-	p.Parent = parent
-	return p
+	return LabKit.part(props, parent)
 end
 
 local function deco(props: { [string]: any }, parent: Instance): Part
@@ -92,10 +84,13 @@ local function buildWalls(model: Model, origin: Vector3, height: number, tiers: 
 	for i = 0, segs - 1 do
 		local angle = i * 360 / segs
 		local cf = ringCFrame(origin, angle, cfg.Radius + 1, height / 2 - 20)
-		part({ Name = "Wall", Size = Vector3.new(width, height + 40, 2), CFrame = cf, Color = C.Wall }, folder)
+		part(
+			{ Name = "Wall", Size = Vector3.new(width, height + 40, 2), CFrame = cf, Color = C.Wall, Kit = "SR_Panel" },
+			folder
+		)
 		-- Ribs between panels.
 		local rib = ringCFrame(origin, angle + 180 / segs, cfg.Radius - 0.2, height / 2 - 20)
-		deco({ Size = Vector3.new(0.8, height + 40, 0.8), CFrame = rib, Color = C.WallDark }, folder)
+		deco({ Size = Vector3.new(0.8, height + 40, 0.8), CFrame = rib, Color = C.Pipe, Kit = "SR_Steel" }, folder)
 		for t = 1, tiers do
 			local floorY = (t - 1) * cfg.TierHeight
 			-- Hazard band just above every floor.
@@ -103,8 +98,8 @@ local function buildWalls(model: Model, origin: Vector3, height: number, tiers: 
 			deco({
 				Size = Vector3.new(width, 1.2, 0.2),
 				CFrame = band,
-				Color = if i % 2 == 0 then C.Hazard else C.HazardDark,
-				Material = Enum.Material.SmoothPlastic,
+				Color = Color3.new(1, 1, 1),
+				Kit = "SR_Hazard",
 			}, folder)
 			-- Glowing slime windows on some panels.
 			if (i + t * 3) % 6 == 0 then
@@ -201,7 +196,7 @@ local function buildBulkhead(parent: Instance, origin: Vector3, y: number, hole:
 			Size = Vector3.new(x1 - x0, t, z1 - z0),
 			Position = origin + Vector3.new((x0 + x1) / 2, cy, (z0 + z1) / 2),
 			Color = C.Floor,
-			Material = Enum.Material.DiamondPlate,
+			Kit = "SR_Grate",
 		}, parent)
 	end
 	slab(-half, hx - h, -half, half)
@@ -254,8 +249,7 @@ end
 
 local function padPart(parent: Instance, origin: Vector3, pad: ShaftLayout.Pad, size: Vector3, color: Color3): Part
 	local cf = ringCFrame(origin, pad.angle, pad.radius, pad.y - size.Y / 2)
-	local p =
-		part({ Name = "Pad", Size = size, CFrame = cf, Color = color, Material = Enum.Material.DiamondPlate }, parent)
+	local p = part({ Name = "Pad", Size = size, CFrame = cf, Color = color, Kit = "SR_Pad" }, parent)
 	-- Neon edge trim and a strut back to the wall.
 	deco({
 		Size = Vector3.new(size.X + 0.3, 0.3, size.Z + 0.3),
@@ -272,6 +266,91 @@ local function padPart(parent: Instance, origin: Vector3, pad: ShaftLayout.Pad, 
 		Color = C.WallDark,
 	}, parent)
 	return p
+end
+
+-- Dense set dressing for one tier: lights, vents, pipes, racks, crates,
+-- console, gauges, cables, signs and a railing on the landing.
+local function dressTier(folder: Instance, origin: Vector3, info: ShaftLayout.Tier, landing: BasePart)
+	local cfg = Config.Shaft
+	local floorY = info.floorY
+	local h = info.hatchAngle
+	local R = cfg.Radius
+	-- Caged lights, two rows, between the pads.
+	for i = 0, 5 do
+		local angle = h + 15 + i * 60
+		local y = floorY + (if i % 2 == 0 then 10 else 24)
+		LabKit.lightFixture(folder, ringCFrame(origin, angle, R - 0.6, y), Color3.fromRGB(220, 240, 255), 32)
+	end
+	-- Vents low on the wall.
+	for _, angle in { h + 95, h + 265 } do
+		LabKit.vent(folder, ringCFrame(origin, angle, R - 0.2, floorY + 6), 5)
+	end
+	-- Pipe clusters with gauges beside them.
+	for _, angle in { h + 60, h - 120 } do
+		local base = ringCFrame(origin, angle, R - 2.2, floorY)
+		if not LabKit.prop("Pipes", base, 7, folder) then
+			LabKit.deco(
+				{ Size = Vector3.new(6, 7, 1.5), CFrame = base * CFrame.new(0, 3.5, 0), Kit = "SR_Steel" },
+				folder
+			)
+		end
+		LabKit.gauge(folder, ringCFrame(origin, angle + 7, R - 0.5, floorY + 5))
+		LabKit.gauge(folder, ringCFrame(origin, angle - 7, R - 0.5, floorY + 3.5))
+	end
+	-- Server racks against the wall.
+	for _, angle in { h + 138, h + 150 } do
+		LabKit.serverRack(folder, ringCFrame(origin, angle, R - 2, floorY))
+	end
+	-- Crate stacks and a control console on the floor.
+	for k, angle in { h + 200, h + 212, h + 224 } do
+		local cf = ringCFrame(origin, angle, R - 3.5, floorY) * CFrame.Angles(0, math.rad(k * 23), 0)
+		if not LabKit.prop("Crates", cf, 4 + (k % 2) * 1.5, folder, true) then
+			LabKit.part({ Size = Vector3.new(3, 3, 3), CFrame = cf * CFrame.new(0, 1.5, 0), Kit = "SR_Steel" }, folder)
+		end
+	end
+	local consoleCf = ringCFrame(origin, h + 25, R - 3, floorY)
+	if not LabKit.prop("Console", consoleCf, 4.4, folder, true) then
+		LabKit.part(
+			{ Size = Vector3.new(6, 3, 3), CFrame = consoleCf * CFrame.new(0, 1.5, 0), Kit = "SR_Steel" },
+			folder
+		)
+	end
+	-- Cables sagging between wall points near the ceiling.
+	for k = 0, 2 do
+		local a1 = h + 40 + k * 110
+		local p1 = origin
+			+ Vector3.new(0, floorY + 37, 0)
+			+ Vector3.new(math.cos(math.rad(a1)) * (R - 0.8), 0, math.sin(math.rad(a1)) * (R - 0.8))
+		local a2 = a1 + 45
+		local p2 = origin
+			+ Vector3.new(0, floorY + 36, 0)
+			+ Vector3.new(math.cos(math.rad(a2)) * (R - 0.8), 0, math.sin(math.rad(a2)) * (R - 0.8))
+		LabKit.cable(folder, p1, p2, 3 + k, if k == 1 then Config.Colors.SlimeDeep else nil)
+	end
+	-- Signs.
+	LabKit.sign(
+		folder,
+		ringCFrame(origin, h - 14, R - 0.4, floorY + cfg.LandingHeight + 4),
+		Vector2.new(7, 2.4),
+		string.format("LEVEL %d", info.index)
+	)
+	LabKit.sign(
+		folder,
+		ringCFrame(origin, h + 175, R - 0.4, floorY + 12),
+		Vector2.new(8, 2.6),
+		"! SLIME HAZARD !",
+		Color3.fromRGB(255, 210, 60)
+	)
+	LabKit.sign(
+		folder,
+		ringCFrame(origin, h + 115, R - 0.4, floorY + 14),
+		Vector2.new(6, 2.2),
+		"SECTOR 7",
+		Color3.fromRGB(150, 220, 255)
+	)
+	-- Railing on the landing's inner edge.
+	local size = landing.Size
+	LabKit.railing(folder, landing.CFrame * CFrame.new(0, size.Y / 2, -size.Z / 2 + 0.3), size.X - 0.6)
 end
 
 local function alarmLight(parent: Instance, cf: CFrame)
@@ -311,7 +390,7 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 		Size = Vector3.new(2, cfg.Radius * 2 + 2, cfg.Radius * 2 + 2),
 		CFrame = CFrame.new(origin + Vector3.new(0, -1, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = C.Floor,
-		Material = Enum.Material.DiamondPlate,
+		Kit = "SR_Grate",
 	}, model)
 	-- Leak: cracked pipe at the bottom with slime pouring out.
 	local leak = deco({
@@ -348,6 +427,8 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 		local landing = padPart(folder, origin, info.landing, Vector3.new(14, 1.4, 10), C.Floor)
 		landing.Name = "Landing"
 		alarmLight(folder, ringCFrame(origin, info.hatchAngle, cfg.Radius - 1, info.floorY + cfg.LandingHeight + 6))
+		dressTier(folder, origin, info, landing)
+		task.wait()
 		local hole = polar(origin, info.hatchAngle, info.hatchRadius, 0)
 		local doors, doorOpen = buildBulkhead(folder, origin, info.ceilingY, hole)
 		-- Bridge pads wait inside the wall until the puzzle is solved.

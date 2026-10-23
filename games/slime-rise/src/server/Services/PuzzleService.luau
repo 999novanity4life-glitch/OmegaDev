@@ -11,6 +11,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
 local PuzzleRules = require(Shared:WaitForChild("PuzzleRules"))
 local MapService = require(script.Parent.MapService)
+local LabKit = require(script.Parent.LabKit)
 
 local PuzzleService = {}
 
@@ -42,16 +43,10 @@ local DARK = Color3.fromRGB(28, 24, 40)
 local METAL = Color3.fromRGB(110, 116, 140)
 
 local function part(props: { [string]: any }, parent: Instance): Part
-	local p = Instance.new("Part")
-	p.Anchored = true
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Material = Enum.Material.Metal
-	for key, value in props do
-		(p :: any)[key] = value
+	if props.Kit == nil and props.Material == nil then
+		props.Kit = "SR_Steel"
 	end
-	p.Parent = parent
-	return p
+	return LabKit.part(props, parent)
 end
 
 local function ringCFrame(origin: Vector3, angle: number, radius: number, y: number): CFrame
@@ -83,30 +78,42 @@ local function valves(tier: MapService.TierParts, ctx: Context): Puzzle
 	for i = 1, count do
 		local pad = pads[math.clamp(math.floor((i - 0.5) * #pads / count) + 1, 1, #pads)]
 		local base = ringCFrame(ctx.origin, pad.angle + 9, Config.Shaft.Radius - 1.2, pad.y + 3.2)
-		local pipe = part({
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(2.4, 1.2, 1.2),
-			CFrame = base * CFrame.new(0, 0, 0.6) * CFrame.Angles(0, math.rad(90), 0),
+		-- Steel wall bracket with a generated valve on it and a status lamp.
+		LabKit.part({
+			Size = Vector3.new(3.6, 0.5, 3),
+			CFrame = base * CFrame.new(0, -1.95, -0.6),
+			Kit = "SR_Steel",
 			Color = METAL,
-			CanCollide = false,
 		}, folder)
-		local wheel = part({
-			Name = "Valve",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.5, 3.2, 3.2),
-			CFrame = base * CFrame.new(0, 0, -0.8) * CFrame.Angles(0, math.rad(90), 0),
-			Color = Color3.fromRGB(230, 60, 60),
-			CanCollide = false,
-		}, folder)
-		local hub = part({
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.7, 1, 1),
-			CFrame = wheel.CFrame,
+		LabKit.deco({
+			Size = Vector3.new(0.5, 1.6, 2.6),
+			CFrame = base * CFrame.new(-1.4, -2.9, 0.4),
+			Kit = "SR_Steel",
 			Color = METAL,
+		}, folder)
+		LabKit.deco({
+			Size = Vector3.new(0.5, 1.6, 2.6),
+			CFrame = base * CFrame.new(1.4, -2.9, 0.4),
+			Kit = "SR_Steel",
+			Color = METAL,
+		}, folder)
+		local lamp = part({
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 0.9,
+			CFrame = base * CFrame.new(1.4, 2.1, 0.4),
+			Color = Color3.fromRGB(255, 60, 60),
+			Material = Enum.Material.Neon,
 			CanCollide = false,
 		}, folder)
-		local _ = pipe
-		local _hub = hub
+		local wheel: BasePart = LabKit.prop("Valve", base * CFrame.new(0, -1.7, -0.6), 3.4, folder)
+			or part({
+				Name = "Valve",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.5, 3.2, 3.2),
+				CFrame = base * CFrame.new(0, 0, -0.8) * CFrame.Angles(0, math.rad(90), 0),
+				Color = Color3.fromRGB(230, 60, 60),
+				CanCollide = false,
+			}, folder)
 		local p = prompt(wheel, "Turn valve", "Valve " .. i, Config.Puzzles.ValveHoldSeconds)
 		p.Triggered:Connect(function(player)
 			if not ctx.isClimber(player) or not p.Enabled then
@@ -114,11 +121,12 @@ local function valves(tier: MapService.TierParts, ctx: Context): Puzzle
 			end
 			p.Enabled = false
 			done += 1
-			wheel.Color = COLORS.Green
-			wheel.Material = Enum.Material.Neon
-			TweenService
-				:Create(wheel, TweenInfo.new(0.6), { CFrame = wheel.CFrame * CFrame.Angles(math.rad(180), 0, 0) })
-				:Play()
+			lamp.Color = COLORS.Green
+			TweenService:Create(
+				wheel,
+				TweenInfo.new(0.8, Enum.EasingStyle.Back),
+				{ CFrame = wheel.CFrame * CFrame.Angles(0, math.rad(270), 0) }
+			):Play()
 			ctx.onProgress("Valve", wheel.Position)
 			if done >= count then
 				ctx.onSolved()
@@ -344,15 +352,17 @@ local function fuses(tier: MapService.TierParts, ctx: Context): Puzzle
 		end
 	end
 	for i = 1, count do
-		local fuse = part({
-			Name = "Fuse",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(2, 1.2, 1.2),
-			CFrame = shelfSpot(i) * CFrame.Angles(0, 0, math.rad(90)),
-			Color = COLORS.Green,
-			Material = Enum.Material.Neon,
-			CanCollide = false,
-		}, folder)
+		local fuseMesh = LabKit.prop("Fuse", shelfSpot(i) * CFrame.new(0, -1.2, 0), 2.4, folder)
+		local fuse: BasePart = fuseMesh
+			or part({
+				Name = "Fuse",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(2, 1.2, 1.2),
+				CFrame = shelfSpot(i) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = COLORS.Green,
+				Material = Enum.Material.Neon,
+				CanCollide = false,
+			}, folder)
 		table.insert(fuseParts, fuse)
 		local p = prompt(fuse, "Pick up", "Fuse", 0.3)
 		p.Triggered:Connect(function(player)

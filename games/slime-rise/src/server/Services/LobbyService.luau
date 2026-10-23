@@ -14,6 +14,7 @@ local Validate = require(Shared:WaitForChild("Validate"))
 local PartyRules = require(Shared:WaitForChild("PartyRules"))
 local RemoteGuard = require(script.Parent.RemoteGuard)
 local MatchService = require(script.Parent.MatchService)
+local LabKit = require(script.Parent.LabKit)
 
 local LobbyService = {}
 
@@ -52,17 +53,29 @@ local pods: { Pod } = {}
 local lobbyFolder: Folder
 local spawnCFrame = CFrame.new()
 
+-- Structural parts get a PBR kit material picked from their role.
 local function part(props: { [string]: any }, parent: Instance): Part
-	local p = Instance.new("Part")
-	p.Anchored = true
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Material = Enum.Material.Metal
-	for key, value in props do
-		(p :: any)[key] = value
+	if props.Kit == nil and props.Material ~= Enum.Material.Neon and props.Material ~= Enum.Material.Glass then
+		local color = props.Color
+		if props.Name == "Floor" then
+			props.Kit, props.Color = "SR_Tile", Color3.fromRGB(205, 210, 222)
+		elseif props.Material == Enum.Material.DiamondPlate then
+			props.Kit, props.Color = "SR_Grate", Color3.fromRGB(160, 160, 178)
+		elseif color == C.Wall or color == C.WallLight then
+			props.Kit, props.Color =
+				"SR_Panel", if color == C.Wall then Color3.fromRGB(160, 150, 195) else Color3.fromRGB(200, 192, 230)
+		elseif color == C.Steel then
+			props.Kit = "SR_Steel"
+		elseif color == C.Dark then
+			props.Kit, props.Color = "SR_Steel", Color3.fromRGB(64, 60, 82)
+		elseif color == C.Hazard then
+			props.Kit, props.Color = "SR_Hazard", Color3.new(1, 1, 1)
+		end
+		if props.Kit then
+			props.Material = nil
+		end
 	end
-	p.Parent = parent
-	return p
+	return LabKit.part(props, parent)
 end
 
 local function deco(props: { [string]: any }, parent: Instance): Part
@@ -94,6 +107,23 @@ local function surfaceText(target: BasePart, face: Enum.NormalId, text: string, 
 end
 
 local function slimeTank(parent: Instance, pos: Vector3, height: number, radius: number)
+	local mesh = LabKit.prop("Tank", CFrame.new(pos), height, parent, true)
+	if mesh then
+		local glow = Instance.new("PointLight")
+		glow.Color = Config.Colors.Slime
+		glow.Range = 24
+		glow.Brightness = 1.8
+		glow.Parent = mesh
+		local bubbles = Instance.new("ParticleEmitter")
+		bubbles.Color = ColorSequence.new(Color3.fromRGB(220, 255, 200))
+		bubbles.LightEmission = 0.6
+		bubbles.Size = NumberSequence.new(0.2, 0.5)
+		bubbles.Lifetime = NumberRange.new(1.5, 2.5)
+		bubbles.Speed = NumberRange.new(2, 4)
+		bubbles.Rate = 10
+		bubbles.Parent = mesh
+		return
+	end
 	part({
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(1.5, radius * 2 + 2, radius * 2 + 2),
@@ -257,6 +287,106 @@ local function buildPod(parent: Instance, index: number, x: number, wallZ: numbe
 	}
 end
 
+-- Dense set dressing for the atrium (detail bar: no bare surfaces).
+local function dressLobby(folder: Folder, o: Vector3, w: number, h: number, d: number)
+	-- Wall lights along both side walls, two heights.
+	for _, side in { -1, 1 } do
+		local x = side * (w / 2 - 0.6)
+		for _, z in { -36, -12, 12, 36 } do
+			local cf = CFrame.lookAt(o + Vector3.new(x, 12, z), o + Vector3.new(0, 12, z))
+			LabKit.lightFixture(folder, cf, Color3.fromRGB(220, 240, 255), 30)
+		end
+		-- Server racks between the tanks.
+		for _, z in { -12, 12 } do
+			LabKit.serverRack(
+				folder,
+				CFrame.lookAt(o + Vector3.new(side * (w / 2 - 2.5), 0, z), o + Vector3.new(0, 0, z))
+			)
+		end
+		-- Vents high up and a pipe cluster with gauges.
+		for _, z in { -36, 36 } do
+			LabKit.vent(
+				folder,
+				CFrame.lookAt(o + Vector3.new(side * (w / 2 - 0.2), 26, z), o + Vector3.new(0, 26, z)),
+				6
+			)
+		end
+		local pipeCf = CFrame.lookAt(o + Vector3.new(side * (w / 2 - 2), 0, 44), o + Vector3.new(0, 0, 44))
+		if not LabKit.prop("Pipes", pipeCf, 8, folder) then
+			LabKit.deco(
+				{ Size = Vector3.new(1.5, 8, 6), CFrame = pipeCf * CFrame.new(0, 4, 0), Kit = "SR_Steel" },
+				folder
+			)
+		end
+		LabKit.gauge(folder, CFrame.lookAt(o + Vector3.new(side * (w / 2 - 0.5), 6, 38), o + Vector3.new(0, 6, 38)))
+		LabKit.gauge(folder, CFrame.lookAt(o + Vector3.new(side * (w / 2 - 0.5), 4.5, 40), o + Vector3.new(0, 4.5, 40)))
+	end
+	-- Crate stacks in the corners.
+	for _, c in { { -60, 40 }, { -56, 42 }, { 60, 40 }, { 56, 42 }, { -62, -30 }, { 62, -30 } } do
+		local cf = CFrame.new(o + Vector3.new(c[1], 0, c[2])) * CFrame.Angles(0, math.rad(c[1] + c[2]), 0)
+		LabKit.prop("Crates", cf, 5, folder, true)
+	end
+	-- Consoles on the reception desk and two standing ones by the pods.
+	for _, x in { -5, 5 } do
+		LabKit.prop("Console", CFrame.lookAt(o + Vector3.new(x, 4.5, 18.5), o + Vector3.new(x, 4.5, 30)), 2.6, folder)
+	end
+	for _, x in { -18, 18 } do
+		LabKit.prop("Console", CFrame.lookAt(o + Vector3.new(x, 0, -42), o + Vector3.new(x, 0, 0)), 4.4, folder, true)
+	end
+	-- Ceiling cables between the light rows.
+	for k = -2, 2 do
+		local a = o + Vector3.new(k * 26 - 6, h - 1, -40)
+		local b = o + Vector3.new(k * 26 + 6, h - 1, 40)
+		LabKit.cable(folder, a, b, 4, if k % 2 == 0 then Config.Colors.SlimeDeep else nil)
+	end
+	-- Signs.
+	LabKit.sign(
+		folder,
+		CFrame.lookAt(o + Vector3.new(0, 24, -d / 2 + 0.2), o + Vector3.new(0, 24, 0)),
+		Vector2.new(30, 4),
+		"ELEVATORS TO CONTAINMENT LEVEL B7"
+	)
+	LabKit.sign(
+		folder,
+		CFrame.lookAt(o + Vector3.new(0, 7.5, 20.9), o + Vector3.new(0, 7.5, 40)),
+		Vector2.new(10, 2),
+		"RECEPTION",
+		Color3.new(1, 1, 1)
+	)
+	LabKit.sign(
+		folder,
+		CFrame.lookAt(o + Vector3.new(-w / 2 + 0.2, 8, -24), o + Vector3.new(0, 8, -24)),
+		Vector2.new(9, 3),
+		"AUTHORIZED PERSONNEL ONLY",
+		Color3.fromRGB(255, 210, 60)
+	)
+	LabKit.sign(
+		folder,
+		CFrame.lookAt(o + Vector3.new(w / 2 - 0.2, 8, -24), o + Vector3.new(0, 8, -24)),
+		Vector2.new(9, 3),
+		"! SLIME LEVEL: CRITICAL !",
+		Color3.fromRGB(255, 90, 90)
+	)
+	-- Benches facing the elevators.
+	for _, x in { -30, 30 } do
+		local cf = CFrame.new(o + Vector3.new(x, 0, 6))
+		LabKit.part({
+			Size = Vector3.new(10, 0.6, 2.4),
+			CFrame = cf * CFrame.new(0, 1.8, 0),
+			Kit = "SR_Steel",
+			Color = Color3.fromRGB(90, 86, 110),
+		}, folder)
+		for _, lx in { -4, 4 } do
+			LabKit.part({
+				Size = Vector3.new(0.5, 1.6, 2),
+				CFrame = cf * CFrame.new(lx, 0.8, 0),
+				Kit = "SR_Steel",
+				Color = Color3.fromRGB(60, 56, 76),
+			}, folder)
+		end
+	end
+end
+
 local function buildAtrium(): Folder
 	local size = Config.Lobby.Size
 	local o = Config.Lobby.Origin
@@ -379,6 +509,7 @@ local function buildAtrium(): Folder
 	spawn.Material = Enum.Material.DiamondPlate
 	spawn.Parent = folder
 	spawnCFrame = CFrame.lookAt(o + Vector3.new(0, 4, 26), o + Vector3.new(0, 4, -40))
+	dressLobby(folder, o, w, h, d)
 	folder.Parent = workspace
 	return folder
 end
