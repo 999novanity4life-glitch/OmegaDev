@@ -4,6 +4,7 @@
 -- tests check it is climbable. Angles are in degrees.
 
 local Config = require(script.Parent.Config)
+local CourseLayout = require(script.Parent.CourseLayout)
 
 local ShaftLayout = {}
 
@@ -14,7 +15,8 @@ export type Tier = {
 	ceilingY: number, -- top of the bulkhead above (= next floor)
 	hatchAngle: number, -- where the hatch, landing and bridge are
 	hatchRadius: number,
-	pads: { Pad }, -- floor up to the landing
+	pads: { Pad }, -- floor up to the landing (one per course element)
+	course: { CourseLayout.Element }, -- the lab-equipment parkour route
 	landing: Pad,
 	bridge: { Pad }, -- landing up through the hatch (only after the solve)
 	puzzle: string,
@@ -63,15 +65,11 @@ function ShaftLayout.build(seed: number): Layout
 	local hatchAngle = rand() * 360
 	for index = 1, cfg.Tiers do
 		local floorY = (index - 1) * cfg.TierHeight
+		local course = CourseLayout.build(index, hatchAngle, rand)
 		local pads: { Pad } = {}
-		local step = 30
-		for i = 1, cfg.PadsPerTier do
-			local back = (cfg.PadsPerTier - i + 1) * step
-			table.insert(pads, {
-				angle = (hatchAngle - back) % 360,
-				radius = cfg.PadRadius + (rand() - 0.5) * 2,
-				y = floorY + i * cfg.PadRise,
-			})
+		for _, e in course do
+			table.insert(pads, { angle = e.angle % 360, radius = e.radius, y = floorY + e.y })
+			e.angle %= 360
 		end
 		local hatchRadius = 20
 		local landing = { angle = hatchAngle, radius = hatchRadius, y = floorY + cfg.LandingHeight }
@@ -89,6 +87,7 @@ function ShaftLayout.build(seed: number): Layout
 			hatchAngle = hatchAngle,
 			hatchRadius = hatchRadius,
 			pads = pads,
+			course = course,
 			landing = landing,
 			bridge = bridge,
 			puzzle = puzzles[(index - 1) % #puzzles + 1],

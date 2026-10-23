@@ -10,6 +10,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
 local LabKit = require(script.Parent.LabKit)
+local CourseBuilder = require(script.Parent.CourseBuilder)
 
 local MapService = {}
 
@@ -503,13 +504,8 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 		local folder = Instance.new("Folder")
 		folder.Name = "Tier" .. info.index
 		folder.Parent = model
-		local pads: { BasePart } = {}
-		for i, pad in info.pads do
-			table.insert(
-				pads,
-				padPart(folder, origin, pad, Vector3.new(8, 1.2, 7), if i % 2 == 0 then C.Pad else C.PadAlt)
-			)
-		end
+		-- The climb: a lab-equipment parkour route (CourseLayout + CourseBuilder).
+		local pads = CourseBuilder.build(folder, origin, info)
 		local landing = padPart(folder, origin, info.landing, Vector3.new(14, 1.4, 10), C.Floor)
 		landing.Name = "Landing"
 		alarmLight(folder, ringCFrame(origin, info.hatchAngle, cfg.Radius - 1, info.floorY + cfg.LandingHeight + 6))

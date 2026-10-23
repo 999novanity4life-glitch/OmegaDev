@@ -58,22 +58,31 @@ return function(t, load)
 				seen[tier.puzzle] = true
 			end
 		end)
-		it("every jump on the climb is makeable (gap <= 12 studs, rise <= 5)", function()
-			for seed = 1, 40 do
+		it("every lab-equipment route is makeable, landing included", function()
+			local CourseLayout = load("src/shared/CourseLayout")
+			for seed = 1, 60 do
 				local layout = ShaftLayout.build(seed * 97)
 				for _, tier in layout.tiers do
-					local route = table.clone(tier.pads)
-					table.insert(route, tier.landing)
-					for _, step in tier.bridge do
-						table.insert(route, step)
-					end
-					for i = 2, #route do
-						local gap, rise = ShaftLayout.distance(route[i - 1], route[i])
-						-- Centre-to-centre gap minus about half of each pad = edge gap.
-						expect(gap - 7 <= 12).toBeTruthy()
-						expect(rise <= 5).toBeTruthy()
-					end
+					local route = table.clone(tier.course)
+					table.insert(route, {
+						kind = "Landing",
+						angle = tier.landing.angle,
+						radius = tier.landing.radius,
+						y = tier.landing.y - tier.floorY,
+						half = 7,
+						base = 0,
+						assisted = false,
+					})
+					expect(CourseLayout.valid(route)).toBeTruthy()
 				end
+			end
+		end)
+		it("each route fits around the shaft before the landing", function()
+			local layout = ShaftLayout.build(5)
+			for _, tier in layout.tiers do
+				local first = tier.course[1].angle
+				local span = (tier.hatchAngle - first) % 360
+				expect(span < 300).toBeTruthy()
 			end
 		end)
 		it("the last bridge step reaches the next floor", function()

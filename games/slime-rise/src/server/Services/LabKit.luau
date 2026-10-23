@@ -10,6 +10,8 @@ local MaterialService = game:GetService("MaterialService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local KitManifest = require(script.Parent.KitManifest)
+local KitMeshIds = require(script.Parent.KitMeshIds)
 
 local LabKit = {}
 
@@ -213,6 +215,119 @@ function LabKit.deco(props: { [string]: any }, parent: Instance): Part
 	props.CanTouch = false
 	props.CastShadow = if props.CastShadow == nil then false else props.CastShadow
 	return LabKit.part(props, parent)
+end
+
+-- How each Blender material group looks in game (the geometry carries the detail).
+local KIT_LOOK: { [string]: (MeshPart) -> () } = {
+	Frame = function(m)
+		m.Material = Enum.Material.SmoothPlastic
+		m.Color = Color3.fromRGB(104, 86, 150)
+	end,
+	Inset = function(m)
+		m.Material = Enum.Material.SmoothPlastic
+		m.Color = Color3.fromRGB(66, 52, 102)
+	end,
+	Steel = function(m)
+		LabKit.mat(m, "SR_Steel")
+	end,
+	Dark = function(m)
+		m.Material = Enum.Material.SmoothPlastic
+		m.Color = Color3.fromRGB(30, 27, 42)
+	end,
+	Glass = function(m)
+		m.Material = Enum.Material.Glass
+		m.Color = Color3.fromRGB(150, 235, 210)
+		m.Transparency = 0.55
+	end,
+	Glow = function(m)
+		m.Material = Enum.Material.Neon
+		m.Color = Config.Colors.Slime
+		LabKit.soften(m)
+	end,
+	Hazard = function(m)
+		m.Material = Enum.Material.SmoothPlastic
+		m.Color = Color3.fromRGB(255, 201, 60)
+	end,
+	-- Standable tops: light, matte and clearly "safe to land on".
+	Rubber = function(m)
+		LabKit.mat(m, "SR_Pad", Color3.fromRGB(226, 232, 244))
+	end,
+	Slime = function(m)
+		m.Material = Enum.Material.Neon
+		m.Color = Config.Colors.SlimeDeep
+		LabKit.soften(m)
+		m.Transparency = 0.25
+	end,
+}
+
+local meshTemplates: { [string]: MeshPart } = {}
+
+-- Collision shape can only be chosen when the mesh is created, so cache one
+-- template per (mesh, fidelity).
+local function meshTemplate(meshName: string, fidelity: Enum.CollisionFidelity): MeshPart?
+	local key = meshName .. ":" .. fidelity.Name
+	local cached = meshTemplates[key]
+	if cached then
+		return cached
+	end
+	local id = KitMeshIds[meshName]
+	if not id then
+		return nil
+	end
+	local ok, mesh = pcall(function()
+		return AssetService:CreateMeshPartAsync(id, { CollisionFidelity = fidelity })
+	end)
+	if not ok or not mesh then
+		warn("[LabKit] kit mesh failed: " .. meshName)
+		return nil
+	end
+	mesh.Anchored = true
+	meshTemplates[key] = mesh
+	return mesh
+end
+
+export type KitOptions = { collide: boolean?, fidelity: Enum.CollisionFidelity?, name: string? }
+
+-- Builds a Blender kit piece at cf (piece origin = base centre, front = -Z).
+-- Returns the model, or nil when the kit meshes aren't imported yet.
+function LabKit.kit(piece: string, cf: CFrame, parent: Instance, opts: KitOptions?): Model?
+	local parts = KitManifest[piece]
+	if not parts then
+		return nil
+	end
+	local model = Instance.new("Model")
+	model.Name = (opts and opts.name) or piece
+	local collideAll = opts ~= nil and opts.collide == true
+	local fidelity = if collideAll
+		then (opts and opts.fidelity) or Enum.CollisionFidelity.Box
+		else Enum.CollisionFidelity.Box
+	for group, info in parts do
+		local template = meshTemplate(info.mesh, fidelity)
+		if not template then
+			model:Destroy()
+			return nil
+		end
+		local m = template:Clone()
+		m.Size = info.size
+		m.CFrame = cf * CFrame.new(info.offset)
+		local look = KIT_LOOK[group]
+		if look then
+			look(m)
+		end
+		local collide = collideAll and group ~= "Glow"
+		m.CanCollide = collide
+		m.CanQuery = collide
+		m.CanTouch = collide
+		m.CastShadow = group ~= "Glow" and group ~= "Glass"
+		m.Name = group
+		m.Parent = model
+	end
+	model.Parent = parent
+	return model
+end
+
+function LabKit.kitReady(): boolean
+	return next(KitMeshIds) ~= nil
 end
 
 -- Picks a wall panel variant. `left` and `below` are the neighbours' picks.
