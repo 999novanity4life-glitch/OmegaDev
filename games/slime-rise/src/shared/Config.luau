@@ -69,12 +69,24 @@ Config.Shaft = {
 	CoreRadius = 5, -- glass slime tank in the middle
 }
 
+-- Map intro camera (IntroPath): a calm glide up through every tier.
+Config.Intro = {
+	Speed = 10, -- studs per second along the path
+	MaxSeconds = 28, -- the moving part is sped up to fit if longer
+	MinStep = 0.6,
+	LeakSeconds = 2.6, -- push-in on the leak under the title card
+	ExitSeconds = 2.2, -- hold on the exit at the end
+	OrbitRadius = 10, -- camera distance from the shaft centre
+	HatchApproach = 14, -- degrees short of the hatch where the orbit ends
+	CeilingClearance = 6.5, -- studs below the next floor while orbiting
+	RiseAbove = 6, -- studs above a floor after rising through its hatch
+}
+
 Config.Party = {
 	MaxPlayers = 8,
 	DefaultMax = 4,
 	AutoStartSeconds = 10, -- public pod starts by itself this long after filling
 	RideSeconds = 5.5, -- elevator cutscene
-	FlyoverSeconds = 7, -- map intro cutscene
 	PodCount = 3,
 }
 

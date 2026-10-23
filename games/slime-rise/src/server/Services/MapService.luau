@@ -34,7 +34,6 @@ export type Map = {
 	exitPosition: Vector3,
 	exitY: number,
 	bottomY: number,
-	cameraPath: { { Vector3 } }, -- {position, lookAt} pairs for the flyover
 }
 
 local C = {
@@ -733,8 +732,8 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 	}, model)
 	local beacon = Instance.new("PointLight")
 	beacon.Color = Config.Colors.Exit
-	beacon.Range = 40
-	beacon.Brightness = 3
+	beacon.Range = 26
+	beacon.Brightness = 1.4
 	beacon.Parent = exitPad
 	deco({
 		Name = "ExitBeam",
@@ -753,18 +752,6 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 		table.insert(spawns, CFrame.lookAt(pos, Vector3.new(origin.X, pos.Y, origin.Z)))
 	end
 
-	-- Flyover: start above the exit, spiral down the shaft to the leak.
-	local path: { { Vector3 } } = {}
-	table.insert(path, { exitPos + Vector3.new(0, 40, 30), exitPos })
-	local turns = 6
-	for i = 0, turns do
-		local f = i / turns
-		local y = height * (1 - f) + 6
-		local angle = layout.exitAngle + f * 540
-		table.insert(path, { polar(origin, angle, cfg.Radius - 8, y), origin + Vector3.new(0, y - 14, 0) })
-	end
-	table.insert(path, { polar(origin, layout.tiers[1].hatchAngle + 160, 26, 8), leak.Position })
-
 	model.Parent = workspace:FindFirstChild("Matches")
 		or (function()
 			local f = Instance.new("Folder")
@@ -781,7 +768,6 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 		exitPosition = exitPos,
 		exitY = layout.exitY,
 		bottomY = origin.Y,
-		cameraPath = path,
 	}
 end
 

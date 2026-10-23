@@ -329,6 +329,26 @@ function LabKit.kit(piece: string, cf: CFrame, parent: Instance, opts: KitOption
 	return model
 end
 
+-- Fetches every kit mesh in the background at server start, so the first
+-- match doesn't stall on downloads while players wait in the elevator.
+function LabKit.warmKit()
+	local wanted: { [string]: Enum.CollisionFidelity } = {}
+	for piece, parts in KitManifest do
+		for _, info in parts do
+			wanted[info.mesh] = Enum.CollisionFidelity.Box
+		end
+		if piece == "Tank" then
+			for _, info in parts do
+				wanted[info.mesh .. "|hull"] = Enum.CollisionFidelity.Hull
+			end
+		end
+	end
+	for key, fidelity in wanted do
+		local meshName = string.split(key, "|")[1]
+		task.spawn(meshTemplate, meshName, fidelity)
+	end
+end
+
 function LabKit.kitReady(): boolean
 	return next(KitMeshIds) ~= nil
 end

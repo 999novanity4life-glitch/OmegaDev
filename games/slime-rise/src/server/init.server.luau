@@ -18,6 +18,7 @@ local PowerService = require(script.Services.PowerService)
 local MiniGames = require(script.Services.MiniGames)
 
 LabKit.start()
+LabKit.warmKit()
 LightingService.start()
 DataService.start()
 MatchService.start()
