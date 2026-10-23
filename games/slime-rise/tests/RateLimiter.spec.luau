@@ -1,0 +1,27 @@
+--!nocheck
+return function(t, load)
+	local RateLimiter = load("src/shared/RateLimiter")
+	local describe, it, expect = t.describe, t.it, t.expect
+
+	describe("RateLimiter", function()
+		it("allows a burst then blocks", function()
+			local limiter = RateLimiter.new(1, 3)
+			expect(limiter:allow("p", 0)).toBeTruthy()
+			expect(limiter:allow("p", 0)).toBeTruthy()
+			expect(limiter:allow("p", 0)).toBeTruthy()
+			expect(limiter:allow("p", 0)).toBeFalsy()
+		end)
+		it("refills over time", function()
+			local limiter = RateLimiter.new(2, 1)
+			expect(limiter:allow("p", 0)).toBeTruthy()
+			expect(limiter:allow("p", 0.1)).toBeFalsy()
+			expect(limiter:allow("p", 0.6)).toBeTruthy()
+		end)
+		it("tracks keys separately", function()
+			local limiter = RateLimiter.new(1, 1)
+			expect(limiter:allow("a", 0)).toBeTruthy()
+			expect(limiter:allow("b", 0)).toBeTruthy()
+			expect(limiter:allow("a", 0)).toBeFalsy()
+		end)
+	end)
+end
