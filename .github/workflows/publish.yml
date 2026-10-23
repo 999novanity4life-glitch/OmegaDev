@@ -1,0 +1,35 @@
+name: Publish
+
+# Manual only. Builds the place and publishes it with Open Cloud.
+# Needs repo secrets: ROBLOX_API_KEY (scope universe-places:write for this
+# experience), ROBLOX_UNIVERSE_ID, ROBLOX_PLACE_ID.
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: "Saved (private test) or Published (live)"
+        required: true
+        default: Saved
+        type: choice
+        options: [Saved, Published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: CompeyDev/setup-rokit@v0.2.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - run: rojo build default.project.json --output game.rbxl
+      - name: Upload place version
+        env:
+          API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          UNIVERSE_ID: ${{ secrets.ROBLOX_UNIVERSE_ID }}
+          PLACE_ID: ${{ secrets.ROBLOX_PLACE_ID }}
+        run: |
+          curl -sSf -X POST \
+            "https://apis.roblox.com/universes/v1/${UNIVERSE_ID}/places/${PLACE_ID}/versions?versionType=${{ inputs.version_type }}" \
+            -H "x-api-key: ${API_KEY}" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @game.rbxl

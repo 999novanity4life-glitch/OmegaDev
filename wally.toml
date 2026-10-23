@@ -1,0 +1,8 @@
+[package]
+name = "your-name/your-game"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
+# Add libraries here, then run `wally install`. Check each one on wally.run first.
