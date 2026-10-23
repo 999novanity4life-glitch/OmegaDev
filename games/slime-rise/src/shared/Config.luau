@@ -92,17 +92,17 @@ Config.Colors = {
 	Exit = Color3.fromRGB(255, 214, 64),
 }
 
--- HUD icons (original art, source SVGs in the game vault build/icons). Uploaded to the owner's account.
+-- HUD icons v2 (original art; source in art/icons/icons2.mjs). Uploaded to the owner's account.
 Config.Icons = {
-	Crown = "rbxassetid://111304438536837",
-	Dash = "rbxassetid://135169179593477",
-	Shield = "rbxassetid://134173687343346",
-	Grapple = "rbxassetid://140312371633837",
-	DoubleJump = "rbxassetid://105118999603786",
-	Slime = "rbxassetid://76653133114485",
-	Timer = "rbxassetid://83281047499713",
-	Exit = "rbxassetid://87717974694032",
-	Lock = "rbxassetid://115278005331815",
+	Crown = "rbxassetid://74343716052407",
+	Dash = "rbxassetid://104624439557842",
+	Shield = "rbxassetid://90837665542465",
+	Grapple = "rbxassetid://135973213830165",
+	DoubleJump = "rbxassetid://114652286962017",
+	Slime = "rbxassetid://107291750600359",
+	Timer = "rbxassetid://112379933179878",
+	Exit = "rbxassetid://89572959893618",
+	Lock = "rbxassetid://123936364277261",
 }
 
 return table.freeze(Config)

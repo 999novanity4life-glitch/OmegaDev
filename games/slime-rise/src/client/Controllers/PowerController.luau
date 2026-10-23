@@ -140,6 +140,24 @@ local function shieldBubble(character: Model, seconds: number)
 	end)
 end
 
+local function gooBall(size: number, color: Color3): Part
+	local ball = Instance.new("Part")
+	ball.Shape = Enum.PartType.Ball
+	ball.Anchored = true
+	ball.CanCollide = false
+	ball.CanQuery = false
+	ball.CanTouch = false
+	ball.CastShadow = false
+	ball.Material = Enum.Material.Glass
+	ball.Reflectance = 0.1
+	ball.Color = color
+	ball.Size = Vector3.one * size
+	ball.Parent = fxFolder
+	return ball
+end
+
+-- Goo rope: thick dark goo with a glowing core, wobbling beads riding it,
+-- drips falling off, and a fat splat stuck where it hit.
 local function rope(character: Model, target: Vector3, seconds: number)
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not root then
@@ -155,24 +173,82 @@ local function rope(character: Model, target: Vector3, seconds: number)
 	anchor.Position = target
 	anchor.Parent = fxFolder
 	local a0 = Instance.new("Attachment")
+	a0.Position = Vector3.new(0.6, 0.8, -0.4)
 	a0.Parent = root
 	local a1 = Instance.new("Attachment")
 	a1.Parent = anchor
-	local beam = Instance.new("Beam")
-	beam.Attachment0 = a0
-	beam.Attachment1 = a1
-	beam.Color = ColorSequence.new(Config.Colors.Slime)
-	beam.LightEmission = 0.8
-	beam.Width0 = 0.6
-	beam.Width1 = 0.35
-	beam.FaceCamera = true
-	beam.Segments = 12
-	beam.CurveSize0 = 2
-	beam.Parent = anchor
+	local function beam(width0: number, width1: number, color: Color3, emission: number, transparency: number): Beam
+		local b = Instance.new("Beam")
+		b.Attachment0 = a0
+		b.Attachment1 = a1
+		b.Color = ColorSequence.new(color)
+		b.LightEmission = emission
+		b.Transparency = NumberSequence.new(transparency)
+		b.Width0 = width0
+		b.Width1 = width1
+		b.FaceCamera = true
+		b.Segments = 20
+		b.CurveSize0 = 1.5
+		b.CurveSize1 = -1
+		b.Parent = anchor
+		return b
+	end
+	local outer = beam(1.6, 1.1, Config.Colors.SlimeDeep, 0.15, 0)
+	local inner = beam(0.7, 0.45, Color3.fromRGB(214, 255, 170), 1, 0.15)
+	-- Drips falling off the rope near the hand.
+	local drips = Instance.new("ParticleEmitter")
+	drips.Color = ColorSequence.new(Config.Colors.Slime, Config.Colors.SlimeDeep)
+	drips.LightEmission = 0.3
+	drips.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.45), NumberSequenceKeypoint.new(1, 0.15) })
+	drips.Lifetime = NumberRange.new(0.4, 0.7)
+	drips.Speed = NumberRange.new(1, 3)
+	drips.SpreadAngle = Vector2.new(60, 60)
+	drips.Acceleration = Vector3.new(0, -60, 0)
+	drips.Rate = 45
+	drips.Parent = a0
+	local dripsTop = drips:Clone()
+	dripsTop.Rate = 30
+	dripsTop.Parent = a1
+	-- A fat squashed splat stuck at the hit point.
+	local stuck = gooBall(2.6, Config.Colors.Slime)
+	stuck.Size = Vector3.new(3.2, 1.6, 3.2)
+	stuck.Shape = Enum.PartType.Cylinder
+	stuck.CFrame = CFrame.new(target) * CFrame.Angles(0, 0, math.rad(90))
 	splat(target)
+	-- Beads of goo sliding along the rope with a wobble.
+	local beads: { Part } = {}
+	for i = 1, 5 do
+		beads[i] = gooBall(0.7 + (i % 3) * 0.25, if i % 2 == 0 then Config.Colors.Slime else Config.Colors.SlimeDeep)
+	end
+	local start = os.clock()
+	local follow = RunService.RenderStepped:Connect(function()
+		local from = a0.WorldPosition
+		local t = os.clock() - start
+		for i, bead in beads do
+			local along = ((i / #beads) + t * 0.9) % 1
+			local wobble = math.sin(t * 14 + i * 1.7) * 0.25
+			bead.Position = from:Lerp(target, along) + Vector3.new(0, wobble - math.sin(along * math.pi) * 0.8, 0)
+			local squish = 1 + math.sin(t * 18 + i) * 0.18
+			local base = 0.7 + (i % 3) * 0.25
+			bead.Size = Vector3.new(base * squish, base / squish, base * squish)
+		end
+	end)
 	task.delay(seconds, function()
-		a0:Destroy()
-		anchor:Destroy()
+		follow:Disconnect()
+		drips.Enabled = false
+		dripsTop.Enabled = false
+		for _, bead in beads do
+			fade(bead, 0.2)
+		end
+		-- Rope thins out and snaps.
+		local snap = TweenInfo.new(0.2, Enum.EasingStyle.Quad)
+		TweenService:Create(outer, snap, { Width0 = 0.1, Width1 = 0.1 }):Play()
+		TweenService:Create(inner, snap, { Width0 = 0.05, Width1 = 0.05 }):Play()
+		fade(stuck, 0.5)
+		task.delay(0.6, function()
+			a0:Destroy()
+			anchor:Destroy()
+		end)
 	end)
 end
 
