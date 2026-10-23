@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local ParticleArt = require(Shared:WaitForChild("ParticleArt"))
 local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
 local CourseLayout = require(Shared:WaitForChild("CourseLayout"))
 local JumpMath = require(Shared:WaitForChild("JumpMath"))
@@ -234,11 +235,12 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 		local streaks = Instance.new("ParticleEmitter")
 		streaks.Color = ColorSequence.new(Color3.fromRGB(200, 240, 255))
 		streaks.Transparency = NumberSequence.new(0.6, 1)
-		streaks.Size = NumberSequence.new(0.2, 0.05)
+		streaks.Size = NumberSequence.new(0.9, 0.5)
 		streaks.Lifetime = NumberRange.new(0.8, 1.2)
 		streaks.Speed = NumberRange.new(14, 20)
 		streaks.EmissionDirection = Enum.NormalId.Top
 		streaks.Rate = 30
+		ParticleArt.style(streaks, "Streak")
 		streaks.Parent = zone
 		return collider(parent, topCf, Vector3.new(7, 0.4, 7), "FanGrill")
 	elseif kind == "Arm" then

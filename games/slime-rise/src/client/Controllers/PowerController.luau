@@ -12,6 +12,7 @@ local GuiService = game:GetService("GuiService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local ParticleArt = require(Shared:WaitForChild("ParticleArt"))
 local Powers = require(Shared:WaitForChild("Powers"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Juice = require(script.Parent.Juice)
@@ -204,6 +205,7 @@ local function rope(character: Model, target: Vector3, seconds: number)
 	drips.SpreadAngle = Vector2.new(60, 60)
 	drips.Acceleration = Vector3.new(0, -60, 0)
 	drips.Rate = 45
+	ParticleArt.style(drips, "Drip")
 	drips.Parent = a0
 	local dripsTop = drips:Clone()
 	dripsTop.Rate = 30

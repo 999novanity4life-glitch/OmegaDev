@@ -9,6 +9,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local ParticleArt = require(Shared:WaitForChild("ParticleArt"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Validate = require(Shared:WaitForChild("Validate"))
 local PartyRules = require(Shared:WaitForChild("PartyRules"))
@@ -120,6 +121,7 @@ local function slimeTank(parent: Instance, pos: Vector3, height: number, radius:
 		bubbles.Lifetime = NumberRange.new(1.5, 2.5)
 		bubbles.Speed = NumberRange.new(2, 4)
 		bubbles.Rate = 10
+		ParticleArt.style(bubbles, "Bubble")
 		bubbles.Parent = mesh
 		return
 	end
@@ -164,6 +166,7 @@ local function slimeTank(parent: Instance, pos: Vector3, height: number, radius:
 	bubbles.Speed = NumberRange.new(2, 4)
 	bubbles.EmissionDirection = Enum.NormalId.Right
 	bubbles.Rate = 12
+	ParticleArt.style(bubbles, "Bubble")
 	bubbles.Parent = slime
 	local _ = glass
 end
