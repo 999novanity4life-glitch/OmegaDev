@@ -20,13 +20,14 @@ function Remotes.get(name: string): RemoteEvent
 		folder = ReplicatedStorage:FindFirstChild(FOLDER_NAME) or Instance.new("Folder")
 		folder.Name = FOLDER_NAME
 		folder.Parent = ReplicatedStorage
-		local remote = folder:FindFirstChild(name)
-		if not remote then
-			remote = Instance.new("RemoteEvent")
-			remote.Name = name
-			remote.Parent = folder
+		local existing = folder:FindFirstChild(name)
+		if existing then
+			return existing :: RemoteEvent
 		end
-		return remote :: RemoteEvent
+		local remote = Instance.new("RemoteEvent")
+		remote.Name = name
+		remote.Parent = folder
+		return remote
 	end
 	folder = ReplicatedStorage:WaitForChild(FOLDER_NAME)
 	return folder:WaitForChild(name) :: RemoteEvent
