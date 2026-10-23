@@ -23,6 +23,43 @@ local MATERIALS: { [string]: MaterialDef } = {
 	SR_Pad = { Base = Enum.Material.SmoothPlastic },
 	SR_Steel = { Base = Enum.Material.SmoothPlastic },
 	SR_Tile = { Base = Enum.Material.SmoothPlastic },
+	-- Surface-specific variants (art/textures2.py), so neighbours never read as copies.
+	SR_WallPlain = { Base = Enum.Material.SmoothPlastic },
+	SR_WallVent = { Base = Enum.Material.SmoothPlastic },
+	SR_WallHatch = { Base = Enum.Material.SmoothPlastic },
+	SR_WallPipe = { Base = Enum.Material.SmoothPlastic },
+	SR_WallWindow = { Base = Enum.Material.SmoothPlastic },
+	SR_WallControl = { Base = Enum.Material.SmoothPlastic },
+	SR_WallBase = { Base = Enum.Material.SmoothPlastic },
+	SR_FloorDrain = { Base = Enum.Material.SmoothPlastic },
+	SR_Walkway = { Base = Enum.Material.SmoothPlastic },
+	SR_FloorEdge = { Base = Enum.Material.SmoothPlastic },
+	SR_Emblem = { Base = Enum.Material.SmoothPlastic },
+	SR_Ceiling = { Base = Enum.Material.SmoothPlastic },
+	SR_Trim = { Base = Enum.Material.SmoothPlastic },
+}
+
+-- Overlay decals (art/decal_*.png): white stencils tint with Color3.
+local DECALS: { [string]: string } = {
+	Level1 = "rbxassetid://135849800451238",
+	Level2 = "rbxassetid://130341682326182",
+	Level3 = "rbxassetid://71220068353244",
+	Level4 = "rbxassetid://122666402278670",
+	Arrow = "rbxassetid://103669012047389",
+	Drip = "rbxassetid://129228210768646",
+	Puddle = "rbxassetid://139521380598278",
+	Warning = "rbxassetid://107459922647096",
+	Shadow = "rbxassetid://117083517407256",
+}
+
+-- Wall panel rhythm from the research: mostly calm panels, specials weighted,
+-- never the same special twice in a row or stacked.
+local PANEL_WEIGHTS = {
+	{ "SR_WallPlain", 60 },
+	{ "SR_WallVent", 15 },
+	{ "SR_WallPipe", 10 },
+	{ "SR_WallHatch", 10 },
+	{ "SR_WallWindow", 5 },
 }
 -- Crisp tileable hazard stripes (rendered in code, art/hazard.png).
 local HAZARD_TEXTURE = "rbxassetid://124914035857571"
@@ -165,6 +202,52 @@ function LabKit.deco(props: { [string]: any }, parent: Instance): Part
 	props.CanTouch = false
 	props.CastShadow = if props.CastShadow == nil then false else props.CastShadow
 	return LabKit.part(props, parent)
+end
+
+-- Picks a wall panel variant. `left` and `below` are the neighbours' picks.
+function LabKit.pickPanel(rand: Random, left: string?, below: string?): string
+	local total = 0
+	for _, w in PANEL_WEIGHTS do
+		total += w[2]
+	end
+	for _ = 1, 6 do
+		local roll = rand:NextNumber() * total
+		for _, w in PANEL_WEIGHTS do
+			roll -= w[2]
+			if roll <= 0 then
+				local name = w[1]
+				local special = name ~= "SR_WallPlain"
+				if not special or (name ~= left and name ~= below) then
+					return name
+				end
+				break
+			end
+		end
+	end
+	return "SR_WallPlain"
+end
+
+-- Puts an overlay decal on one face of a part.
+function LabKit.decal(part: BasePart, name: string, face: Enum.NormalId?, color: Color3?, transparency: number?): Decal?
+	local id = DECALS[name]
+	if not id then
+		return nil
+	end
+	local d = Instance.new("Decal")
+	d.Texture = id
+	d.Face = face or Enum.NormalId.Front
+	d.Color3 = color or Color3.new(1, 1, 1)
+	d.Transparency = transparency or 0
+	d.Parent = part
+	return d
+end
+
+-- A thin carrier part flush with a surface, for decals that shouldn't stretch
+-- across a whole wall (stencils, puddles, signs).
+function LabKit.decalPlate(parent: Instance, cf: CFrame, size: Vector2, name: string, color: Color3?): Part
+	local plate = LabKit.deco({ Size = Vector3.new(size.X, size.Y, 0.05), CFrame = cf, Transparency = 1 }, parent)
+	LabKit.decal(plate, name, Enum.NormalId.Front, color)
+	return plate
 end
 
 -- A generated prop scaled to a height (studs), standing on cf (bottom centre).

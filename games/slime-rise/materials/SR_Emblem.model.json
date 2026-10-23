@@ -1,0 +1,11 @@
+{
+  "ClassName": "MaterialVariant",
+  "Properties": {
+    "BaseMaterial": {
+      "Enum": 272
+    },
+    "ColorMap": "rbxassetid://81032505803325",
+    "NormalMap": "rbxassetid://75206994377144",
+    "StudsPerTile": 24
+  }
+}

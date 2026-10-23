@@ -74,59 +74,117 @@ local function ringCFrame(origin: Vector3, angle: number, radius: number, y: num
 	return CFrame.lookAt(pos, centre)
 end
 
-local function buildWalls(model: Model, origin: Vector3, height: number, tiers: number)
+-- Walls as a grid of individual panels (4 rows per tier), each picked from the
+-- surface-specific variants: kick band at the bottom, weighted specials in the
+-- middle (never repeated next to or above each other), control panels and the
+-- level stencil beside each landing, a trim line under each ceiling.
+local function buildWalls(model: Model, origin: Vector3, height: number, layout: ShaftLayout.Layout, seed: number)
 	local cfg = Config.Shaft
 	local folder = Instance.new("Folder")
 	folder.Name = "Walls"
 	folder.Parent = model
+	local rand = Random.new(seed)
 	local segs = cfg.WallSegments
+	local step = 360 / segs
 	local width = 2 * math.pi * (cfg.Radius + 1) / segs + 0.4
+	local rows = 4
+	local rowH = cfg.TierHeight / rows
+	-- Filler below the floor and above the roof.
 	for i = 0, segs - 1 do
-		local angle = i * 360 / segs
-		local cf = ringCFrame(origin, angle, cfg.Radius + 1, height / 2 - 20)
-		part(
-			{ Name = "Wall", Size = Vector3.new(width, height + 40, 2), CFrame = cf, Color = C.Wall, Kit = "SR_Panel" },
-			folder
-		)
-		-- Ribs between panels.
-		local rib = ringCFrame(origin, angle + 180 / segs, cfg.Radius - 0.2, height / 2 - 20)
-		deco({ Size = Vector3.new(0.8, height + 40, 0.8), CFrame = rib, Color = C.Pipe, Kit = "SR_Steel" }, folder)
-		for t = 1, tiers do
-			local floorY = (t - 1) * cfg.TierHeight
-			-- Hazard band just above every floor.
-			local band = ringCFrame(origin, angle, cfg.Radius - 0.05, floorY + 1.5)
-			deco({
-				Size = Vector3.new(width, 1.2, 0.2),
-				CFrame = band,
-				Color = Color3.new(1, 1, 1),
-				Kit = "SR_Hazard",
+		local angle = i * step
+		for _, band in { { -20, 0 }, { height, height + 20 } } do
+			local mid = (band[1] + band[2]) / 2
+			part({
+				Name = "Wall",
+				Size = Vector3.new(width, band[2] - band[1], 2),
+				CFrame = ringCFrame(origin, angle, cfg.Radius + 1, mid),
+				Kit = "SR_WallPlain",
 			}, folder)
-			-- Glowing slime windows on some panels.
-			if (i + t * 3) % 6 == 0 then
-				local win = ringCFrame(origin, angle, cfg.Radius - 0.1, floorY + 16)
-				local glass = deco({
-					Size = Vector3.new(width - 2.4, 10, 0.3),
-					CFrame = win,
-					Color = C.Glass,
-					Material = Enum.Material.Neon,
-					Transparency = 0.35,
-				}, folder)
-				local light = Instance.new("SurfaceLight")
-				light.Face = Enum.NormalId.Front
-				light.Color = Config.Colors.Slime
-				light.Range = 18
-				light.Brightness = 1.5
-				light.Parent = glass
-				deco({
-					Size = Vector3.new(width - 1.6, 11, 0.4),
-					CFrame = win * CFrame.new(0, 0, 0.1),
-					Color = C.WallDark,
-				}, folder)
-			end
 		end
-		-- Vertical pipes on every fourth panel, glowing ones on every eighth.
+	end
+	local below: { [number]: string } = {}
+	for _, tier in layout.tiers do
+		-- Segment closest to this tier's landing gets the control panel and stencil.
+		local landingSeg = math.floor(((tier.hatchAngle % 360) / step) + 0.5) % segs
+		local left: string? = nil
+		for i = 0, segs - 1 do
+			local angle = i * step
+			for row = 1, rows do
+				local y = tier.floorY + (row - 0.5) * rowH
+				local kit: string
+				if row == 1 then
+					kit = "SR_WallBase"
+				elseif row == 3 and (i == (landingSeg + 1) % segs or i == (landingSeg - 1) % segs) then
+					kit = "SR_WallControl"
+				elseif row == 4 and i == landingSeg then
+					kit = "SR_WallPlain"
+				else
+					kit = LabKit.pickPanel(rand, if row == 2 then left else nil, below[i * 10 + row - 1])
+				end
+				below[i * 10 + row] = kit
+				if row == 2 then
+					left = kit
+				end
+				local panel = part({
+					Name = "Wall",
+					Size = Vector3.new(width, rowH, 2),
+					CFrame = ringCFrame(origin, angle, cfg.Radius + 1, y),
+					Kit = kit,
+				}, folder)
+				if row == 1 then
+					-- Soft contact shadow where wall meets floor.
+					LabKit.decal(panel, "Shadow", Enum.NormalId.Front, nil, 0.15)
+				elseif kit == "SR_WallWindow" and tier.index == 1 then
+					-- Slime oozing out under the windows on the lowest tier.
+					LabKit.decalPlate(
+						folder,
+						ringCFrame(origin, angle, cfg.Radius - 0.06, y - rowH * 0.45),
+						Vector2.new(width - 2, 3.5),
+						"Drip"
+					)
+				end
+				if row == 4 and i == landingSeg then
+					LabKit.decalPlate(
+						folder,
+						ringCFrame(origin, angle, cfg.Radius - 0.06, y),
+						Vector2.new(7, 7),
+						"Level" .. tier.index,
+						Config.Colors.Slime
+					)
+				end
+			end
+			-- Climb arrows on the wall behind each pad, pointing up the route.
+			for _, pad in tier.pads do
+				local d = math.abs(((pad.angle - angle + 180) % 360) - 180)
+				if d < step / 2 then
+					LabKit.decalPlate(
+						folder,
+						ringCFrame(origin, angle, cfg.Radius - 0.07, pad.y + 4.5),
+						Vector2.new(2.6, 2.6),
+						"Arrow",
+						Color3.fromRGB(255, 220, 90)
+					)
+				end
+			end
+			-- Ribs between panels and a trim line under the ceiling.
+			deco({
+				Size = Vector3.new(0.8, cfg.TierHeight, 0.8),
+				CFrame = ringCFrame(origin, angle + step / 2, cfg.Radius - 0.2, tier.floorY + cfg.TierHeight / 2),
+				Kit = "SR_Steel",
+			}, folder)
+			deco({
+				Size = Vector3.new(width, 1.6, 0.4),
+				CFrame = ringCFrame(origin, angle, cfg.Radius - 0.1, tier.ceilingY - 3),
+				Kit = "SR_Trim",
+			}, folder)
+		end
+		task.wait()
+	end
+	-- Vertical pipes on every fourth panel, glowing ones on every eighth.
+	for i = 0, segs - 1 do
 		if i % 4 == 1 then
-			local pipe = ringCFrame(origin, angle, cfg.Radius - 1.6, height / 2)
+			local angle = i * step
+			local pipe = ringCFrame(origin, angle + step / 2, cfg.Radius - 1.6, height / 2)
 			deco({
 				Shape = Enum.PartType.Cylinder,
 				Size = Vector3.new(height, 1.4, 1.4),
@@ -348,6 +406,34 @@ local function dressTier(folder: Instance, origin: Vector3, info: ShaftLayout.Ti
 		"SECTOR 7",
 		Color3.fromRGB(150, 220, 255)
 	)
+	-- Floor accents: drain plates, a walkway strip toward the first pad.
+	local function floorPlate(angle: number, radius: number, size: Vector2, kit: string, yaw: number?)
+		local x, z = ShaftLayout.polar(angle, radius)
+		local pos = origin + Vector3.new(x, floorY + 0.03, z)
+		local facing = CFrame.lookAt(pos, Vector3.new(origin.X, pos.Y, origin.Z))
+			* CFrame.Angles(0, math.rad(yaw or 0), 0)
+		LabKit.deco({ Size = Vector3.new(size.X, 0.06, size.Y), CFrame = facing, Kit = kit }, folder)
+	end
+	floorPlate(h + 190, 22, Vector2.new(7, 7), "SR_FloorDrain")
+	floorPlate(h + 250, 18, Vector2.new(7, 7), "SR_FloorDrain", 45)
+	local firstPad = info.pads[1]
+	for k = 0, 2 do
+		floorPlate(firstPad.angle - 8, 10 + k * 5.5, Vector2.new(4, 5.5), "SR_Walkway")
+	end
+	-- The leak tier gets puddles spreading from the broken pipe.
+	if info.index == 1 then
+		for k, spec in { { 0, 30, 9 }, { 12, 25, 6 }, { -14, 27, 7 }, { 6, 19, 5 } } do
+			local x, z = ShaftLayout.polar(h + 180 + spec[1], spec[2])
+			local pos = origin + Vector3.new(x, floorY + 0.06 + k * 0.01, z)
+			LabKit.decalPlate(
+				folder,
+				CFrame.new(pos) * CFrame.Angles(0, math.rad(k * 47), 0) * CFrame.Angles(math.rad(90), 0, 0),
+				Vector2.new(spec[3], spec[3] * 0.7),
+				"Puddle"
+			)
+		end
+	end
+	LabKit.mat(landing, "SR_Walkway")
 	-- Railing on the landing's inner edge.
 	local size = landing.Size
 	LabKit.railing(folder, landing.CFrame * CFrame.new(0, size.Y / 2, -size.Z / 2 + 0.3), size.X - 0.6)
@@ -380,7 +466,7 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 	local model = Instance.new("Model")
 	model.Name = "Shaft"
 	local height = layout.topY
-	buildWalls(model, origin, height, cfg.Tiers)
+	buildWalls(model, origin, height, layout, seed)
 	buildCore(model, origin, height)
 
 	-- Bottom floor (tier 1).

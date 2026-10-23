@@ -62,8 +62,7 @@ local function part(props: { [string]: any }, parent: Instance): Part
 		elseif props.Material == Enum.Material.DiamondPlate then
 			props.Kit, props.Color = "SR_Grate", Color3.fromRGB(160, 160, 178)
 		elseif color == C.Wall or color == C.WallLight then
-			props.Kit, props.Color =
-				"SR_Panel", if color == C.Wall then Color3.fromRGB(160, 150, 195) else Color3.fromRGB(200, 192, 230)
+			props.Kit = "SR_WallPlain"
 		elseif color == C.Steel then
 			props.Kit = "SR_Steel"
 		elseif color == C.Dark then
@@ -288,7 +287,108 @@ local function buildPod(parent: Instance, index: number, x: number, wallZ: numbe
 end
 
 -- Dense set dressing for the atrium (detail bar: no bare surfaces).
+-- Panel grid over every lobby wall (skipping the pod openings): kick band with a
+-- contact shadow at the bottom, weighted specials above, a trim line on top.
+local function panelWalls(folder: Folder, o: Vector3, w: number, h: number, d: number)
+	local rand = Random.new(7)
+	local rowH = 10.5
+	local rows = math.floor(h / rowH)
+	local podXs = {}
+	for p = 1, Config.Party.PodCount do
+		table.insert(podXs, (p - (Config.Party.PodCount + 1) / 2) * 36)
+	end
+	local walls = {
+		-- {start, direction along the wall, inward normal, length, is north wall}
+		{ o + Vector3.new(-w / 2, 0, -d / 2), Vector3.new(1, 0, 0), Vector3.new(0, 0, 1), w, true },
+		{ o + Vector3.new(w / 2, 0, d / 2), Vector3.new(-1, 0, 0), Vector3.new(0, 0, -1), w, false },
+		{ o + Vector3.new(-w / 2, 0, d / 2), Vector3.new(0, 0, -1), Vector3.new(1, 0, 0), d, false },
+		{ o + Vector3.new(w / 2, 0, -d / 2), Vector3.new(0, 0, 1), Vector3.new(-1, 0, 0), d, false },
+	}
+	local below: { [string]: string } = {}
+	for wi, wall in walls do
+		local start: Vector3, dir: Vector3, normal: Vector3 = wall[1], wall[2], wall[3]
+		local length: number, isNorth: boolean = wall[4], wall[5]
+		local cols = math.floor(length / 10)
+		local cellW = length / cols
+		local left: string? = nil
+		for col = 0, cols - 1 do
+			local along = (col + 0.5) * cellW
+			local base = start + dir * along + normal * 0.16
+			local blocked = false
+			if isNorth then
+				local x = base.X - o.X
+				for _, px in podXs do
+					if math.abs(x - px) < 9 then
+						blocked = true
+					end
+				end
+			end
+			for row = 1, rows do
+				local y = (row - 0.5) * rowH
+				if blocked and y < 16 then
+					continue
+				end
+				local kit = if row == 1
+					then "SR_WallBase"
+					else LabKit.pickPanel(
+						rand,
+						if row == 2 then left else nil,
+						below[wi .. ":" .. col .. ":" .. (row - 1)]
+					)
+				below[wi .. ":" .. col .. ":" .. row] = kit
+				if row == 2 then
+					left = kit
+				end
+				local pos = base + Vector3.new(0, y, 0)
+				local panel = LabKit.part({
+					Size = Vector3.new(cellW - 0.1, rowH - 0.1, 0.3),
+					CFrame = CFrame.lookAt(pos, pos + normal),
+					Kit = kit,
+				}, folder)
+				if row == 1 then
+					LabKit.decal(panel, "Shadow", Enum.NormalId.Front, nil, 0.15)
+				end
+			end
+			local top = base + Vector3.new(0, rows * rowH + 0.9, 0)
+			LabKit.deco(
+				{ Size = Vector3.new(cellW, 1.6, 0.4), CFrame = CFrame.lookAt(top, top + normal), Kit = "SR_Trim" },
+				folder
+			)
+		end
+	end
+end
+
 local function dressLobby(folder: Folder, o: Vector3, w: number, h: number, d: number)
+	panelWalls(folder, o, w, h, d)
+	-- Floor story: the lab emblem in the middle, walkways to every elevator.
+	LabKit.deco(
+		{ Size = Vector3.new(22, 0.06, 22), CFrame = CFrame.new(o + Vector3.new(0, 0.03, -10)), Kit = "SR_Emblem" },
+		folder
+	)
+	for p = 1, Config.Party.PodCount do
+		local px = (p - (Config.Party.PodCount + 1) / 2) * 36
+		for k = 0, 3 do
+			local z = -24 - k * 5.5
+			local pos = o + Vector3.new(px * (0.35 + k * 0.2), 0.04, z)
+			LabKit.deco({ Size = Vector3.new(5, 0.06, 5.5), CFrame = CFrame.new(pos), Kit = "SR_Walkway" }, folder)
+		end
+	end
+	-- A cracked tank leaking onto the floor (environmental story).
+	for k, spec in { { -58, 18, 8 }, { -52, 14, 5 }, { -55, 9, 4 } } do
+		local pos = o + Vector3.new(spec[1], 0.05 + k * 0.01, spec[2])
+		LabKit.decalPlate(
+			folder,
+			CFrame.new(pos) * CFrame.Angles(0, math.rad(k * 60), 0) * CFrame.Angles(math.rad(90), 0, 0),
+			Vector2.new(spec[3], spec[3] * 0.75),
+			"Puddle"
+		)
+	end
+	-- Warning plates beside each elevator door.
+	for p = 1, Config.Party.PodCount do
+		local px = (p - (Config.Party.PodCount + 1) / 2) * 36
+		local pos = o + Vector3.new(px + 10, 9, -d / 2 + 0.4)
+		LabKit.decalPlate(folder, CFrame.lookAt(pos, pos + Vector3.new(0, 0, 1)), Vector2.new(3, 3), "Warning")
+	end
 	-- Wall lights along both side walls, two heights.
 	for _, side in { -1, 1 } do
 		local x = side * (w / 2 - 0.6)
@@ -400,7 +500,10 @@ local function buildAtrium(): Folder
 		Color = C.Floor,
 		Material = Enum.Material.DiamondPlate,
 	}, folder)
-	part({ Size = Vector3.new(w, 2, d), Position = o + Vector3.new(0, h + 1, 0), Color = C.Dark }, folder)
+	part(
+		{ Size = Vector3.new(w, 2, d), Position = o + Vector3.new(0, h + 1, 0), Color = C.Dark, Kit = "SR_Ceiling" },
+		folder
+	)
 	local walls = {
 		{ Vector3.new(0, h / 2, -d / 2 - 1), Vector3.new(w, h, 2) },
 		{ Vector3.new(0, h / 2, d / 2 + 1), Vector3.new(w, h, 2) },
