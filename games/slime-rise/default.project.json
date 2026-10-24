@@ -22,6 +22,12 @@
         }
       }
     },
+    "Lighting": {
+      "$properties": {
+        "LightingStyle": "Realistic",
+        "PrioritizeLightingQuality": true
+      }
+    },
     "Workspace": {
       "$properties": {
         "StreamingEnabled": true

@@ -23,8 +23,32 @@ local function ensure(className: string, name: string): Instance
 	return inst
 end
 
+-- The place still carries Studio's starter effects (a strong Bloom, SunRays,
+-- Depth of Field, a second Sky and Atmosphere). Stacked on the lab look they
+-- wash every white surface out. Switch them off without deleting anything:
+-- effects get Enabled = false, and the extra Sky/Atmosphere move into a
+-- folder, where Roblox ignores them.
+local function retireStarterEffects()
+	local parked = Lighting:FindFirstChild("UnusedStarterEffects") or Instance.new("Folder")
+	parked.Name = "UnusedStarterEffects"
+	parked.Parent = Lighting
+	for _, inst in Lighting:GetChildren() do
+		if string.sub(inst.Name, 1, 3) == "Lab" or inst.Name == "ThemeGrade" then
+			continue
+		end
+		if inst:IsA("PostEffect") then
+			inst.Enabled = false
+		elseif inst:IsA("Sky") or inst:IsA("Atmosphere") then
+			inst.Parent = parked
+		end
+	end
+end
+
 function LightingService.start()
 	local cfg = Config.Lighting
+	retireStarterEffects()
+	-- LightingStyle (Realistic) and PrioritizeLightingQuality are place
+	-- settings that game scripts can't write: see default.project.json.
 	Lighting.Ambient = cfg.Ambient
 	Lighting.OutdoorAmbient = cfg.OutdoorAmbient
 	Lighting.Brightness = cfg.Brightness
@@ -32,7 +56,16 @@ function LightingService.start()
 	Lighting.EnvironmentDiffuseScale = 0.4
 	Lighting.EnvironmentSpecularScale = 0.8
 	Lighting.GlobalShadows = true
+	-- Realistic lighting reflects and ambient-lights from the skybox even
+	-- indoors. The legacy sky512 default floods the lab with day-blue light;
+	-- Roblox's current skybox at midnight keeps the interior calm.
 	local sky = ensure("Sky", "LabSky") :: Sky
+	sky.SkyboxBk = "rbxassetid://6444884337"
+	sky.SkyboxDn = "rbxassetid://6444884785"
+	sky.SkyboxFt = "rbxassetid://6444884337"
+	sky.SkyboxLf = "rbxassetid://6444884337"
+	sky.SkyboxRt = "rbxassetid://6444884337"
+	sky.SkyboxUp = "rbxassetid://6412503613"
 	sky.StarCount = 0
 	sky.CelestialBodiesShown = false
 	local atmosphere = ensure("Atmosphere", "LabAtmosphere") :: Atmosphere
