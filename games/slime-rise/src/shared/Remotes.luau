@@ -10,6 +10,7 @@ local NAMES = {
 	"Notify", -- server -> client: escaped, slimed, results, cutscenes, puzzle events
 	"PartyAction", -- client -> server: elevator host picks mode / max size / go
 	"MiniGame", -- client -> server: puzzle move (rotate pipe, connect wire, press pad)
+	"SkipIntro", -- client -> server: done watching a repeat intro (no payload)
 }
 
 local FOLDER_NAME = "Remotes"

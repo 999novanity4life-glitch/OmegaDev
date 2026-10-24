@@ -10,12 +10,13 @@ export type Data = {
 	Escapes: number,
 	BestTime: number, -- seconds, 0 = never escaped (any map)
 	BestTimes: { [string]: number }, -- per map id
+	SeenIntros: { [string]: boolean }, -- map ids whose intro this player has watched
 }
 
 PlayerData.VERSION = 1
 
 function PlayerData.template(): Data
-	return { Version = PlayerData.VERSION, Crowns = 0, Escapes = 0, BestTime = 0, BestTimes = {} }
+	return { Version = PlayerData.VERSION, Crowns = 0, Escapes = 0, BestTime = 0, BestTimes = {}, SeenIntros = {} }
 end
 
 local function cleanCount(value: any): number
@@ -51,12 +52,29 @@ function PlayerData.sanitize(data: Data): Data
 		end
 	end
 	data.BestTimes = times
+	local seen: { [string]: boolean } = {}
+	if type(data.SeenIntros) == "table" then
+		for id, flag in data.SeenIntros :: any do
+			if type(id) == "string" and #id <= 20 and flag == true then
+				seen[id] = true
+			end
+		end
+	end
+	data.SeenIntros = seen
 	return data
 end
 
 function PlayerData.addCrowns(data: Data, amount: number): number
 	data.Crowns = cleanCount(data.Crowns + cleanCount(amount))
 	return data.Crowns
+end
+
+-- The first intro on a map plays in full; from the second time on it can be
+-- skipped. Marks the map seen and returns true if it had been seen before.
+function PlayerData.markIntroSeen(data: Data, mapId: string): boolean
+	local seenBefore = data.SeenIntros[mapId] == true
+	data.SeenIntros[mapId] = true
+	return seenBefore
 end
 
 -- Records an escape; returns true when it is a new best time on that map.

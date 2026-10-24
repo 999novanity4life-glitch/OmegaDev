@@ -32,6 +32,25 @@ return function(t, load)
 			expect(PlayerData.addCrowns(d, 3)).toBe(3)
 			expect(PlayerData.addCrowns(d, -10)).toBe(3)
 		end)
+		it("the intro is skippable only from the second time on each map", function()
+			local d = PlayerData.template()
+			expect(PlayerData.markIntroSeen(d, "Shaft")).toBe(false) -- first time: full intro
+			expect(PlayerData.markIntroSeen(d, "Shaft")).toBe(true) -- second time: skip allowed
+			expect(PlayerData.markIntroSeen(d, "Cryo")).toBe(false) -- new map: full intro again
+			local bad = {
+				Version = 1,
+				Crowns = 0,
+				Escapes = 0,
+				BestTime = 0,
+				SeenIntros = { Shaft = true, Cryo = "yes", [5] = true },
+			}
+			PlayerData.sanitize(bad)
+			expect(bad.SeenIntros.Shaft).toBe(true)
+			expect(bad.SeenIntros.Cryo).toBe(nil)
+			local old = { Version = 1, Crowns = 0, Escapes = 0, BestTime = 0 }
+			PlayerData.sanitize(old)
+			expect(type(old.SeenIntros)).toBe("table")
+		end)
 		it("best times are kept per map, and bad ones are cleaned", function()
 			local d = PlayerData.template()
 			expect(PlayerData.recordEscape(d, 90, "Shaft")).toBeTruthy()

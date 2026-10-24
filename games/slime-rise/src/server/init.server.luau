@@ -10,7 +10,7 @@ Players.CharacterAutoLoads = false
 
 -- Create every remote first so clients never wait while the map builds.
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
-for _, name in { "UsePower", "PowerFx", "Notify", "PartyAction", "MiniGame" } do
+for _, name in { "UsePower", "PowerFx", "Notify", "PartyAction", "MiniGame", "SkipIntro" } do
 	Remotes.get(name)
 end
 

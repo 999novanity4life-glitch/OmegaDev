@@ -193,6 +193,13 @@ local function build(
 		end
 	end)
 
+	-- Hidden while a cutscene owns the camera (the intro flies past stations).
+	local function syncCutscene()
+		board.Enabled = player:GetAttribute("Cutscene") ~= true
+	end
+	syncCutscene()
+	table.insert(conns, player:GetAttributeChangedSignal("Cutscene"):Connect(syncCutscene))
+
 	board.Parent = player:WaitForChild("PlayerGui")
 	Juice.popIn(button)
 	return board, conns
