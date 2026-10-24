@@ -230,12 +230,14 @@ local GREEN_PIECES: { [string]: boolean } = {
 	MutantPlant = true,
 	GrowLight = true,
 }
+-- Matches the Blender greenhouse kit: deep teal frames, cream panels,
+-- magenta grow-light glow.
 local GREEN_LOOK: { [string]: Color3 } = {
-	Frame = Color3.fromRGB(150, 176, 128),
-	Inset = Color3.fromRGB(214, 222, 196),
-	Dark = Color3.fromRGB(46, 56, 40),
-	Glow = Color3.fromRGB(255, 200, 100),
-	Glass = Color3.fromRGB(210, 255, 220),
+	Frame = Color3.fromRGB(52, 122, 112),
+	Inset = Color3.fromRGB(220, 212, 190),
+	Dark = Color3.fromRGB(34, 52, 48),
+	Glow = Color3.fromRGB(240, 130, 190),
+	Glass = Color3.fromRGB(210, 255, 230),
 }
 local CRYO_LOOK: { [string]: Color3 } = {
 	Frame = Color3.fromRGB(150, 182, 212),
