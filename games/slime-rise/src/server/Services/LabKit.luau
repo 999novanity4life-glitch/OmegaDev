@@ -156,11 +156,12 @@ end
 -- variant in the place it falls back to clean SmoothPlastic in the same tint.
 function LabKit.mat(part: BasePart, name: string, color: Color3?)
 	if name == "SR_Hazard" then
-		-- Clean stylized stripes on the visible faces of blocks; solid yellow on round parts.
+		-- Clean stylized stripes on every face of blocks (any side can be the one
+		-- you see), solid yellow on round parts.
 		part.Material = Enum.Material.SmoothPlastic
 		part.Color = Color3.fromRGB(255, 201, 60)
 		if part:IsA("Part") and part.Shape == Enum.PartType.Block then
-			for _, face in { Enum.NormalId.Front, Enum.NormalId.Back, Enum.NormalId.Top } do
+			for _, face in Enum.NormalId:GetEnumItems() do
 				local t = Instance.new("Texture")
 				t.Texture = HAZARD_TEXTURE
 				t.Face = face

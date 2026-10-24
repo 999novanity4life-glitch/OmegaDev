@@ -266,13 +266,13 @@ local function buildPod(parent: Instance, index: number, x: number, wallZ: numbe
 		model
 	)
 	local sign = surfaceText(signPart, Enum.NormalId.Front, "ELEVATOR " .. name, Config.Colors.Slime)
-	-- Floor marking in front.
+	-- Striped floor plate in front of the doors, raised clear of the floor and
+	-- the walkway tiles (tops at 0.07) so nothing shares its surface.
 	deco({
-		Size = Vector3.new(POD_W, 0.1, 6),
-		Position = Vector3.new(x, 0.06, wallZ + 3.5),
+		Size = Vector3.new(POD_W, 0.08, 5),
+		Position = Vector3.new(x, 0.12, wallZ + 3.3),
 		Color = C.Hazard,
-		Material = Enum.Material.Neon,
-		Transparency = 0.6,
+		Material = Enum.Material.SmoothPlastic,
 	}, model)
 	return {
 		name = name,
@@ -571,11 +571,13 @@ local function buildAtrium(): Folder
 			part({ Size = wall[2], Position = o + wall[1], Color = C.Wall }, folder)
 		end
 	end
-	-- Hazard skirting and ceiling light rows.
-	for _, z in { -d / 2 + 0.2, d / 2 - 0.2 } do
+	-- Hazard skirting and ceiling light rows. The wall's base panels stand
+	-- 0.01-0.31 studs off the wall, so the skirting sits proud of them
+	-- (0.4-0.75) instead of inside them, where its stripes z-fought and vanished.
+	for _, side in { -1, 1 } do
 		deco({
-			Size = Vector3.new(w, 1.2, 0.2),
-			Position = o + Vector3.new(0, 0.6, z),
+			Size = Vector3.new(w, 1.3, 0.35),
+			Position = o + Vector3.new(0, 0.65, side * (d / 2 - 0.575)),
 			Color = C.Hazard,
 			Material = Enum.Material.SmoothPlastic,
 		}, folder)
