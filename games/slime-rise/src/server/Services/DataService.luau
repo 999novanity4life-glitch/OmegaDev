@@ -26,6 +26,9 @@ local function mirror(player: Player, data: PlayerData.Data)
 	player:SetAttribute("Crowns", data.Crowns)
 	player:SetAttribute("Escapes", data.Escapes)
 	player:SetAttribute("BestTime", data.BestTime)
+	for id, t in data.BestTimes do
+		player:SetAttribute("Best_" .. id, t)
+	end
 	local stats = player:FindFirstChild("leaderstats")
 	local crownValue = stats and stats:FindFirstChild("Crowns") :: IntValue?
 	if crownValue then
@@ -94,12 +97,12 @@ function DataService.addCrowns(player: Player, amount: number): number
 end
 
 -- Returns true when the escape set a new best time.
-function DataService.recordEscape(player: Player, seconds: number): boolean
+function DataService.recordEscape(player: Player, seconds: number, mapId: string?): boolean
 	local profile = profiles[player]
 	if not profile or not profile:IsActive() then
 		return false
 	end
-	local best = PlayerData.recordEscape(profile.Data, seconds)
+	local best = PlayerData.recordEscape(profile.Data, seconds, mapId)
 	mirror(player, profile.Data)
 	return best
 end

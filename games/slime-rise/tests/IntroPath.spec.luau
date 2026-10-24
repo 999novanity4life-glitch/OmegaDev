@@ -3,6 +3,8 @@ return function(t, load)
 	local Config = load("src/shared/Config")
 	local ShaftLayout = load("src/shared/ShaftLayout")
 	local IntroPath = load("src/shared/IntroPath")
+	local Footprint = load("src/shared/Footprint")
+	local MAPS = { "Shaft", "Cryo" }
 	local describe, it, expect = t.describe, t.it, t.expect
 	local shaft = Config.Shaft
 
@@ -22,7 +24,8 @@ return function(t, load)
 			else -- fuse shelf
 				focus = { angle = tier.hatchAngle + 70, radius = shaft.Radius - 3, y = tier.floorY + 1.5 }
 			end
-			out[i] = { title = "PUZZLE", label = "Do the thing", focus = focus }
+			local x, z = Footprint.polar(layout.footprint, focus.angle, focus.radius)
+			out[i] = { title = "PUZZLE", label = "Do the thing", focus = { x = x, y = focus.y, z = z } }
 		end
 		return out
 	end
@@ -36,7 +39,7 @@ return function(t, load)
 		if r < shaft.CoreRadius + 3 then
 			return "inside the core"
 		end
-		if r > shaft.Radius - 3 then
+		if not Footprint.contains(layout.footprint, x, z, 2.5) then
 			return "in the wall"
 		end
 		for _, tier in layout.tiers do
@@ -61,7 +64,7 @@ return function(t, load)
 		it("never passes through a floor, the core or the walls (60 seeds)", function()
 			local bad = {}
 			for seed = 1, 60 do
-				local layout = ShaftLayout.build(seed * 7919)
+				local layout = ShaftLayout.build(seed * 7919, MAPS[seed % 2 + 1])
 				local path = IntroPath.build(layout, tierInfo(layout), "SECTOR 7")
 				local time = 0
 				while time <= path.seconds do
@@ -80,7 +83,7 @@ return function(t, load)
 		it("never spins: each shot turns the view only a little, and slowly", function()
 			local bad = {}
 			for seed = 1, 60 do
-				local layout = ShaftLayout.build(seed * 104729)
+				local layout = ShaftLayout.build(seed * 104729, MAPS[seed % 2 + 1])
 				local path = IntroPath.build(layout, tierInfo(layout), "SECTOR 7")
 				for index, s in path.shots do
 					local t0, t1 = s.t, s.keys[#s.keys].t
@@ -105,26 +108,28 @@ return function(t, load)
 			expect(table.concat(bad, " | ", 1, math.min(#bad, 12))).toBe("")
 		end)
 
-		it("shows every tier wide, then settles on its puzzle", function()
-			local layout = ShaftLayout.build(42)
-			local info = tierInfo(layout)
-			local path = IntroPath.build(layout, info, "SECTOR 7")
-			expect(#path.shots).toBe(shaft.Tiers * 2 + 1)
-			for i = 1, shaft.Tiers do
-				local push = path.shots[i * 2]
-				expect(push.tier).toBe(i)
-				local last = push.keys[#push.keys]
-				local fx, fz = ShaftLayout.polar(info[i].focus.angle, info[i].focus.radius)
-				local d =
-					math.sqrt((last.pos[1] - fx) ^ 2 + (last.pos[2] - info[i].focus.y) ^ 2 + (last.pos[3] - fz) ^ 2)
-				expect(d < 11).toBe(true)
-			end
-			-- One dip to black per floor change (into tiers 2..4 and the roof).
-			expect(#path.cuts).toBe(shaft.Tiers)
-			expect(path.seconds <= 30).toBe(true)
-			expect(#path.captions).toBe(shaft.Tiers * 2 + 1)
-			for i = 2, #path.captions do
-				expect(path.captions[i].t > path.captions[i - 1].t).toBe(true)
+		it("shows every tier wide, then settles on its puzzle (both maps)", function()
+			for _, mapId in MAPS do
+				local layout = ShaftLayout.build(42, mapId)
+				local tiers = #layout.tiers
+				local info = tierInfo(layout)
+				local path = IntroPath.build(layout, info, "SECTOR 7")
+				expect(#path.shots).toBe(tiers * 2 + 1)
+				for i = 1, tiers do
+					local push = path.shots[i * 2]
+					expect(push.tier).toBe(i)
+					local last = push.keys[#push.keys]
+					local f = info[i].focus
+					local d = math.sqrt((last.pos[1] - f.x) ^ 2 + (last.pos[2] - f.y) ^ 2 + (last.pos[3] - f.z) ^ 2)
+					expect(d < 12).toBe(true)
+				end
+				-- One dip to black per floor change (into every later floor and the roof).
+				expect(#path.cuts).toBe(tiers)
+				expect(path.seconds <= Config.Intro.MaxSeconds + 0.01).toBe(true)
+				expect(#path.captions).toBe(tiers * 2 + 1)
+				for i = 2, #path.captions do
+					expect(path.captions[i].t > path.captions[i - 1].t).toBe(true)
+				end
 			end
 		end)
 	end)

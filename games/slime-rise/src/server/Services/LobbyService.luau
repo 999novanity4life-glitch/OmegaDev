@@ -13,6 +13,7 @@ local ParticleArt = require(Shared:WaitForChild("ParticleArt"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Validate = require(Shared:WaitForChild("Validate"))
 local PartyRules = require(Shared:WaitForChild("PartyRules"))
+local MapDefs = require(Shared:WaitForChild("MapDefs"))
 local RemoteGuard = require(script.Parent.RemoteGuard)
 local MatchService = require(script.Parent.MatchService)
 local LabKit = require(script.Parent.LabKit)
@@ -30,6 +31,7 @@ type Pod = {
 	sign: TextLabel,
 	host: Player?,
 	mode: string,
+	map: string, -- MapDefs id the host picked
 	max: number,
 	members: { Player },
 	startAt: number?,
@@ -282,6 +284,7 @@ local function buildPod(parent: Instance, index: number, x: number, wallZ: numbe
 		sign = sign,
 		host = nil,
 		mode = "Public",
+		map = MapDefs.list[1].id,
 		max = Config.Party.DefaultMax,
 		members = {},
 		startAt = nil,
@@ -655,6 +658,7 @@ end
 local function publish(pod: Pod)
 	pod.model:SetAttribute("Host", if pod.host then pod.host.UserId else 0)
 	pod.model:SetAttribute("Mode", pod.mode)
+	pod.model:SetAttribute("Map", pod.map)
 	pod.model:SetAttribute("Max", pod.max)
 	pod.model:SetAttribute("Count", #pod.members)
 	pod.model:SetAttribute("Members", memberIds(pod))
@@ -712,11 +716,12 @@ local function launch(pod: Pod)
 		})
 	end
 	task.wait(Config.Party.RideSeconds)
-	task.spawn(MatchService.create, party)
+	task.spawn(MatchService.create, party, pod.map)
 	task.wait(1)
 	pod.members = {}
 	pod.host = nil
 	pod.mode = "Public"
+	pod.map = MapDefs.list[1].id
 	pod.max = Config.Party.DefaultMax
 	pod.launching = false
 	setDoors(pod, false)
@@ -738,6 +743,7 @@ local function updatePod(pod: Pod)
 		pod.host = pod.members[1]
 		if not pod.host then
 			pod.mode = "Public"
+			pod.map = MapDefs.list[1].id
 			pod.max = Config.Party.DefaultMax
 		end
 	end
@@ -798,6 +804,8 @@ function LobbyService.start()
 	RemoteGuard.connect(Remotes.get("PartyAction"), function(action: any, value: any)
 		if action == "mode" then
 			return value == "Solo" or value == "Public"
+		elseif action == "map" then
+			return MapDefs.isPlayable(value)
 		elseif action == "max" then
 			return Validate.finiteNumber(value) and value >= 1 and value <= Config.Party.MaxPlayers
 		end
@@ -820,6 +828,8 @@ function LobbyService.start()
 					end
 				end
 			end
+		elseif action == "map" then
+			pod.map = value
 		elseif action == "max" then
 			pod.max = PartyRules.clampMax(value, #pod.members, Config.Party.MaxPlayers)
 		elseif action == "go" then

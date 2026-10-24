@@ -32,6 +32,28 @@ return function(t, load)
 			expect(PlayerData.addCrowns(d, 3)).toBe(3)
 			expect(PlayerData.addCrowns(d, -10)).toBe(3)
 		end)
+		it("best times are kept per map, and bad ones are cleaned", function()
+			local d = PlayerData.template()
+			expect(PlayerData.recordEscape(d, 90, "Shaft")).toBeTruthy()
+			expect(PlayerData.recordEscape(d, 120, "Cryo")).toBeTruthy()
+			expect(PlayerData.recordEscape(d, 130, "Cryo")).toBeFalsy()
+			expect(d.BestTimes.Shaft).toBeNear(90, 1e-9)
+			expect(d.BestTimes.Cryo).toBeNear(120, 1e-9)
+			expect(d.BestTime).toBeNear(90, 1e-9)
+			local bad = {
+				Version = 1,
+				Crowns = 0,
+				Escapes = 0,
+				BestTime = 0,
+				BestTimes = { Cryo = -5, [3] = 9, Shaft = 61.234 },
+			}
+			PlayerData.sanitize(bad)
+			expect(bad.BestTimes.Cryo).toBe(nil)
+			expect(bad.BestTimes.Shaft).toBeNear(61.23, 1e-9)
+			local old = { Version = 1, Crowns = 4, Escapes = 1, BestTime = 50 }
+			PlayerData.sanitize(old)
+			expect(type(old.BestTimes)).toBe("table")
+		end)
 		it("recordEscape counts and keeps the best time", function()
 			local d = PlayerData.template()
 			expect(PlayerData.recordEscape(d, 90)).toBeTruthy()

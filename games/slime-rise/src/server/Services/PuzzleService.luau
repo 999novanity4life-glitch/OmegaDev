@@ -8,10 +8,10 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
-local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
 local PuzzleRules = require(Shared:WaitForChild("PuzzleRules"))
 local MapService = require(script.Parent.MapService)
 local LabKit = require(script.Parent.LabKit)
+local Room = require(script.Parent.Room)
 local MiniGames = require(script.Parent.MiniGames)
 
 local PuzzleService = {}
@@ -53,9 +53,7 @@ local function part(props: { [string]: any }, parent: Instance): Part
 end
 
 local function ringCFrame(origin: Vector3, angle: number, radius: number, y: number): CFrame
-	local x, z = ShaftLayout.polar(angle, radius)
-	local pos = origin + Vector3.new(x, y, z)
-	return CFrame.lookAt(pos, Vector3.new(origin.X, pos.Y, origin.Z))
+	return Room.ring(origin, angle, radius, y)
 end
 
 local function prompt(parent: Instance, action: string, object: string, hold: number): ProximityPrompt
@@ -594,6 +592,7 @@ local BUILDERS: { [string]: (MapService.TierParts, Context) -> Puzzle } = {
 }
 
 function PuzzleService.create(tier: MapService.TierParts, ctx: Context): Puzzle
+	Room.use(tier.info.footprint)
 	local builder = BUILDERS[tier.info.puzzle] or valves
 	return builder(tier, ctx)
 end

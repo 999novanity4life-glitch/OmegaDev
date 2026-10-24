@@ -298,7 +298,7 @@ function HudController.start()
 		local objectiveText = folder and folder:GetAttribute("Objective")
 		objective.Visible = name == "Round" and type(objectiveText) == "string"
 		if objective.Visible then
-			local tiers = Config.Shaft.Tiers
+			local tiers = MatchState.number("Tiers") or Config.Shaft.Tiers
 			tierText.Text = if tier and tier <= tiers then string.format("TIER %d/%d", tier, tiers) else "EXIT"
 			taskText.Text = if total > 0
 				then string.format("%s  %d/%d", objectiveText :: string, done, total)
