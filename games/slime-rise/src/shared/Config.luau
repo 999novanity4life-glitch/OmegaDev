@@ -118,6 +118,7 @@ Config.Puzzles = {
 Config.Lobby = {
 	Origin = Vector3.new(0, 0, 0),
 	Size = Vector3.new(140, 36, 96),
+	FallCatchDepth = 25, -- below the lobby floor by this much = put back at the spawn
 }
 
 Config.Lighting = {

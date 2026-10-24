@@ -54,6 +54,7 @@ local POD_W, POD_D, POD_H = 12, 12, 14
 local notify = Remotes.get("Notify")
 local pods: { Pod } = {}
 local lobbyFolder: Folder
+local catchFallers: () -> ()
 local spawnCFrame = CFrame.new()
 
 -- Structural parts get a PBR kit material picked from their role.
@@ -782,6 +783,20 @@ local function podOf(player: Player): Pod?
 	return nil
 end
 
+-- Safety net: anyone in the lobby who drops below the floor is put back at
+-- the spawn instead of falling to their death.
+function catchFallers()
+	local floorY = Config.Lobby.Origin.Y
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root and root.Position.Y < floorY - Config.Lobby.FallCatchDepth and not MatchService.inMatch(player) then
+			root.AssemblyLinearVelocity = Vector3.zero
+			LobbyService.returnToLobby(player)
+		end
+	end
+end
+
 function LobbyService.returnToLobby(player: Player)
 	local character = player.Character
 	if character then
@@ -844,9 +859,24 @@ function LobbyService.start()
 			for _, pod in pods do
 				updatePod(pod)
 			end
+			catchFallers()
 			task.wait(0.25)
 		end
 	end)
+end
+
+-- Streams the lobby in around the spawn, then gives the player a character
+-- there. Characters only load once the lobby exists (see init.server).
+function LobbyService.spawnPlayer(player: Player)
+	if player.Parent ~= Players or player.Character then
+		return
+	end
+	pcall(function()
+		player:RequestStreamAroundAsync(spawnCFrame.Position, 5)
+	end)
+	if player.Parent == Players and not player.Character then
+		player:LoadCharacter()
+	end
 end
 
 return LobbyService
