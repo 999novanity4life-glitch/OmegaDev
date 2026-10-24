@@ -51,7 +51,13 @@ function MatchState.slimeHeight(): number?
 	if not start or not duration or not baseY or not topY then
 		return nil
 	end
-	return SlimeCurve.height(workspace:GetServerTimeNow(), start, duration, baseY, topY, Config.Slime.Exponent)
+	local clock = SlimeCurve.clock(
+		workspace:GetServerTimeNow(),
+		MatchState.number("SlimeHeld") or 0,
+		MatchState.number("SlimeHoldStart"),
+		MatchState.number("SlimeHoldUntil")
+	)
+	return SlimeCurve.height(clock, start, duration, baseY, topY, Config.Slime.Exponent)
 end
 
 function MatchState.inRound(): boolean

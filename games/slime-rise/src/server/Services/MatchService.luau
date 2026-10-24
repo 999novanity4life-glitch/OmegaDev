@@ -28,6 +28,10 @@ type Match = {
 	escaped: number,
 	slimeStart: number,
 	endsAt: number,
+	slimeDuration: number,
+	heldTotal: number, -- slime holds (freezes) that have ended
+	holdStart: number?,
+	holdUntil: number?,
 	live: boolean,
 }
 
@@ -68,9 +72,9 @@ end
 
 local function slimeHeight(match: Match): number
 	return SlimeCurve.height(
-		now(),
+		SlimeCurve.clock(now(), match.heldTotal, match.holdStart, match.holdUntil),
 		match.slimeStart,
-		match.endsAt - match.slimeStart,
+		match.slimeDuration,
 		match.map.bottomY - Config.Slime.BaseDepth,
 		match.map.exitY + Config.Slime.TopMargin,
 		Config.Slime.Exponent
@@ -256,6 +260,10 @@ function MatchService.create(party: { Player }, mapId: string?)
 		escaped = 0,
 		slimeStart = math.huge,
 		endsAt = math.huge,
+		slimeDuration = 0,
+		heldTotal = 0,
+		holdStart = nil,
+		holdUntil = nil,
 		live = true,
 	}
 	matches[match.id] = match
@@ -283,6 +291,15 @@ function MatchService.create(party: { Player }, mapId: string?)
 			end,
 			onSolved = function()
 				MapService.openTier(tier)
+				-- Reward: the slime freezes for a moment (and the match end moves with it).
+				local hold = Config.Slime.SolveHoldSeconds
+				match.heldTotal, match.holdStart, match.holdUntil =
+					SlimeCurve.addHold(now(), hold, match.heldTotal, match.holdStart, match.holdUntil)
+				match.endsAt += hold
+				folder:SetAttribute("SlimeHeld", match.heldTotal)
+				folder:SetAttribute("SlimeHoldStart", match.holdStart)
+				folder:SetAttribute("SlimeHoldUntil", match.holdUntil)
+				folder:SetAttribute("EndsAt", match.endsAt)
 				for _, player in climbers(match) do
 					DataService.addCrowns(player, Config.Crowns.TeamBonus)
 				end
@@ -290,6 +307,7 @@ function MatchService.create(party: { Player }, mapId: string?)
 					tier = tier.info.index,
 					position = tier.landing.Position,
 					crowns = Config.Crowns.TeamBonus,
+					hold = hold,
 				})
 			end,
 			onProgress = function(sound: string, position: Vector3)
@@ -320,8 +338,10 @@ function MatchService.create(party: { Player }, mapId: string?)
 	end
 	match.slimeStart = now() + Config.Match.HeadStartSeconds
 	match.endsAt = now() + def.matchSeconds
+	match.slimeDuration = match.endsAt - match.slimeStart
 	folder:SetAttribute("SlimeStart", match.slimeStart)
-	folder:SetAttribute("SlimeDuration", match.endsAt - match.slimeStart)
+	folder:SetAttribute("SlimeDuration", match.slimeDuration)
+	folder:SetAttribute("SlimeHeld", 0)
 	folder:SetAttribute("EndsAt", match.endsAt)
 	folder:SetAttribute("State", "Round")
 

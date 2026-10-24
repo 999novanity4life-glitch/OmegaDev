@@ -21,6 +21,36 @@ function SlimeCurve.height(
 	return baseY + (topY - baseY) * t ^ exponent
 end
 
+-- The slime's clock: real time minus every second it was held (frozen).
+-- heldTotal = seconds from holds that have ended; holdStart/holdUntil = the
+-- current or last hold. During a hold the clock stands still, so the slime
+-- freezes and then carries on from exactly where it stopped.
+function SlimeCurve.clock(now: number, heldTotal: number, holdStart: number?, holdUntil: number?): number
+	if holdStart and holdUntil and now >= holdStart then
+		return now - heldTotal - (math.min(now, holdUntil) - holdStart)
+	end
+	return now - heldTotal
+end
+
+-- Adds a hold of `seconds` at `now` to (heldTotal, holdStart, holdUntil):
+-- a hold that already ended is banked into heldTotal; one still running is
+-- extended instead of restarting.
+function SlimeCurve.addHold(
+	now: number,
+	seconds: number,
+	heldTotal: number,
+	holdStart: number?,
+	holdUntil: number?
+): (number, number, number)
+	if holdStart and holdUntil and now < holdUntil then
+		return heldTotal, holdStart, holdUntil + seconds
+	end
+	if holdStart and holdUntil then
+		heldTotal += holdUntil - holdStart
+	end
+	return heldTotal, now, now + seconds
+end
+
 -- True when a point at height y counts as touching the slime.
 function SlimeCurve.isTouching(y: number, slimeY: number, margin: number): boolean
 	return y < slimeY + margin

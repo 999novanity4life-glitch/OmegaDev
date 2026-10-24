@@ -18,7 +18,12 @@ export type MapDef = {
 	tiers: number,
 	theme: string, -- "Lab" | "Cryo" | ...
 	gaps: { number }, -- edge gap per tier (studs), see CourseLayout
-	matchSeconds: number, -- whole match, head start included
+	-- Whole match, head start included. Sized per floor from playtest timing:
+	-- an ideal climb is 11-16 s (measured on the layouts), real players take
+	-- 2-3x that, plus walking to and solving the puzzle (25-40 s) and the
+	-- bridge. Easy gives 75 s a floor, Medium 68, Hard 62, Extreme 56, and
+	-- every solve freezes the slime for Config.Slime.SolveHoldSeconds.
+	matchSeconds: number,
 	playable: boolean, -- false = shown in the picker as coming soon
 }
 
@@ -33,7 +38,7 @@ MapDefs.list = {
 		tiers = 4,
 		theme = "Lab",
 		gaps = { 3.5, 4.5, 5.5, 6.5 },
-		matchSeconds = 150,
+		matchSeconds = 300,
 		playable = true,
 	},
 	{
@@ -46,7 +51,7 @@ MapDefs.list = {
 		tiers = 5,
 		theme = "Cryo",
 		gaps = { 5, 5.5, 6, 6.5, 7 },
-		matchSeconds = 170,
+		matchSeconds = 345,
 		playable = true,
 	},
 	{
@@ -61,7 +66,7 @@ MapDefs.list = {
 		-- Up to ~95% of the flat max gap: the widest jumps are flat, and the
 		-- height comes from vine climbs and mushroom bounces.
 		gaps = { 6.5, 7, 7.5, 7.8, 7.9, 8 },
-		matchSeconds = 190,
+		matchSeconds = 375,
 		playable = true,
 	},
 	{
@@ -74,7 +79,7 @@ MapDefs.list = {
 		tiers = 8,
 		theme = "Lab",
 		gaps = { 7, 7.5, 8, 8.5, 9, 9, 9.5, 9.5 },
-		matchSeconds = 220,
+		matchSeconds = 450,
 		playable = false,
 	},
 } :: { MapDef }

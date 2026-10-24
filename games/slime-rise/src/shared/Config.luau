@@ -47,6 +47,7 @@ Config.Slime = {
 	BaseDepth = 15, -- slime starts this far below the shaft floor
 	TopMargin = 10, -- slime ends this far above the exit
 	Exponent = 1.25, -- above 1 = slow start, fast finish
+	SolveHoldSeconds = 6, -- solving a floor's puzzle freezes the slime this long
 	DamagePerSecond = 50,
 	CheckInterval = 0.2,
 	ContactMargin = 0.5, -- studs above the surface that still count as touching
