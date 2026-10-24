@@ -19,6 +19,7 @@ export type Theme = {
 	props: { string }, -- decor kit pieces scattered on each floor
 	palette: { [string]: Color3 }?, -- re-dress lab kit stand-ins (by material group)
 	coolant: Color3, -- what flows in the floor drains
+	lamp: Color3, -- ceiling light colour
 }
 
 Themes.Lab = {
@@ -39,6 +40,7 @@ Themes.Lab = {
 	props = {},
 	palette = nil,
 	coolant = Color3.fromRGB(107, 255, 61),
+	lamp = Color3.fromRGB(225, 238, 255),
 } :: Theme
 
 Themes.Cryo = {
@@ -75,6 +77,45 @@ Themes.Cryo = {
 		Glass = Color3.fromRGB(180, 236, 255),
 	},
 	coolant = Color3.fromRGB(90, 210, 255),
+	lamp = Color3.fromRGB(225, 238, 255),
+} :: Theme
+
+Themes.Greenhouse = {
+	id = "Greenhouse",
+	wallBays = {
+		SR_WallPlain = "GreenWallPlain",
+		SR_WallVent = "GreenWallVent",
+		SR_WallWindow = "GreenWallWindow",
+		SR_WallPipe = "GreenWallPlain",
+		SR_WallControl = "GreenWallPlain",
+	},
+	panelKit = "Plain",
+	panelTint = Color3.fromRGB(196, 210, 176),
+	kit = {
+		Crate = "GreenPlanter",
+		Tank = "GreenTank",
+		Shelf = "GreenRack",
+		PipeBeam = "GreenBeam",
+		Catwalk = "GreenCatwalk",
+		Bounce = "MushroomPad",
+		Leaf = "LeafPad",
+		Vine = "VineTruss",
+	},
+	floorTint = Color3.fromRGB(214, 220, 196),
+	accent = Color3.fromRGB(255, 196, 90),
+	pipe = Color3.fromRGB(150, 160, 130),
+	core = "Green",
+	props = { "MutantPlant", "GrowLight" },
+	palette = {
+		Frame = Color3.fromRGB(150, 176, 128),
+		Inset = Color3.fromRGB(96, 124, 84),
+		Dark = Color3.fromRGB(46, 56, 40),
+		Glow = Color3.fromRGB(255, 200, 100),
+		Slime = Color3.fromRGB(150, 255, 90),
+		Glass = Color3.fromRGB(210, 255, 220),
+	},
+	coolant = Color3.fromRGB(120, 230, 140),
+	lamp = Color3.fromRGB(255, 236, 200),
 } :: Theme
 
 -- Re-dress a lab kit model in a theme's palette (until its own kit exists).
@@ -100,6 +141,8 @@ end
 function Themes.get(id: string?): Theme
 	if id == "Cryo" then
 		return Themes.Cryo
+	elseif id == "Greenhouse" then
+		return Themes.Greenhouse
 	end
 	return Themes.Lab
 end

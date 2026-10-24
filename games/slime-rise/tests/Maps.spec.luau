@@ -80,6 +80,37 @@ return function(t, load)
 		end)
 	end)
 
+	describe("Bio Greenhouse layout", function()
+		it("every route is makeable in the hex room, landing included (60 seeds)", function()
+			local bad = {}
+			for seed = 1, 60 do
+				local layout = ShaftLayout.build(seed * 89, "Greenhouse")
+				expect(#layout.tiers).toBe(6)
+				for _, tier in layout.tiers do
+					local route = table.clone(tier.course)
+					table.insert(route, {
+						kind = "Landing",
+						angle = tier.landing.angle,
+						radius = tier.landing.radius,
+						y = tier.landing.y - tier.floorY,
+						half = 7,
+						base = 0,
+						assisted = false,
+					})
+					if not CourseLayout.valid(route, true, layout.footprint) then
+						table.insert(bad, string.format("seed %d tier %d", seed, tier.index))
+					end
+					for _, e in tier.course do
+						if not Footprint.contains(layout.footprint, e.x, e.z, 1.5) then
+							table.insert(bad, string.format("seed %d tier %d %s outside", seed, tier.index, e.kind))
+						end
+					end
+				end
+			end
+			expect(table.concat(bad, " | ", 1, math.min(#bad, 10))).toBe("")
+		end)
+	end)
+
 	describe("Cryo Vault layout", function()
 		it("has 5 floors, each with a different puzzle", function()
 			for seed = 1, 20 do

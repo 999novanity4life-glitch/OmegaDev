@@ -131,9 +131,79 @@ local CRYO: { { Step } } = {
 	},
 }
 
-local THEMES: { [string]: { { Step } } } = { Lab = SEQUENCES, Cryo = CRYO }
+-- Bio Greenhouse (Hard): gaps near the jump limit, so jumps stay flat and
+-- height comes from vine truss climbs and mushroom bounces. Phantom leaves
+-- blink in and out; plant sweepers spin low over their platforms.
+local GREENHOUSE: { { Step } } = {
+	{ -- Tier 1: meet the vines and leaves
+		{ kind = "Crate", y = 4, half = 2 },
+		{ kind = "Crate", y = 8, half = 2 },
+		{ kind = "Tank", y = 11, half = 2.6 },
+		{ kind = "Leaf", y = 14, half = 2.5 },
+		{ kind = "Shelf", y = 17, half = 3 },
+		{ kind = "Vine", y = 19, half = 1.5, rise = 8 },
+		{ kind = "Catwalk", y = 28, half = 4 },
+		{ kind = "Leaf", y = 30, half = 2.5 },
+	},
+	{ -- Tier 2: first sweeper
+		{ kind = "Crate", y = 4, half = 2 },
+		{ kind = "Leaf", y = 6, half = 2.5 },
+		{ kind = "Tank", y = 9, half = 2.6 },
+		{ kind = "PipeBeam", y = 12, half = 6 },
+		{ kind = "Sweeper", y = 14, half = 3.5 },
+		{ kind = "Vine", y = 16, half = 1.5, rise = 9 },
+		{ kind = "Leaf", y = 27, half = 2.5 },
+		{ kind = "Catwalk", y = 29, half = 4 },
+		{ kind = "Leaf", y = 30, half = 2.5 },
+	},
+	{ -- Tier 3: mushroom bounce into a leaf chain
+		{ kind = "Crate", y = 4, half = 2 },
+		{ kind = "Bounce", y = 4.6, half = 2.5, rise = 11 },
+		{ kind = "Leaf", y = 17, half = 2.5 },
+		{ kind = "PipeBeam", y = 18, half = 6 },
+		{ kind = "Sweeper", y = 20, half = 3.5 },
+		{ kind = "Leaf", y = 22, half = 2.5 },
+		{ kind = "Vine", y = 23, half = 1.5, rise = 6 },
+		{ kind = "Catwalk", y = 30, half = 4 },
+	},
+	{ -- Tier 4: flat and wide
+		{ kind = "Crate", y = 4, half = 2 },
+		{ kind = "Bounce", y = 4.6, half = 2.5, rise = 11 },
+		{ kind = "Leaf", y = 16.5, half = 2.5 },
+		{ kind = "PipeBeam", y = 17, half = 6 },
+		{ kind = "Leaf", y = 18, half = 2.5 },
+		{ kind = "Vine", y = 18.5, half = 1.5, rise = 10 },
+		{ kind = "Leaf", y = 29, half = 2.5 },
+		{ kind = "Catwalk", y = 29.5, half = 4 },
+		{ kind = "Leaf", y = 30, half = 2.5 },
+	},
+	{ -- Tier 5: sweeper between leaves
+		{ kind = "Crate", y = 4, half = 2 },
+		{ kind = "Bounce", y = 4.6, half = 2.5, rise = 12 },
+		{ kind = "Leaf", y = 17, half = 2.5 },
+		{ kind = "Sweeper", y = 17.5, half = 3.5 },
+		{ kind = "Leaf", y = 17.5, half = 2.5 },
+		{ kind = "Vine", y = 18, half = 1.5, rise = 11 },
+		{ kind = "Leaf", y = 29.5, half = 2.5 },
+		{ kind = "Catwalk", y = 30, half = 4 },
+		{ kind = "Leaf", y = 30, half = 2.5 },
+	},
+	{ -- Tier 6: the final stretch, every jump near the limit
+		{ kind = "Crate", y = 4, half = 2 },
+		{ kind = "Bounce", y = 4.2, half = 2.5, rise = 13 },
+		{ kind = "Leaf", y = 17.2, half = 2.5 },
+		{ kind = "Sweeper", y = 17.4, half = 3.5 },
+		{ kind = "Leaf", y = 17.4, half = 2.5 },
+		{ kind = "Vine", y = 17.5, half = 1.5, rise = 12.5 },
+		{ kind = "Leaf", y = 30, half = 2.5 },
+		{ kind = "Catwalk", y = 30, half = 4 },
+		{ kind = "Leaf", y = 30, half = 2.5 },
+	},
+}
 
-local ASSISTED = { Bounce = true, Fan = true, Arm = true }
+local THEMES: { [string]: { { Step } } } = { Lab = SEQUENCES, Cryo = CRYO, Greenhouse = GREENHOUSE }
+
+local ASSISTED = { Bounce = true, Fan = true, Arm = true, Vine = true }
 local REFERENCE = Footprint.new({ shape = "circle", radius = Footprint.REF })
 
 -- Builds the route for tier `index` ending before the landing at `endAngle`.

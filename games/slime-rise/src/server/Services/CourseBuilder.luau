@@ -393,6 +393,134 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 			end)
 		end)
 		return surface
+	elseif kind == "Vine" then
+		-- A small ledge with a climbable vine trellis rising beside it (toward
+		-- the wall). Climb it, then jump off the top.
+		local rise = e.rise or 8
+		pedestal(parent, floorCf, e.y, 3)
+		local ledge = collider(parent, topCf, Vector3.new(3, 0.4, 3), "VineLedge")
+		local trussCf = topCf * CFrame.new(0, rise / 2, 1.6)
+		local truss = Instance.new("TrussPart")
+		truss.Name = "VineTruss"
+		truss.Anchored = true
+		truss.Size = Vector3.new(2, math.max(2, math.floor(rise / 2 + 0.5) * 2), 2)
+		truss.CFrame = trussCf
+		truss.Color = Color3.fromRGB(110, 84, 56)
+		truss.Parent = parent
+		local visual = kit("Vine", topCf * CFrame.new(0, 0, 1.6), parent, { scale = Vector3.new(1, rise / 12, 1) })
+		if visual then
+			truss.Transparency = 1
+		else
+			for k = 1, math.floor(rise / 2) do
+				LabKit.deco({
+					Size = Vector3.new(1.4, 0.3, 0.9),
+					CFrame = topCf
+						* CFrame.new((k % 2 == 0) and 0.9 or -0.9, k * 2 - 0.5, 0.7)
+						* CFrame.Angles(0, 0, math.rad((k % 2 == 0) and -25 or 25)),
+					Color = Color3.fromRGB(96, 190, 80),
+					Material = Enum.Material.SmoothPlastic,
+				}, parent)
+			end
+		end
+		return ledge
+	elseif kind == "Leaf" then
+		-- Phantom leaf: solid, then a warning flutter, then gone for a moment.
+		-- Neighbouring leaves run out of phase, so chains need timing.
+		local visual = kit("Leaf", topCf * CFrame.new(0, -0.6, 0), parent)
+		local looks: { BasePart } = {}
+		if visual then
+			for _, d in visual:GetDescendants() do
+				if d:IsA("BasePart") then
+					table.insert(looks, d)
+				end
+			end
+		else
+			table.insert(
+				looks,
+				LabKit.deco({
+					Size = Vector3.new(5, 0.4, 5),
+					CFrame = topCf * CFrame.new(0, -0.2, 0) * CFrame.Angles(0, math.rad(45), 0),
+					Color = Color3.fromRGB(96, 200, 84),
+					Material = Enum.Material.SmoothPlastic,
+				}, parent)
+			)
+		end
+		local surface = collider(parent, topCf, Vector3.new(5, 0.4, 5), "PhantomLeaf")
+		local base: { [BasePart]: number } = {}
+		for _, look in looks do
+			base[look] = look.Transparency
+		end
+		local phase = (e.angle % 7) / 7
+		task.spawn(function()
+			local cfg = Config.Course
+			local cycle = cfg.LeafSolidSeconds + cfg.LeafWarnSeconds + cfg.LeafGoneSeconds
+			task.wait(phase * cycle)
+			while surface.Parent do
+				for _, look in looks do
+					look.Transparency = base[look]
+				end
+				surface.CanCollide = true
+				task.wait(cfg.LeafSolidSeconds)
+				for _, look in looks do
+					look.Transparency = math.max(base[look], 0.45)
+				end
+				task.wait(cfg.LeafWarnSeconds)
+				for _, look in looks do
+					look.Transparency = 0.9
+				end
+				surface.CanCollide = false
+				task.wait(cfg.LeafGoneSeconds)
+			end
+		end)
+		return surface
+	elseif kind == "Sweeper" then
+		-- A platform with a thorny vine arm spinning low across it: jump it.
+		pedestal(parent, floorCf, e.y - 0.6, 5)
+		local surface = collider(parent, topCf, Vector3.new(7, 0.6, 7), "SweeperDeck")
+		LabKit.part(
+			{ Size = Vector3.new(7, 0.6, 7), CFrame = topCf * CFrame.new(0, -0.3, 0), Kit = "SR_Pad", Tint = SAFE },
+			parent
+		)
+		kit("PlantSweeper", topCf, parent)
+		local arm = LabKit.part({
+			Name = "SweeperArm",
+			Size = Vector3.new(10, 1.1, 1.1),
+			CFrame = topCf * CFrame.new(0, 1.3, 0),
+			Color = Color3.fromRGB(86, 150, 60),
+			Material = Enum.Material.SmoothPlastic,
+		}, parent)
+		local armVisual = kit("PlantSweeperArm", topCf * CFrame.new(0, 1.3, 0), parent)
+		if armVisual then
+			arm.Transparency = 1
+			for _, m in armVisual:GetChildren() do
+				if m:IsA("BasePart") then
+					m.Anchored = false
+					m.Massless = true
+					m.CanCollide = false
+					local w = Instance.new("WeldConstraint")
+					w.Part0 = arm
+					w.Part1 = m
+					w.Parent = m
+				end
+			end
+		end
+		local anchor =
+			LabKit.deco({ Size = Vector3.one, CFrame = topCf * CFrame.new(0, 1.3, 0), Transparency = 1 }, parent)
+		local a0 = Instance.new("Attachment")
+		a0.CFrame = CFrame.Angles(0, 0, math.rad(90))
+		a0.Parent = anchor
+		local a1 = Instance.new("Attachment")
+		a1.Parent = arm
+		a1.WorldCFrame = a0.WorldCFrame
+		local hinge = Instance.new("HingeConstraint")
+		hinge.Attachment0 = a0
+		hinge.Attachment1 = a1
+		hinge.ActuatorType = Enum.ActuatorType.Motor
+		hinge.MotorMaxTorque = 1e8
+		hinge.AngularVelocity = Config.Course.SweeperSpeed
+		hinge.Parent = arm
+		arm.Anchored = false
+		return surface
 	elseif kind == "Catwalk" then
 		if not kit("Catwalk", topCf, parent) then
 			LabKit.part(

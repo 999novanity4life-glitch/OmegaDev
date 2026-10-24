@@ -4,7 +4,7 @@ return function(t, load)
 	local ShaftLayout = load("src/shared/ShaftLayout")
 	local IntroPath = load("src/shared/IntroPath")
 	local Footprint = load("src/shared/Footprint")
-	local MAPS = { "Shaft", "Cryo" }
+	local MAPS = { "Shaft", "Cryo", "Greenhouse" }
 	local describe, it, expect = t.describe, t.it, t.expect
 	local shaft = Config.Shaft
 
@@ -64,7 +64,7 @@ return function(t, load)
 		it("never passes through a floor, the core or the walls (60 seeds)", function()
 			local bad = {}
 			for seed = 1, 60 do
-				local layout = ShaftLayout.build(seed * 7919, MAPS[seed % 2 + 1])
+				local layout = ShaftLayout.build(seed * 7919, MAPS[seed % 3 + 1])
 				local path = IntroPath.build(layout, tierInfo(layout), "SECTOR 7")
 				local time = 0
 				while time <= path.seconds do
@@ -83,7 +83,7 @@ return function(t, load)
 		it("never spins: each shot turns the view only a little, and slowly", function()
 			local bad = {}
 			for seed = 1, 60 do
-				local layout = ShaftLayout.build(seed * 104729, MAPS[seed % 2 + 1])
+				local layout = ShaftLayout.build(seed * 104729, MAPS[seed % 3 + 1])
 				local path = IntroPath.build(layout, tierInfo(layout), "SECTOR 7")
 				for index, s in path.shots do
 					local t0, t1 = s.t, s.keys[#s.keys].t

@@ -219,8 +219,24 @@ function LabKit.deco(props: { [string]: any }, parent: Instance): Part
 	return LabKit.part(props, parent)
 end
 
--- Cryo kit pieces wear a cold palette for the shared groups.
+-- Themed kit pieces wear their room's palette for the shared groups.
 local COLD_PIECES: { [string]: boolean } = { IceCluster = true, FrostPanel = true, IceLedge = true }
+local GREEN_PIECES: { [string]: boolean } = {
+	MushroomPad = true,
+	LeafPad = true,
+	VineTruss = true,
+	PlantSweeper = true,
+	PlantSweeperArm = true,
+	MutantPlant = true,
+	GrowLight = true,
+}
+local GREEN_LOOK: { [string]: Color3 } = {
+	Frame = Color3.fromRGB(150, 176, 128),
+	Inset = Color3.fromRGB(214, 222, 196),
+	Dark = Color3.fromRGB(46, 56, 40),
+	Glow = Color3.fromRGB(255, 200, 100),
+	Glass = Color3.fromRGB(210, 255, 220),
+}
 local CRYO_LOOK: { [string]: Color3 } = {
 	Frame = Color3.fromRGB(150, 182, 212),
 	Inset = Color3.fromRGB(206, 222, 236),
@@ -280,6 +296,23 @@ local KIT_LOOK: { [string]: (MeshPart) -> () } = {
 		m.Color = Color3.fromRGB(176, 230, 255)
 		m.Transparency = 0.3
 	end,
+	-- Greenhouse kit: foliage, stems, flowers and soil.
+	Leaf = function(m)
+		m.Material = Enum.Material.SmoothPlastic
+		m.Color = Color3.fromRGB(96, 196, 82)
+	end,
+	Bark = function(m)
+		m.Material = Enum.Material.SmoothPlastic
+		m.Color = Color3.fromRGB(112, 84, 58)
+	end,
+	Petal = function(m)
+		m.Material = Enum.Material.SmoothPlastic
+		m.Color = Color3.fromRGB(240, 96, 150)
+	end,
+	Soil = function(m)
+		m.Material = Enum.Material.SmoothPlastic
+		m.Color = Color3.fromRGB(64, 46, 34)
+	end,
 }
 
 local meshTemplates: { [string]: MeshPart } = {}
@@ -337,7 +370,10 @@ function LabKit.kit(piece: string, cf: CFrame, parent: Instance, opts: KitOption
 		if look then
 			look(m)
 		end
-		local cold = if COLD_PIECES[piece] or string.sub(piece, 1, 4) == "Cryo" then CRYO_LOOK[group] else nil
+		local cold = if COLD_PIECES[piece] or string.sub(piece, 1, 4) == "Cryo"
+			then CRYO_LOOK[group]
+			elseif GREEN_PIECES[piece] or string.sub(piece, 1, 5) == "Green" then GREEN_LOOK[group]
+			else nil
 		if cold then
 			m.Color = cold
 			if group == "Glow" then
