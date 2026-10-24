@@ -63,7 +63,7 @@ local function prompt(parent: Instance, action: string, object: string, hold: nu
 	p.HoldDuration = hold
 	p.MaxActivationDistance = Config.Puzzles.PromptDistance
 	p.RequiresLineOfSight = false
-	p.Style = Enum.ProximityPromptStyle.Default
+	p.Style = Enum.ProximityPromptStyle.Custom -- themed button (PromptController)
 	p.Parent = parent
 	return p
 end

@@ -174,6 +174,18 @@ Config.Icons = {
 	Timer = "rbxassetid://112379933179878",
 	Exit = "rbxassetid://89572959893618",
 	Lock = "rbxassetid://123936364277261",
+	-- Objective marker (art/icons/markers.mjs, option B "slime pin").
+	MarkerPin = "rbxassetid://90971413579056",
+	MarkerRing = "rbxassetid://81596515399927",
+	MarkerArrow = "rbxassetid://107174904033799",
+}
+
+-- The floating objective marker (MarkerController).
+Config.Marker = {
+	Height = 7, -- studs above the puzzle
+	FadeNear = 9, -- fully faded this close (the interact button shows instead)
+	FadeFar = 16, -- fully visible from here out
+	EdgeMargin = 115, -- off-screen arrow keeps this far (px) from the screen edge (clears the HUD)
 }
 
 -- Mini-game art (art/puzzle_art.py): pipe tiles off/on and tintable symbols.

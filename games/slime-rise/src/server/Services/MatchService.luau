@@ -95,6 +95,13 @@ local function leaveMatch(player: Player)
 end
 
 -- Objective text for the HUD: the lowest tier whose puzzle is not solved.
+-- Where the objective marker floats (the active puzzle, then the exit lift).
+local function setObjectivePoint(folder: Folder, point: Vector3)
+	folder:SetAttribute("ObjectiveX", point.X)
+	folder:SetAttribute("ObjectiveY", point.Y)
+	folder:SetAttribute("ObjectiveZ", point.Z)
+end
+
 local function refreshObjective(match: Match)
 	for i, puzzle in match.puzzles do
 		if not puzzle.solved() then
@@ -103,6 +110,7 @@ local function refreshObjective(match: Match)
 			match.folder:SetAttribute("Objective", puzzle.label)
 			match.folder:SetAttribute("ObjectiveDone", done)
 			match.folder:SetAttribute("ObjectiveTotal", total)
+			setObjectivePoint(match.folder, puzzle.focus)
 			return
 		end
 	end
@@ -110,6 +118,7 @@ local function refreshObjective(match: Match)
 	match.folder:SetAttribute("Objective", "Reach the exit!")
 	match.folder:SetAttribute("ObjectiveDone", 0)
 	match.folder:SetAttribute("ObjectiveTotal", 0)
+	setObjectivePoint(match.folder, match.map.exitPosition)
 end
 
 function MatchService.isClimbing(player: Player): boolean
