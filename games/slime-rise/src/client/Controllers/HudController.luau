@@ -361,7 +361,11 @@ function HudController.start()
 			showBanner(
 				"LEAK SEALED!",
 				Config.Colors.Slime,
-				string.format("Bridge extended  ·  +%d crown team bonus", data.crowns),
+				string.format(
+					"Slime frozen %ds  ·  bridge out  ·  +%d crowns",
+					tonumber(data.hold) or 0,
+					tonumber(data.crowns) or 0
+				),
 				2.5
 			)
 			Juice.shakeCamera(0.4)
