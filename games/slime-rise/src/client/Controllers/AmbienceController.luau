@@ -166,14 +166,13 @@ function AmbienceController.start()
 	local grade = Instance.new("ColorCorrectionEffect")
 	grade.Name = "ThemeGrade"
 	grade.Parent = game:GetService("Lighting")
-	local GRADES: { [string]: { tint: Color3, saturation: number, contrast: number, softBloom: boolean } } = {
-		Lab = { tint = Color3.new(1, 1, 1), saturation = 0, contrast = 0, softBloom = false },
-		-- White rooms trip the place's strong default Bloom, so it is turned off.
-		Cryo = { tint = Color3.fromRGB(214, 234, 255), saturation = -0.08, contrast = 0.06, softBloom = true },
+	-- (The place's leftover default Bloom is switched off by LightingService.)
+	local GRADES: { [string]: { tint: Color3, saturation: number, contrast: number } } = {
+		Lab = { tint = Color3.new(1, 1, 1), saturation = 0, contrast = 0 },
+		Cryo = { tint = Color3.fromRGB(214, 234, 255), saturation = -0.08, contrast = 0.06 },
 		-- Warm, sunlit and lush.
-		Greenhouse = { tint = Color3.fromRGB(255, 246, 224), saturation = 0.1, contrast = 0.04, softBloom = true },
+		Greenhouse = { tint = Color3.fromRGB(255, 246, 224), saturation = 0.1, contrast = 0.04 },
 	}
-	local defaultBloom = game:GetService("Lighting"):FindFirstChild("Bloom")
 	local lastTheme = ""
 	task.spawn(function()
 		while true do
@@ -188,9 +187,6 @@ function AmbienceController.start()
 					Saturation = g.saturation,
 					Contrast = g.contrast,
 				}):Play()
-				if defaultBloom and defaultBloom:IsA("BloomEffect") then
-					defaultBloom.Enabled = not g.softBloom
-				end
 			end
 			local context = if player:GetAttribute("Cutscene") == true
 				then "cutscene"

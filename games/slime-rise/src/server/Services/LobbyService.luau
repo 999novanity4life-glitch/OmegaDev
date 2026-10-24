@@ -62,7 +62,7 @@ local function part(props: { [string]: any }, parent: Instance): Part
 	if props.Kit == nil and props.Material ~= Enum.Material.Neon and props.Material ~= Enum.Material.Glass then
 		local color = props.Color
 		if props.Name == "Floor" then
-			props.Kit, props.Color = "SR_Tile", Color3.fromRGB(205, 210, 222)
+			props.Kit, props.Color = "SR_Tile", Color3.fromRGB(126, 133, 160)
 		elseif props.Material == Enum.Material.DiamondPlate then
 			props.Kit, props.Color = "SR_Grate", Color3.fromRGB(160, 160, 178)
 		elseif color == C.Wall or color == C.WallLight then
@@ -389,11 +389,146 @@ local function panelWalls(folder: Folder, o: Vector3, w: number, h: number, d: n
 	end
 end
 
+-- Architecture that gives the atrium depth instead of one flat box: steel
+-- pilasters with slime light strips break the walls into bays, crossbeams
+-- carry the ceiling, a cove ledge washes light up onto it, and a darker
+-- band frames the floor. Positions avoid the pods, tanks, lights and signs.
+local STEEL_DARK = Color3.fromRGB(78, 74, 104)
+local STEEL_DEEP = Color3.fromRGB(52, 48, 70)
+
+local function pilaster(folder: Folder, base: Vector3, normal: Vector3, h: number)
+	local cf = CFrame.lookAt(base, base + normal)
+	LabKit.part({
+		Size = Vector3.new(3.2, h, 1.6),
+		CFrame = cf * CFrame.new(0, h / 2, -0.8),
+		Kit = "SR_Steel",
+		Tint = STEEL_DARK,
+	}, folder)
+	LabKit.part({
+		Size = Vector3.new(3.9, 1.4, 2.3),
+		CFrame = cf * CFrame.new(0, 0.7, -1.15),
+		Kit = "SR_Steel",
+		Tint = STEEL_DEEP,
+	}, folder)
+	LabKit.deco({
+		Size = Vector3.new(3.9, 1.1, 2.4),
+		CFrame = cf * CFrame.new(0, h - 0.55, -1.2),
+		Kit = "SR_Steel",
+		Tint = STEEL_DEEP,
+	}, folder)
+	-- Recessed light strip: a dark channel with a softened slime tube in it.
+	LabKit.deco({
+		Size = Vector3.new(0.9, h - 9, 0.12),
+		CFrame = cf * CFrame.new(0, h / 2, -1.62),
+		Color = C.Dark,
+		Material = Enum.Material.SmoothPlastic,
+	}, folder)
+	local strip = LabKit.deco({
+		Size = Vector3.new(0.4, h - 10, 0.1),
+		CFrame = cf * CFrame.new(0, h / 2, -1.7),
+		Color = Config.Colors.Slime,
+		Material = Enum.Material.Neon,
+	}, folder)
+	local glow = Instance.new("SurfaceLight")
+	glow.Face = Enum.NormalId.Front
+	glow.Range = 9
+	glow.Brightness = 0.7
+	glow.Angle = 70
+	glow.Color = Config.Colors.Slime
+	glow.Parent = strip
+end
+
+local function structure(folder: Folder, o: Vector3, w: number, h: number, d: number)
+	-- Pilasters: corners, between the pods, flanking the monitor wall, and in
+	-- the gaps between the side-wall lights and signs.
+	for _, x in { -54, -18, 18, 54 } do
+		pilaster(folder, o + Vector3.new(x, 0, -d / 2), Vector3.zAxis, h)
+	end
+	for _, x in { -54, -27, 27, 54 } do
+		pilaster(folder, o + Vector3.new(x, 0, d / 2), -Vector3.zAxis, h)
+	end
+	for _, side in { -1, 1 } do
+		for _, z in { -31, 31 } do
+			pilaster(folder, o + Vector3.new(side * w / 2, 0, z), Vector3.new(-side, 0, 0), h)
+		end
+	end
+	-- Ceiling crossbeams (I-section) between the lamp rows.
+	for _, z in { -42, -14, 14, 42 } do
+		local c = o + Vector3.new(0, h - 1.4, z)
+		LabKit.deco(
+			{ Size = Vector3.new(w, 2.4, 0.6), CFrame = CFrame.new(c), Kit = "SR_Steel", Tint = STEEL_DARK },
+			folder
+		)
+		for _, dy in { 1.2, -1.2 } do
+			LabKit.deco({
+				Size = Vector3.new(w, 0.35, 2),
+				CFrame = CFrame.new(c + Vector3.new(0, dy, 0)),
+				Kit = "SR_Steel",
+				Tint = STEEL_DEEP,
+			}, folder)
+		end
+	end
+	-- Cove ledge above the panel rows, lit upward onto the ceiling.
+	type Run = { center: Vector3, size: Vector3, face: Enum.NormalId }
+	local ledgeY = h - 2.6
+	local runs: { Run } = {
+		{ center = Vector3.new(0, ledgeY, -d / 2 + 0.7), size = Vector3.new(w, 0.5, 1.4), face = Enum.NormalId.Top },
+		{ center = Vector3.new(0, ledgeY, d / 2 - 0.7), size = Vector3.new(w, 0.5, 1.4), face = Enum.NormalId.Top },
+		{ center = Vector3.new(-w / 2 + 0.7, ledgeY, 0), size = Vector3.new(1.4, 0.5, d), face = Enum.NormalId.Top },
+		{ center = Vector3.new(w / 2 - 0.7, ledgeY, 0), size = Vector3.new(1.4, 0.5, d), face = Enum.NormalId.Top },
+	}
+	for _, run in runs do
+		local ledge = LabKit.deco(
+			{ Size = run.size, CFrame = CFrame.new(o + run.center), Kit = "SR_Trim", Tint = STEEL_DARK },
+			folder
+		)
+		local cove = Instance.new("SurfaceLight")
+		cove.Face = run.face
+		cove.Range = 8
+		cove.Brightness = 0.9
+		cove.Angle = 80
+		cove.Color = Color3.fromRGB(170, 210, 255)
+		cove.Parent = ledge
+	end
+	-- Floor: a darker edge band around the room.
+	local band = 5
+	for _, spec in
+		{
+			{ Vector3.new(0, 0, -d / 2 + band / 2), Vector3.new(w, 0.12, band) },
+			{ Vector3.new(0, 0, d / 2 - band / 2), Vector3.new(w, 0.12, band) },
+			{ Vector3.new(-w / 2 + band / 2, 0, 0), Vector3.new(band, 0.12, d - band * 2) },
+			{ Vector3.new(w / 2 - band / 2, 0, 0), Vector3.new(band, 0.12, d - band * 2) },
+		}
+	do
+		LabKit.part(
+			{ Size = spec[2], CFrame = CFrame.new(o + spec[1] + Vector3.new(0, 0.06, 0)), Kit = "SR_FloorEdge" },
+			folder
+		)
+	end
+	-- The emblem sits on a low dais with a glowing rim.
+	local dais = o + Vector3.new(0, 0, -10)
+	LabKit.deco({
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.12, 26.8, 26.8),
+		CFrame = CFrame.new(dais + Vector3.new(0, 0.06, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Config.Colors.Slime,
+		Material = Enum.Material.Neon,
+	}, folder)
+	LabKit.part({
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.3, 26, 26),
+		CFrame = CFrame.new(dais + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Kit = "SR_Steel",
+		Tint = STEEL_DEEP,
+	}, folder)
+end
+
 local function dressLobby(folder: Folder, o: Vector3, w: number, h: number, d: number)
 	panelWalls(folder, o, w, h, d)
-	-- Floor story: the lab emblem in the middle, walkways to every elevator.
+	structure(folder, o, w, h, d)
+	-- Floor story: the lab emblem on its dais in the middle, walkways to every elevator.
 	LabKit.deco(
-		{ Size = Vector3.new(22, 0.06, 22), CFrame = CFrame.new(o + Vector3.new(0, 0.03, -10)), Kit = "SR_Emblem" },
+		{ Size = Vector3.new(22, 0.06, 22), CFrame = CFrame.new(o + Vector3.new(0, 0.33, -10)), Kit = "SR_Emblem" },
 		folder
 	)
 	for p = 1, Config.Party.PodCount do
@@ -464,11 +599,13 @@ local function dressLobby(folder: Folder, o: Vector3, w: number, h: number, d: n
 	for _, x in { -18, 18 } do
 		LabKit.prop("Console", CFrame.lookAt(o + Vector3.new(x, 0, -42), o + Vector3.new(x, 0, 0)), 4.4, folder, true)
 	end
-	-- Ceiling cables between the light rows.
-	for k = -2, 2 do
-		local a = o + Vector3.new(k * 26 - 6, h - 1, -40)
-		local b = o + Vector3.new(k * 26 + 6, h - 1, 40)
-		LabKit.cable(folder, a, b, 4, if k % 2 == 0 then Config.Colors.SlimeDeep else nil)
+	-- Cables sag between the ceiling beams (along the beams' gaps, not across the room).
+	for _, x in { -48, -21, 21, 48 } do
+		for _, span in { { -42, -14 }, { 14, 42 } } do
+			local a = o + Vector3.new(x, h - 2.7, span[1])
+			local b = o + Vector3.new(x, h - 2.7, span[2])
+			LabKit.cable(folder, a, b, 2.2)
+		end
 	end
 	-- Signs.
 	LabKit.sign(
@@ -593,7 +730,7 @@ local function buildAtrium(): Folder
 			local light = Instance.new("SurfaceLight")
 			light.Face = Enum.NormalId.Bottom
 			light.Range = 60
-			light.Brightness = 2.6
+			light.Brightness = 1.5
 			light.Color = Color3.fromRGB(200, 230, 255)
 			light.Parent = lamp
 		end
@@ -604,16 +741,40 @@ local function buildAtrium(): Folder
 			slimeTank(folder, o + Vector3.new(x, 0, z), 22, 4.5)
 		end
 	end
-	-- Ceiling pipes.
+	-- Ceiling pipes: steel runs on hangers, with a slime sight-glass band
+	-- every few metres (a full neon tube read as a laser beam).
 	for _, x in { -30, 30 } do
-		deco({
+		LabKit.deco({
 			Shape = Enum.PartType.Cylinder,
 			Size = Vector3.new(d, 1.6, 1.6),
-			CFrame = CFrame.new(o + Vector3.new(x, h - 3, 0)) * CFrame.Angles(0, math.rad(90), 0),
-			Color = Config.Colors.Slime,
-			Material = Enum.Material.Neon,
-			Transparency = 0.2,
+			CFrame = CFrame.new(o + Vector3.new(x, h - 4, 0)) * CFrame.Angles(0, math.rad(90), 0),
+			Kit = "SR_Steel",
+			Tint = Color3.fromRGB(120, 124, 146),
 		}, folder)
+		for z = -d / 2 + 6, d / 2 - 6, 12 do
+			LabKit.deco({
+				Size = Vector3.new(0.3, 2.2, 0.3),
+				CFrame = CFrame.new(o + Vector3.new(x, h - 2.9, z)),
+				Kit = "SR_Steel",
+				Tint = Color3.fromRGB(52, 48, 70),
+			}, folder)
+			LabKit.deco({
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.5, 1.9, 1.9),
+				CFrame = CFrame.new(o + Vector3.new(x, h - 4, z)) * CFrame.Angles(0, math.rad(90), 0),
+				Kit = "SR_Steel",
+				Tint = Color3.fromRGB(52, 48, 70),
+			}, folder)
+			if z + 6 < d / 2 - 3 then
+				LabKit.deco({
+					Shape = Enum.PartType.Cylinder,
+					Size = Vector3.new(1.6, 1.7, 1.7),
+					CFrame = CFrame.new(o + Vector3.new(x, h - 4, z + 6)) * CFrame.Angles(0, math.rad(90), 0),
+					Color = Config.Colors.Slime,
+					Material = Enum.Material.Neon,
+				}, folder)
+			end
+		end
 	end
 	-- Reception desk and a big monitor wall.
 	part({ Size = Vector3.new(20, 4, 5), Position = o + Vector3.new(0, 2, 18), Color = C.WallLight }, folder)

@@ -6,6 +6,7 @@
     },
     "ColorMap": "rbxassetid://132409812183773",
     "NormalMap": "rbxassetid://129717187975778",
-    "StudsPerTile": 10.5
+    "StudsPerTile": 10.5,
+    "RoughnessMap": "rbxassetid://101608419867072"
   }
 }
