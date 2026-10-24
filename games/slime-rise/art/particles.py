@@ -128,6 +128,17 @@ def streak():
     rgba = np.zeros((S, S, 4), np.uint8); rgba[..., :3] = 255; rgba[..., 3] = a
     return down(Image.fromarray(rgba, "RGBA"))
 
+def mote():
+    # Soft glowing dust mote: bright core, smooth falloff (for light shafts).
+    S = CELL * SS; c = S / 2
+    yy, xx = np.mgrid[0:S, 0:S].astype(np.float32)
+    r = np.hypot(xx - c, yy - c) / (S * 0.5)
+    a = np.clip(1 - r, 0, 1) ** 2.2
+    core = np.clip(1 - r / 0.18, 0, 1)
+    alpha = np.clip(a * 0.85 + core * 0.6, 0, 1)
+    rgba = np.zeros((S, S, 4), np.uint8); rgba[..., :3] = 255; rgba[..., 3] = (alpha * 255).astype(np.uint8)
+    return down(Image.fromarray(rgba, "RGBA"))
+
 def sheet(frames):
     out = Image.new("RGBA", (CELL * 2, CELL * 2), (255, 255, 255, 0))
     for i, f in enumerate(frames):
@@ -142,6 +153,7 @@ if __name__ == "__main__":
     sheet([goo(p) for p in (0, 1.6, 3.2, 4.8)]).save("goo_flip.png")
     drip().save("drip.png")
     streak().save("streak.png")
+    mote().save("mote.png")
     # preview on dark lab background, tinted slime green
     names = ["bubble_flip.png", "goo_flip.png", "drip.png", "streak.png"]
     prev = Image.new("RGB", (4 * 300 + 50, 330), (24, 20, 38))

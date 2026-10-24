@@ -9,9 +9,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
+local GuiService = game:GetService("GuiService")
+local Debris = game:GetService("Debris")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local ParticleArt = require(Shared:WaitForChild("ParticleArt"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local MatchState = require(script.Parent.MatchState)
 
@@ -77,6 +80,79 @@ local function crossfade(sound: Sound, target: number)
 	end
 end
 
+-- The reward moment on reaching the lift: a burst of goo, bubbles and light
+-- motes, a ring of light sweeping out over the bay, and the player floating
+-- up into the daylight before the trip back to the lobby.
+function AmbienceController.escapeBurst()
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return
+	end
+	local holder = Instance.new("Part")
+	holder.Anchored = true
+	holder.CanCollide = false
+	holder.CanQuery = false
+	holder.CanTouch = false
+	holder.Transparency = 1
+	holder.Size = Vector3.one
+	holder.Position = root.Position - Vector3.new(0, 2.5, 0)
+	holder.Parent = workspace
+	local function burst(kind: ParticleArt.Kind, count: number, color: Color3, size: number, speed: number)
+		local e = Instance.new("ParticleEmitter")
+		e.Color = ColorSequence.new(color)
+		e.Size = NumberSequence.new(size, size * 0.4)
+		e.Lifetime = NumberRange.new(0.8, 1.4)
+		e.Speed = NumberRange.new(speed * 0.6, speed)
+		e.SpreadAngle = Vector2.new(70, 70)
+		e.EmissionDirection = Enum.NormalId.Top
+		e.Acceleration = Vector3.new(0, -18, 0)
+		e.Rate = 0
+		ParticleArt.style(e, kind)
+		e.Parent = holder
+		e:Emit(count)
+	end
+	burst("Goo", 16, Config.Colors.Slime, 1.1, 26)
+	burst("Bubble", 14, Config.Colors.Slime, 1.2, 18)
+	burst("Mote", 40, Color3.fromRGB(255, 236, 200), 0.6, 22)
+	local ring = Instance.new("Part")
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.Material = Enum.Material.Neon
+	ring.Color = Color3.fromRGB(255, 240, 210)
+	ring.Transparency = 0.2
+	ring.Size = Vector3.new(0.2, 2, 2)
+	ring.CFrame = CFrame.new(holder.Position + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = workspace
+	TweenService:Create(ring, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.new(0.2, 34, 34),
+		Transparency = 1,
+	}):Play()
+	Debris:AddItem(ring, 1)
+	Debris:AddItem(holder, 2)
+	if GuiService.ReducedMotionEnabled then
+		return
+	end
+	-- Float up into the light (our own character, so the client may move it).
+	local attach = Instance.new("Attachment")
+	attach.Parent = root
+	local lift = Instance.new("LinearVelocity")
+	lift.Attachment0 = attach
+	lift.VectorVelocity = Vector3.new(0, 10, 0)
+	lift.MaxForce = math.huge
+	lift.RelativeTo = Enum.ActuatorRelativeTo.World
+	lift.Parent = root
+	Debris:AddItem(lift, 1.6)
+	Debris:AddItem(attach, 1.6)
+	local camera = workspace.CurrentCamera
+	TweenService:Create(camera, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { FieldOfView = 80 }):Play()
+	task.delay(0.5, function()
+		TweenService:Create(camera, TweenInfo.new(0.9, Enum.EasingStyle.Sine), { FieldOfView = 70 }):Play()
+	end)
+end
+
 function AmbienceController.start()
 	local hum = loop(SOUNDS.LabHum, "LabHum")
 	local lobbyMusic = loop(SOUNDS.LobbyMusic, "LobbyMusic")
@@ -105,6 +181,7 @@ function AmbienceController.start()
 	Remotes.get("Notify").OnClientEvent:Connect(function(kind: string, data: any)
 		if kind == "Escaped" then
 			AmbienceController.play("Escape", 0.7)
+			AmbienceController.escapeBurst()
 		elseif kind == "Slimed" then
 			AmbienceController.play("Slimed", 0.8)
 		elseif kind == "PuzzleProgress" and type(data) == "table" then
@@ -155,6 +232,31 @@ function AmbienceController.start()
 				local speed = flow:GetAttribute("FlowSpeed")
 				local rate = if type(speed) == "number" then speed else 2.5
 				flow.OffsetStudsV = (flow.OffsetStudsV + dt * rate) % flow.StudsPerTileV
+			end
+		end
+		-- Exit bay: rings of light rise from the lift; runway chevrons pulse
+		-- in a wave toward it.
+		local now = os.clock()
+		for _, ring in CollectionService:GetTagged("RiseRing") do
+			if ring:IsA("BasePart") then
+				local baseY = ring:GetAttribute("BaseY")
+				local height = ring:GetAttribute("Height")
+				local phase = ring:GetAttribute("Phase")
+				if type(baseY) == "number" and type(height) == "number" and type(phase) == "number" then
+					local f = (now * 0.22 + phase) % 1
+					local p = ring.Position
+					ring.CFrame = CFrame.new(p.X, baseY + f * height, p.Z) * CFrame.Angles(0, 0, math.rad(90))
+					ring.Transparency = 0.25 + 0.75 * f
+				end
+			end
+		end
+		for _, chevron in CollectionService:GetTagged("Chevron") do
+			if chevron:IsA("BasePart") then
+				local index = chevron:GetAttribute("Index")
+				if type(index) == "number" then
+					local wave = math.sin(now * 5 - index * 0.7)
+					chevron.Transparency = 0.15 + 0.55 * (1 - math.max(0, wave))
+				end
 			end
 		end
 		for _, fan in CollectionService:GetTagged("Fan") do

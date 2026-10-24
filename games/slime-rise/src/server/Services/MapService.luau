@@ -12,6 +12,7 @@ local ParticleArt = require(Shared:WaitForChild("ParticleArt"))
 local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
 local LabKit = require(script.Parent.LabKit)
 local CourseBuilder = require(script.Parent.CourseBuilder)
+local ExitBay = require(script.Parent.ExitBay)
 
 local MapService = {}
 
@@ -723,30 +724,8 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 		})
 	end
 
-	-- Roof exit above the last bulkhead.
-	local exitPos = polar(origin, layout.exitAngle, layout.exitRadius, layout.exitY)
-	local exitPad = part({
-		Name = "ExitPad",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(1, 10, 10),
-		CFrame = CFrame.new(exitPos - Vector3.new(0, 0.5, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Config.Colors.Exit,
-		Material = Enum.Material.Neon,
-	}, model)
-	local beacon = Instance.new("PointLight")
-	beacon.Color = Config.Colors.Exit
-	beacon.Range = 26
-	beacon.Brightness = 1.4
-	beacon.Parent = exitPad
-	deco({
-		Name = "ExitBeam",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(60, 6, 6),
-		CFrame = CFrame.new(exitPos + Vector3.new(0, 30, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Config.Colors.Exit,
-		Material = Enum.Material.Neon,
-		Transparency = 0.8,
-	}, model)
+	-- Roof: the surface lift bay (the end of the run).
+	local exitPos = ExitBay.build(model, origin, layout)
 
 	local spawns: { CFrame } = {}
 	for i = 0, 11 do

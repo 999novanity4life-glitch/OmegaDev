@@ -97,14 +97,15 @@ function IntroPath.build(layout: ShaftLayout.Layout, tiers: { TierInfo }, title:
 		})
 	end
 
-	-- Roof: high three-quarter view of the exit beacon, drifting in.
-	local exit = at(layout.exitAngle, layout.exitRadius, layout.exitY)
+	-- Roof: the surface lift bay. A low three-quarter view drifting in on the
+	-- lift, looking up into the daylight shaft above it.
+	local exit = at(layout.exitAngle, layout.exitRadius, layout.exitY + 7)
 	local last = layout.tiers[#layout.tiers]
 	local side = if turn(last.hatchAngle, layout.exitAngle) >= 0 then -1 else 1
 	caption(0.3, "THE EXIT", "Get everyone out before the slime does!")
 	shot(0, cfg.ExitSeconds, {
-		{ pos = at(layout.exitAngle + side * 55, 27, layout.topY + 18), look = exit },
-		{ pos = at(layout.exitAngle + side * 40, 26, layout.topY + 14), look = exit },
+		{ pos = at(layout.exitAngle + side * 50, 25, layout.topY + 7), look = exit },
+		{ pos = at(layout.exitAngle + side * 38, 23, layout.topY + 5.5), look = { exit[1], exit[2] + 1.5, exit[3] } },
 	})
 
 	local cuts: { number } = {}
