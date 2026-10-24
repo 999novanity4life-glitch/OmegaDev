@@ -9,11 +9,16 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local GuiService = game:GetService("GuiService")
+local ContextActionService = game:GetService("ContextActionService")
+local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local MatchState = require(script.Parent.MatchState)
+local skipRemote = Remotes.get("SkipIntro")
+local Juice = require(script.Parent.Juice)
 local IntroPath = require(Shared:WaitForChild("IntroPath"))
 
 local CutsceneController = {}
@@ -28,6 +33,8 @@ local barTop: Frame
 local barBottom: Frame
 local caption: TextLabel
 local subCaption: TextLabel
+local skipButton: TextButton
+local waitLabel: TextLabel
 local playing = 0 -- token so a newer cutscene cancels an older one
 
 -- Freeze the character during a cutscene. Uses the PlayerModule when this
@@ -282,7 +289,52 @@ local function flyover(data: { [string]: any })
 			conn:Disconnect()
 		end
 	end)
+	-- Second time on this map onward: a SKIP button (and Space / Enter /
+	-- gamepad B) cuts back to your character. The server starts the round as
+	-- soon as everyone in the match has skipped; until then you wait, frozen.
+	local skipped = false
+	local function skip()
+		if skipped or token ~= playing then
+			return
+		end
+		skipped = true
+		ContextActionService:UnbindAction("SkipIntro")
+		skipButton.Visible = false
+		playing += 1 -- stops the camera path and every scheduled caption/dip
+		finish(playing)
+		controls(false)
+		waitLabel.Visible = true
+		skipRemote:FireServer()
+		task.spawn(function()
+			while not MatchState.inRound() and MatchState.folder() do
+				task.wait(0.1)
+			end
+			waitLabel.Visible = false
+			if player:GetAttribute("Cutscene") ~= true then
+				controls(true)
+			end
+		end)
+	end
+	if data.skippable == true then
+		skipButton.Visible = true
+		Juice.popIn(skipButton)
+		local skipConn = skipButton.Activated:Connect(skip)
+		ContextActionService:BindAction("SkipIntro", function(_, inputState)
+			if inputState == Enum.UserInputState.Begin then
+				skip()
+			end
+			return Enum.ContextActionResult.Sink
+		end, false, Enum.KeyCode.Space, Enum.KeyCode.Return, Enum.KeyCode.ButtonB)
+		task.delay(seconds + 1, function()
+			skipConn:Disconnect()
+		end)
+	end
 	task.wait(math.max(0, seconds - 0.6))
+	if skipped then
+		return
+	end
+	ContextActionService:UnbindAction("SkipIntro")
+	skipButton.Visible = false
 	if token == playing then
 		fade(0, 0.5)
 		task.wait(0.6)
@@ -334,6 +386,59 @@ function CutsceneController.start()
 	subCaption.Size = UDim2.fromScale(0.6, 0.05)
 	subCaption.TextColor3 = Color3.new(1, 1, 1)
 	subCaption.Parent = gui
+
+	-- SKIP button (repeat runs only) and the "get ready" note after a skip.
+	skipButton = Instance.new("TextButton")
+	skipButton.Name = "Skip"
+	skipButton.Text = ""
+	skipButton.AutoButtonColor = false
+	skipButton.AnchorPoint = Vector2.new(1, 1)
+	skipButton.Position = UDim2.new(1, -28, 0.82, 0)
+	skipButton.Size = UDim2.fromOffset(190, 64)
+	skipButton.BackgroundColor3 = Color3.fromRGB(52, 40, 86)
+	skipButton.ZIndex = 20
+	skipButton.Visible = false
+	skipButton.Parent = gui
+	local skipCorner = Instance.new("UICorner")
+	skipCorner.CornerRadius = UDim.new(0.3, 0)
+	skipCorner.Parent = skipButton
+	local skipStroke = Instance.new("UIStroke")
+	skipStroke.Thickness = 3.5
+	skipStroke.Color = Config.Colors.Slime
+	skipStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	skipStroke.Parent = skipButton
+	local skipGrad = Instance.new("UIGradient")
+	skipGrad.Color = ColorSequence.new(Color3.fromRGB(86, 70, 140), Color3.fromRGB(52, 40, 86))
+	skipGrad.Rotation = 90
+	skipGrad.Parent = skipButton
+	local skipText = caption:Clone()
+	skipText.Name = "Label"
+	skipText.Visible = true
+	skipText.AnchorPoint = Vector2.new(0.5, 0.5)
+	skipText.Position = UDim2.fromScale(0.5, 0.42)
+	skipText.Size = UDim2.fromScale(0.8, 0.52)
+	skipText.TextColor3 = Color3.new(1, 1, 1)
+	skipText.Text = "SKIP  >>"
+	skipText.ZIndex = 21
+	skipText.Parent = skipButton
+	local skipHint = caption:Clone()
+	skipHint.Name = "Hint"
+	skipHint.Visible = true
+	skipHint.AnchorPoint = Vector2.new(0.5, 0.5)
+	skipHint.Position = UDim2.fromScale(0.5, 0.8)
+	skipHint.Size = UDim2.fromScale(0.8, 0.24)
+	skipHint.TextColor3 = Color3.fromRGB(200, 240, 180)
+	skipHint.Text = if UserInputService.TouchEnabled then "tap to skip" else "SPACE"
+	skipHint.ZIndex = 21
+	skipHint.Parent = skipButton
+	Juice.bindButton(skipButton)
+	waitLabel = subCaption:Clone()
+	waitLabel.Name = "GetReady"
+	waitLabel.Position = UDim2.fromScale(0.5, 0.3)
+	waitLabel.TextColor3 = Config.Colors.Slime
+	waitLabel.Text = "GET READY! Waiting for your team..."
+	waitLabel.Visible = false
+	waitLabel.Parent = gui
 
 	Remotes.get("Notify").OnClientEvent:Connect(function(kind: string, data: any)
 		if kind == "ElevatorRide" and type(data) == "table" then

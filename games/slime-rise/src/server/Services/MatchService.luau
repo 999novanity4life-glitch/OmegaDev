@@ -16,6 +16,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local MapService = require(script.Parent.MapService)
 local PuzzleService = require(script.Parent.PuzzleService)
 local DataService = require(script.Parent.DataService)
+local RemoteGuard = require(script.Parent.RemoteGuard)
 
 type Entry = { status: "climbing" | "escaped" | "slimed", escapedAt: number? }
 type Match = {
@@ -33,6 +34,8 @@ type Match = {
 	holdStart: number?,
 	holdUntil: number?,
 	live: boolean,
+	canSkip: { [Player]: boolean }, -- watched this map's intro before
+	skipped: { [Player]: boolean },
 }
 
 local MatchService = {}
@@ -87,6 +90,20 @@ local function fireMatch(match: Match, kind: string, data: any)
 			notify:FireClient(player, kind, data)
 		end
 	end
+end
+
+-- The intro ends early once every player still here has skipped it.
+local function everyoneSkipped(match: Match): boolean
+	local any = false
+	for player in match.entries do
+		if player.Parent == Players then
+			if not match.skipped[player] then
+				return false
+			end
+			any = true
+		end
+	end
+	return any
 end
 
 local function leaveMatch(player: Player)
@@ -274,6 +291,8 @@ function MatchService.create(party: { Player }, mapId: string?)
 		holdStart = nil,
 		holdUntil = nil,
 		live = true,
+		canSkip = {},
+		skipped = {},
 	}
 	matches[match.id] = match
 	for i, player in members do
@@ -334,14 +353,26 @@ function MatchService.create(party: { Player }, mapId: string?)
 		tierInfo[i] = { title = puzzle.title, label = puzzle.label, focus = { x = rel.X, y = rel.Y, z = rel.Z } }
 	end
 	local intro = IntroPath.build(map.layout, tierInfo, string.upper(def.name))
-	fireMatch(match, "MatchIntro", {
-		origin = map.origin,
-		shots = intro.shots,
-		cuts = intro.cuts,
-		captions = intro.captions,
-		seconds = intro.seconds,
-	})
-	task.wait(intro.seconds)
+	-- Same intro for everyone; it can only be skipped by players who have
+	-- watched this map's intro before. The round starts when the intro ends,
+	-- or as soon as every player has skipped it (the server decides).
+	for player in match.entries do
+		if player.Parent == Players then
+			match.canSkip[player] = DataService.markIntroSeen(player, def.id)
+			notify:FireClient(player, "MatchIntro", {
+				origin = map.origin,
+				shots = intro.shots,
+				cuts = intro.cuts,
+				captions = intro.captions,
+				seconds = intro.seconds,
+				skippable = match.canSkip[player],
+			})
+		end
+	end
+	local introEnds = now() + intro.seconds
+	while now() < introEnds and match.live and not everyoneSkipped(match) do
+		task.wait(0.1)
+	end
 	if not match.live then
 		return
 	end
@@ -378,6 +409,14 @@ end
 
 function MatchService.start()
 	Players.RespawnTime = Config.Match.RespawnSeconds
+	RemoteGuard.connect(Remotes.get("SkipIntro"), function(...)
+		return select("#", ...) == 0
+	end, function(player: Player)
+		local match = byPlayer[player]
+		if match and match.canSkip[player] and match.folder:GetAttribute("State") == "Intro" then
+			match.skipped[player] = true
+		end
+	end)
 	local function onPlayer(player: Player)
 		player.CharacterAdded:Connect(function(character)
 			hookCharacter(player, character)

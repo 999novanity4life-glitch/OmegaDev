@@ -96,6 +96,16 @@ function DataService.addCrowns(player: Player, amount: number): number
 	return total
 end
 
+-- Marks this map's intro as watched; true when it had been watched before
+-- (so this time it may be skipped). Unloaded data never allows a skip.
+function DataService.markIntroSeen(player: Player, mapId: string): boolean
+	local profile = profiles[player]
+	if not profile or not profile:IsActive() then
+		return false
+	end
+	return PlayerData.markIntroSeen(profile.Data, mapId)
+end
+
 -- Returns true when the escape set a new best time.
 function DataService.recordEscape(player: Player, seconds: number, mapId: string?): boolean
 	local profile = profiles[player]
