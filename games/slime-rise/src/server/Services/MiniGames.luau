@@ -148,6 +148,7 @@ local function buildStation(parent: Instance, cf: CFrame, kind: string): (BasePa
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false
+	prompt.Style = Enum.ProximityPromptStyle.Custom -- themed button (PromptController)
 	prompt.Parent = base
 	return base, label
 end
