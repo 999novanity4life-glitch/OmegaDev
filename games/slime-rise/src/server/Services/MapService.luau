@@ -13,6 +13,9 @@ local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
 local LabKit = require(script.Parent.LabKit)
 local CourseBuilder = require(script.Parent.CourseBuilder)
 local ExitBay = require(script.Parent.ExitBay)
+local Room = require(script.Parent.Room)
+local Themes = require(script.Parent.Themes)
+local Footprint = require(Shared:WaitForChild("Footprint"))
 
 local MapService = {}
 
@@ -64,25 +67,19 @@ local function deco(props: { [string]: any }, parent: Instance): Part
 	return part(props, parent)
 end
 
+-- Placement in the current map's room (see Room): angle/radius authored for
+-- the round reference shaft, warped onto this room's shape.
 local function polar(origin: Vector3, angle: number, radius: number, y: number): Vector3
-	local x, z = ShaftLayout.polar(angle, radius)
-	return origin + Vector3.new(x, y, z)
+	return Room.at(origin, angle, radius, y)
 end
 
--- CFrame on the ring at an angle, facing the shaft centre.
+-- CFrame on the ring at an angle, facing into the room.
 local function ringCFrame(origin: Vector3, angle: number, radius: number, y: number): CFrame
-	local pos = polar(origin, angle, radius, y)
-	local centre = Vector3.new(origin.X, pos.Y, origin.Z)
-	return CFrame.lookAt(pos, centre)
+	return Room.ring(origin, angle, radius, y)
 end
 
--- Texture variant -> Blender wall bay that gives it real depth.
-local KIT_BAYS: { [string]: string } = {
-	SR_WallPlain = "WallPlain",
-	SR_WallVent = "WallVent",
-	SR_WallWindow = "WallWindow",
-	SR_WallPipe = "WallPipes",
-}
+-- The theme of the map being built (wall bays, tints, centrepiece).
+local theme: Themes.Theme = Themes.Lab
 
 -- Walls as a grid of individual panels (4 rows per tier), each picked from the
 -- surface-specific variants: kick band at the bottom, weighted specials in the
@@ -94,37 +91,68 @@ local function buildWalls(model: Model, origin: Vector3, height: number, layout:
 	folder.Name = "Walls"
 	folder.Parent = model
 	local rand = Random.new(seed)
-	local segs = cfg.WallSegments
-	local step = 360 / segs
-	local width = 2 * math.pi * (cfg.Radius + 1) / segs + 0.4
 	local rows = 4
 	local rowH = cfg.TierHeight / rows
+	-- One column of panels per wall segment, laid flat along the room's edges.
+	local segments = Room.segments(origin, 9.7, 0)
+	local segs = #segments
+	local angles: { number } = {}
+	for i, seg in segments do
+		local p = seg.cf.Position
+		angles[i] = math.deg(math.atan2(p.Z - origin.Z, p.X - origin.X)) % 360
+	end
+	-- Panel CFrame `out` studs behind the wall line (negative = in front).
+	local function at(i: number, out: number, y: number): CFrame
+		return segments[i].cf * CFrame.new(0, y - origin.Y, out)
+	end
+	local function nearest(angle: number): number
+		local best, bestD = 1, math.huge
+		for i, a in angles do
+			local d = math.abs(((a - angle + 180) % 360) - 180)
+			if d < bestD then
+				best, bestD = i, d
+			end
+		end
+		return best
+	end
+	local function panelKit(kit: string): string?
+		if theme.panelKit == "Plain" then
+			return nil
+		end
+		return theme.panelKit or kit
+	end
+	local panelColor = if theme.panelKit == "Plain" then theme.panelTint else nil
+	local panelMaterial = if theme.panelKit == "Plain" then Enum.Material.SmoothPlastic else nil
 	-- Filler below the floor and above the roof.
-	for i = 0, segs - 1 do
-		local angle = i * step
+	for i, seg in segments do
 		for _, band in { { -20, 0 }, { height, height + 20 } } do
 			local mid = (band[1] + band[2]) / 2
 			part({
 				Name = "Wall",
-				Size = Vector3.new(width, band[2] - band[1], 2),
-				CFrame = ringCFrame(origin, angle, cfg.Radius + 1, mid),
-				Kit = "SR_WallPlain",
+				Size = Vector3.new(seg.width + 0.4, band[2] - band[1], 2),
+				CFrame = at(i, 1, origin.Y + mid),
+				Kit = panelKit("SR_WallPlain"),
+				Tint = theme.panelTint,
+				Color = panelColor,
+				Material = panelMaterial,
 			}, folder)
 		end
 	end
 	local below: { [number]: string } = {}
 	for _, tier in layout.tiers do
 		-- Segment closest to this tier's landing gets the control panel and stencil.
-		local landingSeg = math.floor(((tier.hatchAngle % 360) / step) + 0.5) % segs
+		local landingSeg = nearest(tier.hatchAngle)
 		local left: string? = nil
-		for i = 0, segs - 1 do
-			local angle = i * step
+		for i, seg in segments do
+			local width = seg.width + 0.4
+			local prevSeg = (i - 2) % segs + 1
+			local nextSeg = i % segs + 1
 			for row = 1, rows do
-				local y = tier.floorY + (row - 0.5) * rowH
+				local y = origin.Y + tier.floorY + (row - 0.5) * rowH
 				local kit: string
 				if row == 1 then
 					kit = "SR_WallBase"
-				elseif row == 3 and (i == (landingSeg + 1) % segs or i == (landingSeg - 1) % segs) then
+				elseif row == 3 and (landingSeg == prevSeg or landingSeg == nextSeg) then
 					kit = "SR_WallControl"
 				elseif row == 4 and i == landingSeg then
 					kit = "SR_WallPlain"
@@ -138,31 +166,37 @@ local function buildWalls(model: Model, origin: Vector3, height: number, layout:
 				local panel = part({
 					Name = "Wall",
 					Size = Vector3.new(width, rowH, 2),
-					CFrame = ringCFrame(origin, angle, cfg.Radius + 1, y),
-					Kit = kit,
+					CFrame = at(i, 1, y),
+					Kit = panelKit(kit),
+					Tint = theme.panelTint,
+					Color = panelColor,
+					Material = panelMaterial,
 				}, folder)
 				-- Real 3D wall bay (Blender kit) in front of the panel where one exists.
-				local bay = KIT_BAYS[kit]
+				local bay = theme.wallBays[kit]
 				if bay then
-					local bayCf = ringCFrame(origin, angle, cfg.Radius - 0.05, y - rowH / 2)
-					LabKit.kit(bay, bayCf, folder, { scale = Vector3.new((width - 0.3) / 8, rowH / 10.5, 1) })
+					local scale = Vector3.new((width - 0.3) / 8, rowH / 10.5, 1)
+					if not LabKit.kit(bay, at(i, -0.05, y - rowH / 2), folder, { scale = scale }) then
+						local fallback = Themes.Lab.wallBays[kit]
+						if fallback then
+							Themes.dress(
+								LabKit.kit(fallback, at(i, -0.05, y - rowH / 2), folder, { scale = scale }),
+								theme
+							)
+						end
+					end
 				end
 				if row == 1 then
 					-- Soft contact shadow where wall meets floor.
 					LabKit.decal(panel, "Shadow", Enum.NormalId.Front, nil, 0.15)
-				elseif kit == "SR_WallWindow" and tier.index == 1 then
+				elseif kit == "SR_WallWindow" and tier.index == 1 and theme.id == "Lab" then
 					-- Slime oozing out under the windows on the lowest tier.
-					LabKit.decalPlate(
-						folder,
-						ringCFrame(origin, angle, cfg.Radius - 0.06, y - rowH * 0.45),
-						Vector2.new(width - 2, 3.5),
-						"Drip"
-					)
+					LabKit.decalPlate(folder, at(i, -0.06, y - rowH * 0.45), Vector2.new(width - 2, 3.5), "Drip")
 				end
 				if row == 4 and i == landingSeg then
 					LabKit.decalPlate(
 						folder,
-						ringCFrame(origin, angle, cfg.Radius - 0.06, y),
+						at(i, -0.06, y),
 						Vector2.new(7, 7),
 						"Level" .. tier.index,
 						Config.Colors.Slime
@@ -171,11 +205,10 @@ local function buildWalls(model: Model, origin: Vector3, height: number, layout:
 			end
 			-- Climb arrows on the wall behind each pad, pointing up the route.
 			for _, pad in tier.pads do
-				local d = math.abs(((pad.angle - angle + 180) % 360) - 180)
-				if d < step / 2 then
+				if nearest(pad.angle) == i then
 					LabKit.decalPlate(
 						folder,
-						ringCFrame(origin, angle, cfg.Radius - 0.07, pad.y + 4.5),
+						at(i, -0.07, origin.Y + pad.y + 4.5),
 						Vector2.new(2.6, 2.6),
 						"Arrow",
 						Color3.fromRGB(255, 220, 90)
@@ -185,27 +218,29 @@ local function buildWalls(model: Model, origin: Vector3, height: number, layout:
 			-- Ribs between panels and a trim line under the ceiling.
 			deco({
 				Size = Vector3.new(0.8, cfg.TierHeight, 0.8),
-				CFrame = ringCFrame(origin, angle + step / 2, cfg.Radius - 0.2, tier.floorY + cfg.TierHeight / 2),
+				CFrame = at(i, -0.2, origin.Y + tier.floorY + cfg.TierHeight / 2) * CFrame.new(seg.width / 2, 0, 0),
 				Kit = "SR_Steel",
 			}, folder)
 			deco({
 				Size = Vector3.new(width, 1.6, 0.4),
-				CFrame = ringCFrame(origin, angle, cfg.Radius - 0.1, tier.ceilingY - 3),
+				CFrame = at(i, -0.1, origin.Y + tier.ceilingY - 3),
 				Kit = "SR_Trim",
 			}, folder)
 		end
 		task.wait()
+		Room.use(layout.footprint)
 	end
 	-- Vertical pipes on every fourth panel, glowing ones on every eighth.
-	for i = 0, segs - 1 do
+	for i, seg in segments do
 		if i % 4 == 1 then
-			local angle = i * step
-			local pipe = ringCFrame(origin, angle + step / 2, cfg.Radius - 1.6, height / 2)
+			local pipe = at(i, -1.6, origin.Y + height / 2) * CFrame.new(seg.width / 2, 0, 0)
 			deco({
 				Shape = Enum.PartType.Cylinder,
 				Size = Vector3.new(height, 1.4, 1.4),
 				CFrame = pipe * CFrame.Angles(0, 0, math.rad(90)),
-				Color = if i % 8 == 1 then Config.Colors.SlimeDeep else C.Pipe,
+				Color = if i % 8 == 1
+					then (if theme.id == "Lab" then Config.Colors.SlimeDeep else theme.accent)
+					else theme.pipe,
 				Material = if i % 8 == 1 then Enum.Material.Glass else Enum.Material.Metal,
 				Transparency = if i % 8 == 1 then 0.35 else 0,
 			}, folder)
@@ -213,7 +248,82 @@ local function buildWalls(model: Model, origin: Vector3, height: number, layout:
 	end
 end
 
-local function buildCore(model: Model, origin: Vector3, height: number)
+local function buildCryoCore(model: Model, origin: Vector3, height: number, tiers: number)
+	-- Frost-covered cooling column: stacked Blender segments when the Cryo kit
+	-- is imported, otherwise an icy column with steel rings and cyan bands.
+	local cfg = Config.Shaft
+	local segH = 10.5
+	local kitted = false
+	for k = 0, math.ceil(height / segH) - 1 do
+		local cf = CFrame.new(origin + Vector3.new(0, k * segH, 0)) * CFrame.Angles(0, math.rad(k * 37), 0)
+		kitted = LabKit.kit("CryoColumn", cf, model, { collide = true, scale = Vector3.new(1, 1, 1) }) ~= nil or kitted
+	end
+	if not kitted then
+		local column = part({
+			Name = "SlimeTank",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(height, cfg.CoreRadius * 2, cfg.CoreRadius * 2),
+			CFrame = CFrame.new(origin + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = Color3.fromRGB(205, 228, 240),
+			Material = Enum.Material.Glacier,
+		}, model)
+		column.CanCollide = true
+	else
+		deco({
+			Name = "SlimeTank",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(height, 1, 1),
+			CFrame = CFrame.new(origin + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Transparency = 1,
+		}, model)
+	end
+	for t = 0, tiers do
+		local y = t * cfg.TierHeight
+		deco({
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(1.6, cfg.CoreRadius * 2 + 1.6, cfg.CoreRadius * 2 + 1.6),
+			CFrame = CFrame.new(origin + Vector3.new(0, y + 3, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Kit = "SR_Steel",
+			Tint = theme.pipe,
+		}, model)
+		for _, dy in { 14, 28 } do
+			local band = deco({
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.5, cfg.CoreRadius * 2 + 0.3, cfg.CoreRadius * 2 + 0.3),
+				CFrame = CFrame.new(origin + Vector3.new(0, y + dy, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = theme.accent,
+				Material = Enum.Material.Neon,
+			}, model)
+			LabKit.soften(band)
+		end
+	end
+	local mist = deco({
+		Size = Vector3.new(cfg.CoreRadius * 2, 1, cfg.CoreRadius * 2),
+		Position = origin + Vector3.new(0, 1, 0),
+		Transparency = 1,
+	}, model)
+	local fog = Instance.new("ParticleEmitter")
+	fog.Color = ColorSequence.new(Color3.fromRGB(220, 240, 255))
+	fog.Size = NumberSequence.new(2, 5)
+	fog.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.3, 0.8),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	fog.Lifetime = NumberRange.new(4, 6)
+	fog.Speed = NumberRange.new(1, 2)
+	fog.SpreadAngle = Vector2.new(80, 80)
+	fog.Rate = 6
+	ParticleArt.style(fog, "Mote")
+	fog.LightEmission = 0.1
+	fog.Parent = mist
+end
+
+local function buildCore(model: Model, origin: Vector3, height: number, tiers: number)
+	if theme.core == "Cryo" then
+		buildCryoCore(model, origin, height, tiers)
+		return
+	end
 	local cfg = Config.Shaft
 	local core = deco({
 		Name = "SlimeTank",
@@ -244,7 +354,7 @@ local function buildCore(model: Model, origin: Vector3, height: number)
 	ParticleArt.style(bubbles, "Bubble")
 	bubbles.Parent = inner
 	-- Steel rings around the tank at every floor.
-	for t = 0, Config.Shaft.Tiers do
+	for t = 0, tiers do
 		deco({
 			Shape = Enum.PartType.Cylinder,
 			Size = Vector3.new(1.4, cfg.CoreRadius * 2 + 1.4, cfg.CoreRadius * 2 + 1.4),
@@ -256,7 +366,8 @@ end
 
 -- Floor drains: real trenches ~1.6 deep running along Z, slime flowing in
 -- them (scrolling texture, soft glow) under a see-through walkable grate.
-local TRENCH_X = { -24, -8, 8, 24 }
+local TRENCH_SPACING = 16
+local trenchX: { number } = { -24, -8, 8, 24 } -- set per map from the room's width
 local TRENCH_W = 3
 local TRENCH_DEPTH = 1.6
 local SLIME_FLOW = "rbxassetid://100553516752013"
@@ -302,21 +413,30 @@ local function trench(parent: Instance, origin: Vector3, top: number, x0: number
 		Name = "DrainSlime",
 		Size = Vector3.new(w - 0.4, 0.5, len),
 		Position = at(top - 1.05),
-		Color = Config.Colors.Slime,
+		Color = theme.coolant,
 		Material = Enum.Material.SmoothPlastic,
 		Transparency = 0.05,
 	}, parent)
 	flowLayer(slime, w, 6, 2.5, 0)
 	flowLayer(slime, w * 0.7, 9, 4.2, 0.55)
+	if theme.id ~= "Lab" then
+		-- Same flow art as a pale swirl over this room's coolant colour.
+		for _, flow in slime:GetChildren() do
+			if flow:IsA("Texture") then
+				flow.Color3 = Color3.fromRGB(225, 250, 255)
+				flow.Transparency = math.max(flow.Transparency, 0.5)
+			end
+		end
+	end
 	local glow = Instance.new("SurfaceLight")
 	glow.Face = Enum.NormalId.Top
-	glow.Color = Config.Colors.Slime
+	glow.Color = theme.coolant
 	glow.Range = 7
 	glow.Brightness = 1.3
 	glow.Parent = slime
 	local bubbles = Instance.new("ParticleEmitter")
 	bubbles.Name = "DrainBubbles"
-	bubbles.Color = ColorSequence.new(Config.Colors.Slime)
+	bubbles.Color = ColorSequence.new(theme.coolant)
 	bubbles.LightEmission = 0.4
 	bubbles.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 0.45) })
 	bubbles.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
@@ -380,7 +500,7 @@ local function deckSlab(
 		return
 	end
 	local cuts = { x0 }
-	for _, tx in TRENCH_X do
+	for _, tx in trenchX do
 		local a, b = tx - TRENCH_W / 2, tx + TRENCH_W / 2
 		if b > x0 and a < x1 then
 			table.insert(cuts, math.max(a, x0))
@@ -401,6 +521,7 @@ local function deckSlab(
 					Position = origin + Vector3.new((a + b) / 2, top - t / 2, (z0 + z1) / 2),
 					Color = C.Floor,
 					Kit = "SR_Grate",
+					Tint = theme.floorTint,
 				}, parent)
 			end
 		end
@@ -410,7 +531,7 @@ end
 -- Square slab with a square hole (the hatch) at a point, plus two sliding doors.
 local function buildBulkhead(parent: Instance, origin: Vector3, y: number, hole: Vector3): ({ BasePart }, { CFrame })
 	local cfg = Config.Shaft
-	local half = cfg.Radius + 2
+	local bx0, bx1, bz0, bz1 = Room.bounds(2)
 	local h = cfg.HatchSize / 2
 	local t = cfg.BulkheadThickness
 	local cy = y - t / 2
@@ -418,10 +539,10 @@ local function buildBulkhead(parent: Instance, origin: Vector3, y: number, hole:
 	local function slab(x0: number, x1: number, z0: number, z1: number)
 		deckSlab(parent, origin, cy + t / 2, t, x0, x1, z0, z1)
 	end
-	slab(-half, hx - h, -half, half)
-	slab(hx + h, half, -half, half)
-	slab(hx - h, hx + h, -half, hz - h)
-	slab(hx - h, hx + h, hz + h, half)
+	slab(bx0, hx - h, bz0, bz1)
+	slab(hx + h, bx1, bz0, bz1)
+	slab(hx - h, hx + h, bz0, hz - h)
+	slab(hx - h, hx + h, hz + h, bz1)
 	-- Hazard frame around the hatch.
 	for _, side in
 		{
@@ -489,6 +610,85 @@ end
 
 -- Dense set dressing for one tier: lights, vents, pipes, racks, crates,
 -- console, gauges, cables, signs and a railing on the landing.
+-- Cryo floors: ice crystal clusters along the walls and standing cryo pods
+-- (Blender pieces when imported, crafted from parts otherwise).
+local function frostProps(folder: Instance, origin: Vector3, info: ShaftLayout.Tier)
+	local rand = Random.new(info.index * 131 + 7)
+	for k = 1, 7 do
+		local angle = info.hatchAngle + 200 + k * 21 + rand:NextNumber(-5, 5)
+		local cf = ringCFrame(origin, angle, Config.Shaft.Radius - 2.2, info.floorY)
+			* CFrame.Angles(0, math.rad(rand:NextNumber(0, 360)), 0)
+		if not LabKit.kit("IceCluster", cf, folder) then
+			for c = 1, 4 do
+				local h = rand:NextNumber(1.6, 3.6)
+				local shard = deco({
+					Size = Vector3.new(0.9, h, 0.9),
+					CFrame = cf
+						* CFrame.new(rand:NextNumber(-0.9, 0.9), h / 2 - 0.2, rand:NextNumber(-0.9, 0.9))
+						* CFrame.Angles(
+							math.rad(rand:NextNumber(-18, 18)),
+							math.rad(c * 45),
+							math.rad(rand:NextNumber(-18, 18))
+						),
+					Color = Color3.fromRGB(176, 230, 255),
+					Material = Enum.Material.Ice,
+					Transparency = 0.15,
+				}, folder)
+				shard.CastShadow = true
+			end
+			deco({
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(3.2, 1, 3.2),
+				CFrame = cf * CFrame.new(0, 0.1, 0),
+				Color = Color3.fromRGB(236, 246, 255),
+				Material = Enum.Material.Snow,
+			}, folder)
+		end
+	end
+	for k = 1, 2 do
+		local angle = info.hatchAngle - 40 - k * 26
+		local cf = ringCFrame(origin, angle, Config.Shaft.Radius - 3, info.floorY)
+		if not LabKit.kit("CryoPod", cf, folder, { collide = true }) then
+			part({
+				Size = Vector3.new(4, 1, 4),
+				CFrame = cf * CFrame.new(0, 0.5, 0),
+				Kit = "SR_Steel",
+				Tint = theme.pipe,
+			}, folder)
+			deco({
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(7, 3.2, 3.2),
+				CFrame = cf * CFrame.new(0, 4.5, 0) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = Color3.fromRGB(180, 236, 255),
+				Material = Enum.Material.Glass,
+				Transparency = 0.45,
+			}, folder)
+			local blob = deco({
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(2, 2.4, 2),
+				CFrame = cf * CFrame.new(0, 3.6, 0),
+				Color = Config.Colors.SlimeDeep,
+				Material = Enum.Material.SmoothPlastic,
+			}, folder)
+			blob.Transparency = 0.1
+			part({
+				Size = Vector3.new(4, 1, 4),
+				CFrame = cf * CFrame.new(0, 8.5, 0),
+				Kit = "SR_Steel",
+				Tint = theme.pipe,
+			}, folder)
+			local band = deco({
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.3, 3.4, 3.4),
+				CFrame = cf * CFrame.new(0, 7.8, 0) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = theme.accent,
+				Material = Enum.Material.Neon,
+			}, folder)
+			LabKit.soften(band)
+		end
+	end
+end
+
 local function dressTier(folder: Instance, origin: Vector3, info: ShaftLayout.Tier, landing: BasePart)
 	local cfg = Config.Shaft
 	local floorY = info.floorY
@@ -502,11 +702,28 @@ local function dressTier(folder: Instance, origin: Vector3, info: ShaftLayout.Ti
 	end
 	-- Ceiling light panels under the bulkhead: even fill light for the whole
 	-- tier (wall fixtures alone leave the middle of upper tiers dark).
-	for k = 0, 3 do
-		local angle = h + 45 + k * 90
-		local x, z = ShaftLayout.polar(angle, 17)
-		local pos = origin + Vector3.new(x, info.ceilingY - cfg.BulkheadThickness - 0.4, z)
-		local cf = CFrame.lookAt(pos, Vector3.new(origin.X, pos.Y, origin.Z))
+	-- Round shaft: four panels in a ring. Bigger rooms: a grid sized to the room.
+	local lampCfs: { CFrame } = {}
+	local lampY = info.ceilingY - cfg.BulkheadThickness - 0.4
+	if info.footprint.shape == "circle" then
+		for k = 0, 3 do
+			local x, z = ShaftLayout.polar(h + 45 + k * 90, 17)
+			local pos = origin + Vector3.new(x, lampY, z)
+			table.insert(lampCfs, CFrame.lookAt(pos, Vector3.new(origin.X, pos.Y, origin.Z)))
+		end
+	else
+		local x0, x1, z0, z1 = Room.bounds(-8)
+		for gx = x0, x1, 20 do
+			for gz = z0, z1, 18 do
+				if Footprint.contains(info.footprint, gx, gz, 6) and (gx * gx + gz * gz) > 100 then
+					table.insert(lampCfs, CFrame.new(origin + Vector3.new(gx, lampY, gz)))
+				end
+			end
+		end
+	end
+	-- Many lamps in a big room: each one is softer.
+	local lampScale = if #lampCfs > 4 then 0.4 else 1
+	for _, cf in lampCfs do
 		LabKit.deco(
 			{ Size = Vector3.new(4.4, 0.5, 11), CFrame = cf, Kit = "SR_Steel", Tint = Color3.fromRGB(70, 74, 92) },
 			folder
@@ -521,8 +738,11 @@ local function dressTier(folder: Instance, origin: Vector3, info: ShaftLayout.Ti
 		fill.Face = Enum.NormalId.Bottom
 		fill.Range = 44
 		fill.Angle = 120
-		fill.Brightness = 1.4
+		fill.Brightness = 1.4 * lampScale
 		fill.Color = Color3.fromRGB(225, 238, 255)
+		if lampScale < 1 then
+			LabKit.soften(panel)
+		end
 		fill.Parent = panel
 	end
 	-- Vents low on the wall.
@@ -646,18 +866,34 @@ local function alarmLight(parent: Instance, cf: CFrame)
 	local _ = housing
 end
 
-function MapService.buildShaft(origin: Vector3, seed: number): Map
+-- Makes the map being built current for every builder (call again after a yield).
+local function useMap(layout: ShaftLayout.Layout)
+	Room.use(layout.footprint)
+	theme = Themes.get(layout.map.theme)
+	local x0, x1 = Room.bounds(0)
+	local count = math.max(1, math.floor((x1 - x0) / TRENCH_SPACING))
+	trenchX = {}
+	for k = 1, count do
+		table.insert(trenchX, (k - (count + 1) / 2) * TRENCH_SPACING)
+	end
+end
+
+function MapService.buildShaft(origin: Vector3, seed: number, mapId: string?): Map
 	local cfg = Config.Shaft
-	local layout = ShaftLayout.build(seed)
+	local layout = ShaftLayout.build(seed, mapId)
+	useMap(layout)
 	local model = Instance.new("Model")
 	model.Name = "Shaft"
+	model:SetAttribute("Map", layout.map.id)
+	model:SetAttribute("Theme", layout.map.theme)
 	local height = layout.topY
 	buildWalls(model, origin, height, layout, seed)
-	buildCore(model, origin, height)
+	useMap(layout)
+	buildCore(model, origin, height, #layout.tiers)
 
 	-- Bottom floor (tier 1).
-	local floorHalf = cfg.Radius + 2
-	deckSlab(model, origin, 0, 2, -floorHalf, floorHalf, -floorHalf, floorHalf)
+	local bx0, bx1, bz0, bz1 = Room.bounds(2)
+	deckSlab(model, origin, 0, 2, bx0, bx1, bz0, bz1)
 	-- Leak: cracked pipe at the bottom with slime pouring out.
 	local leak = deco({
 		Name = "Leak",
@@ -685,12 +921,16 @@ function MapService.buildShaft(origin: Vector3, seed: number): Map
 		folder.Name = "Tier" .. info.index
 		folder.Parent = model
 		-- The climb: a lab-equipment parkour route (CourseLayout + CourseBuilder).
-		local pads = CourseBuilder.build(folder, origin, info)
+		local pads = CourseBuilder.build(folder, origin, info, layout.map.theme)
 		local landing = padPart(folder, origin, info.landing, Vector3.new(14, 1.4, 10), C.Floor)
 		landing.Name = "Landing"
 		alarmLight(folder, ringCFrame(origin, info.hatchAngle, cfg.Radius - 1, info.floorY + cfg.LandingHeight + 6))
 		dressTier(folder, origin, info, landing)
+		if theme.id == "Cryo" then
+			frostProps(folder, origin, info)
+		end
 		task.wait()
+		useMap(layout)
 		local hole = polar(origin, info.hatchAngle, info.hatchRadius, 0)
 		local doors, doorOpen = buildBulkhead(folder, origin, info.ceilingY, hole)
 		-- Bridge pads wait inside the wall until the puzzle is solved.

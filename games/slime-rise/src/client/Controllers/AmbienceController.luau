@@ -161,8 +161,35 @@ function AmbienceController.start()
 	local elevatorHum: Sound? = nil
 
 	local last = ""
+	-- Each map's room gets its own colour grade on top of the lab look
+	-- (local only; the cryo vault reads cold and blue).
+	local grade = Instance.new("ColorCorrectionEffect")
+	grade.Name = "ThemeGrade"
+	grade.Parent = game:GetService("Lighting")
+	local GRADES: { [string]: { tint: Color3, saturation: number, contrast: number, softBloom: boolean } } = {
+		Lab = { tint = Color3.new(1, 1, 1), saturation = 0, contrast = 0, softBloom = false },
+		-- White rooms trip the place's strong default Bloom, so it is turned off.
+		Cryo = { tint = Color3.fromRGB(214, 234, 255), saturation = -0.08, contrast = 0.06, softBloom = true },
+	}
+	local defaultBloom = game:GetService("Lighting"):FindFirstChild("Bloom")
+	local lastTheme = ""
 	task.spawn(function()
 		while true do
+			local folder = MatchState.folder()
+			local themeAttr = folder and folder:GetAttribute("Theme")
+			local themeId = if type(themeAttr) == "string" and GRADES[themeAttr] then themeAttr else "Lab"
+			if themeId ~= lastTheme then
+				lastTheme = themeId
+				local g = GRADES[themeId]
+				TweenService:Create(grade, TweenInfo.new(1.5), {
+					TintColor = g.tint,
+					Saturation = g.saturation,
+					Contrast = g.contrast,
+				}):Play()
+				if defaultBloom and defaultBloom:IsA("BloomEffect") then
+					defaultBloom.Enabled = not g.softBloom
+				end
+			end
 			local context = if player:GetAttribute("Cutscene") == true
 				then "cutscene"
 				elseif MatchState.folder() then "match"

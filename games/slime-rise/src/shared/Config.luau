@@ -69,6 +69,12 @@ Config.Shaft = {
 	CoreRadius = 5, -- glass slime tank in the middle
 }
 
+-- Course gear behaviour.
+Config.Course = {
+	FrostWarnSeconds = 0.7, -- a frost panel holds this long after you land
+	FrostGoneSeconds = 2.4, -- then it is gone this long before refreezing
+}
+
 -- Map intro camera (IntroPath): per tier a wide shot then a push-in on the
 -- puzzle, with a quick dip to black between floors.
 Config.Intro = {
@@ -78,6 +84,7 @@ Config.Intro = {
 	ExitSeconds = 3.2,
 	DipOut = 0.25, -- fade to black before a floor change
 	DipIn = 0.3, -- fade back in on the next floor
+	MaxSeconds = 32, -- bigger maps shorten each floor's shots to stay near this
 	WideRadius = 26, -- wide camera distance from the shaft centre
 	WideOffset = 130, -- degrees around from the route (keeps the core out of the middle)
 	WideRise = 9, -- wide camera height above the middle of the route

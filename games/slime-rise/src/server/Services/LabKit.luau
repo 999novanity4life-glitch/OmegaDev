@@ -219,6 +219,16 @@ function LabKit.deco(props: { [string]: any }, parent: Instance): Part
 	return LabKit.part(props, parent)
 end
 
+-- Cryo kit pieces wear a cold palette for the shared groups.
+local COLD_PIECES: { [string]: boolean } = { IceCluster = true, FrostPanel = true, IceLedge = true }
+local CRYO_LOOK: { [string]: Color3 } = {
+	Frame = Color3.fromRGB(150, 182, 212),
+	Inset = Color3.fromRGB(206, 222, 236),
+	Dark = Color3.fromRGB(44, 60, 82),
+	Glow = Color3.fromRGB(110, 220, 255),
+	Glass = Color3.fromRGB(190, 238, 255),
+}
+
 -- How each Blender material group looks in game (the geometry carries the detail).
 local KIT_LOOK: { [string]: (MeshPart) -> () } = {
 	Frame = function(m)
@@ -259,6 +269,16 @@ local KIT_LOOK: { [string]: (MeshPart) -> () } = {
 		m.Color = Config.Colors.SlimeDeep
 		LabKit.soften(m)
 		m.Transparency = 0.25
+	end,
+	-- Cryo kit: frost build-up and clear ice.
+	Frost = function(m)
+		m.Material = Enum.Material.SmoothPlastic
+		m.Color = Color3.fromRGB(236, 246, 255)
+	end,
+	Ice = function(m)
+		m.Material = Enum.Material.Glass
+		m.Color = Color3.fromRGB(176, 230, 255)
+		m.Transparency = 0.3
 	end,
 }
 
@@ -316,6 +336,13 @@ function LabKit.kit(piece: string, cf: CFrame, parent: Instance, opts: KitOption
 		local look = KIT_LOOK[group]
 		if look then
 			look(m)
+		end
+		local cold = if COLD_PIECES[piece] or string.sub(piece, 1, 4) == "Cryo" then CRYO_LOOK[group] else nil
+		if cold then
+			m.Color = cold
+			if group == "Glow" then
+				LabKit.soften(m)
+			end
 		end
 		local collide = collideAll and group ~= "Glow"
 		m.CanCollide = collide

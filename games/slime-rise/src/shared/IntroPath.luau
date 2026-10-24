@@ -10,6 +10,7 @@
 
 local Config = require(script.Parent.Config)
 local ShaftLayout = require(script.Parent.ShaftLayout)
+local Footprint = require(script.Parent.Footprint)
 
 local IntroPath = {}
 
@@ -17,13 +18,9 @@ export type Point = { number } -- { x, y, z }
 export type Key = { t: number, pos: Point, look: Point }
 export type Shot = { t: number, tier: number, keys: { Key } } -- tier 0 = roof
 export type Caption = { t: number, main: string, sub: string }
-export type TierInfo = { title: string, label: string, focus: ShaftLayout.Pad }
+-- focus: the puzzle's real position relative to the map origin.
+export type TierInfo = { title: string, label: string, focus: { x: number, y: number, z: number } }
 export type Path = { shots: { Shot }, cuts: { number }, captions: { Caption }, seconds: number }
-
-local function at(angle: number, radius: number, y: number): Point
-	local x, z = ShaftLayout.polar(angle, radius)
-	return { x, y, z }
-end
 
 -- Signed shortest turn from angle a to angle b, in (-180, 180].
 local function turn(a: number, b: number): number
@@ -40,6 +37,22 @@ function IntroPath.build(layout: ShaftLayout.Layout, tiers: { TierInfo }, title:
 	local shots: { Shot } = {}
 	local captions: { Caption } = {}
 	local clock = 0
+	local fp = layout.footprint
+	-- Bigger maps have more floors: shorten each floor's shots a little so the
+	-- whole intro stays near the cap (never below 75% of a shot's length).
+	local perTier = cfg.WideSeconds + cfg.PuzzleSeconds
+	local budget = cfg.MaxSeconds - cfg.ExitSeconds - (cfg.FirstWideSeconds - cfg.WideSeconds)
+	local pace = math.clamp(budget / (perTier * #layout.tiers), 0.75, 1)
+	-- Authored (reference shaft) angle/radius, warped onto this map's room.
+	local function at(angle: number, radius: number, y: number): Point
+		local x, z = Footprint.polar(fp, angle, radius)
+		return { x, y, z }
+	end
+	-- A real angle/radius from the centre, kept a few studs inside the walls.
+	local function real(angle: number, radius: number, y: number): Point
+		local r = math.min(radius, Footprint.wall(fp, angle) - 4)
+		return { math.cos(math.rad(angle)) * r, y, math.sin(math.rad(angle)) * r }
+	end
 	local function shot(tier: number, seconds: number, keys: { { pos: Point, look: Point } })
 		local list: { Key } = {}
 		for i, k in keys do
@@ -53,8 +66,13 @@ function IntroPath.build(layout: ShaftLayout.Layout, tiers: { TierInfo }, title:
 	end
 
 	for i, tier in layout.tiers do
-		local info = tiers[i] or { title = `TIER {i}`, label = "", focus = tier.landing }
-		local focus = info.focus
+		local lx, lz = Footprint.polar(fp, tier.landing.angle, tier.landing.radius)
+		local info = tiers[i] or { title = `TIER {i}`, label = "", focus = { x = lx, y = tier.landing.y, z = lz } }
+		local focus = {
+			angle = math.deg(math.atan2(info.focus.z, info.focus.x)),
+			radius = math.sqrt(info.focus.x ^ 2 + info.focus.z ^ 2),
+			y = info.focus.y,
+		}
 		local f, c = tier.floorY, tier.ceilingY
 		local low = f + cfg.FloorClearance
 		local high = c - Config.Shaft.BulkheadThickness - cfg.CeilingClearance
@@ -74,7 +92,7 @@ function IntroPath.build(layout: ShaftLayout.Layout, tiers: { TierInfo }, title:
 		else
 			caption(0.3, `TIER {i}`, "Climb the lab gear to the hatch")
 		end
-		shot(i, if i == 1 then cfg.FirstWideSeconds else cfg.WideSeconds, {
+		shot(i, (if i == 1 then cfg.FirstWideSeconds else cfg.WideSeconds) * pace, {
 			{ pos = at(camAngle - away * 6, cfg.WideRadius, y(camY)), look = subject },
 			{
 				pos = at(camAngle + away * 6, cfg.WideRadius, y(camY - 1.5)),
@@ -83,17 +101,18 @@ function IntroPath.build(layout: ShaftLayout.Layout, tiers: { TierInfo }, title:
 		})
 		-- Push-in: glide toward the puzzle and settle on it. Wall puzzles are
 		-- approached from the middle of the shaft, floor puzzles from outside.
-		local inward = focus.radius >= 22
+		-- Near a wall: approach from the room side. Out on the floor: from outside.
+		local inward = Footprint.wall(fp, focus.angle) - focus.radius < 10
 		local r0 = if inward then focus.radius - 15 else focus.radius + 12
 		local r1 = if inward then focus.radius - 7.5 else focus.radius + 7
-		local target = at(focus.angle, focus.radius, focus.y)
+		local target = { info.focus.x, focus.y, info.focus.z }
 		caption(0.35, info.title, `Tier {i}: {info.label}`)
-		shot(i, cfg.PuzzleSeconds, {
+		shot(i, cfg.PuzzleSeconds * pace, {
 			{
-				pos = at(focus.angle + away * 12, r0, y(focus.y + (if inward then 8 else 10))),
+				pos = real(focus.angle + away * 12, r0, y(focus.y + (if inward then 8 else 10))),
 				look = { target[1], target[2] + 1, target[3] },
 			},
-			{ pos = at(focus.angle + away * 5, r1, y(focus.y + (if inward then 3 else 5.5))), look = target },
+			{ pos = real(focus.angle + away * 5, r1, y(focus.y + (if inward then 3 else 5.5))), look = target },
 		})
 	end
 

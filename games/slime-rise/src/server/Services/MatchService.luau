@@ -132,7 +132,7 @@ local function onEscape(match: Match, player: Player, entry: Entry)
 	entry.escapedAt = seconds
 	local earned = Crowns.forEscape(seconds, match.escaped)
 	DataService.addCrowns(player, earned)
-	local best = DataService.recordEscape(player, seconds)
+	local best = DataService.recordEscape(player, seconds, match.folder:GetAttribute("Map") :: string?)
 	notify:FireClient(player, "Escaped", { crowns = earned, place = match.escaped, seconds = seconds, best = best })
 	task.delay(1.5, function()
 		if byPlayer[player] == match then
@@ -212,7 +212,7 @@ local function freeSlot(): number
 end
 
 -- Starts a match for a party. Yields through the intro; call in task.spawn.
-function MatchService.create(party: { Player })
+function MatchService.create(party: { Player }, mapId: string?)
 	local members = {}
 	for _, player in party do
 		if player.Parent == Players and not byPlayer[player] then
@@ -226,7 +226,8 @@ function MatchService.create(party: { Player })
 	local slot = freeSlot()
 	local origin = Config.Match.FirstOrigin + Vector3.new((slot - 1) * Config.Match.Spacing, 0, 0)
 	local seed = os.time() + nextId * 7919
-	local map = MapService.buildShaft(origin, seed)
+	local map = MapService.buildShaft(origin, seed, mapId)
+	local def = map.layout.map
 	local folder = Instance.new("Folder")
 	folder.Name = "Match_" .. nextId
 	folder:SetAttribute("OriginX", origin.X)
@@ -238,6 +239,11 @@ function MatchService.create(party: { Player })
 	folder:SetAttribute("SlimeTopY", map.exitY + Config.Slime.TopMargin)
 	folder:SetAttribute("State", "Intro")
 	folder:SetAttribute("Sector", slot + 6)
+	folder:SetAttribute("Map", def.id)
+	folder:SetAttribute("MapName", def.name)
+	folder:SetAttribute("Theme", def.theme)
+	folder:SetAttribute("Difficulty", def.difficulty)
+	folder:SetAttribute("Tiers", #map.layout.tiers)
 	folder.Parent = matchesFolder
 
 	local match: Match = {
@@ -298,17 +304,9 @@ function MatchService.create(party: { Player })
 	local tierInfo: { IntroPath.TierInfo } = {}
 	for i, puzzle in match.puzzles do
 		local rel = puzzle.focus - origin
-		tierInfo[i] = {
-			title = puzzle.title,
-			label = puzzle.label,
-			focus = {
-				angle = math.deg(math.atan2(rel.Z, rel.X)),
-				radius = math.sqrt(rel.X * rel.X + rel.Z * rel.Z),
-				y = rel.Y,
-			},
-		}
+		tierInfo[i] = { title = puzzle.title, label = puzzle.label, focus = { x = rel.X, y = rel.Y, z = rel.Z } }
 	end
-	local intro = IntroPath.build(map.layout, tierInfo, string.format("SECTOR %d: SLIME LEAK", slot + 6))
+	local intro = IntroPath.build(map.layout, tierInfo, string.upper(def.name))
 	fireMatch(match, "MatchIntro", {
 		origin = map.origin,
 		shots = intro.shots,
@@ -321,7 +319,7 @@ function MatchService.create(party: { Player })
 		return
 	end
 	match.slimeStart = now() + Config.Match.HeadStartSeconds
-	match.endsAt = now() + Config.Match.Seconds
+	match.endsAt = now() + def.matchSeconds
 	folder:SetAttribute("SlimeStart", match.slimeStart)
 	folder:SetAttribute("SlimeDuration", match.endsAt - match.slimeStart)
 	folder:SetAttribute("EndsAt", match.endsAt)

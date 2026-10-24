@@ -8,13 +8,14 @@ export type Data = {
 	Version: number,
 	Crowns: number,
 	Escapes: number,
-	BestTime: number, -- seconds, 0 = never escaped
+	BestTime: number, -- seconds, 0 = never escaped (any map)
+	BestTimes: { [string]: number }, -- per map id
 }
 
 PlayerData.VERSION = 1
 
 function PlayerData.template(): Data
-	return { Version = PlayerData.VERSION, Crowns = 0, Escapes = 0, BestTime = 0 }
+	return { Version = PlayerData.VERSION, Crowns = 0, Escapes = 0, BestTime = 0, BestTimes = {} }
 end
 
 local function cleanCount(value: any): number
@@ -38,6 +39,18 @@ function PlayerData.sanitize(data: Data): Data
 	data.Crowns = cleanCount(data.Crowns)
 	data.Escapes = cleanCount(data.Escapes)
 	data.BestTime = cleanTime(data.BestTime)
+	local times: { [string]: number } = {}
+	if type(data.BestTimes) == "table" then
+		for id, t in data.BestTimes :: any do
+			if type(id) == "string" and #id <= 20 then
+				local clean = cleanTime(t)
+				if clean > 0 then
+					times[id] = clean
+				end
+			end
+		end
+	end
+	data.BestTimes = times
 	return data
 end
 
@@ -46,12 +59,20 @@ function PlayerData.addCrowns(data: Data, amount: number): number
 	return data.Crowns
 end
 
--- Records an escape; returns true when it is a new best time.
-function PlayerData.recordEscape(data: Data, seconds: number): boolean
+-- Records an escape; returns true when it is a new best time on that map.
+function PlayerData.recordEscape(data: Data, seconds: number, mapId: string?): boolean
 	data.Escapes = cleanCount(data.Escapes + 1)
 	local t = cleanTime(seconds)
-	if t > 0 and (data.BestTime == 0 or t < data.BestTime) then
+	if t <= 0 then
+		return false
+	end
+	if data.BestTime == 0 or t < data.BestTime then
 		data.BestTime = t
+	end
+	local id = mapId or "Shaft"
+	local prev = data.BestTimes[id]
+	if prev == nil or t < prev then
+		data.BestTimes[id] = t
 		return true
 	end
 	return false

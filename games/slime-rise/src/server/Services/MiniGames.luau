@@ -12,8 +12,8 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Validate = require(Shared:WaitForChild("Validate"))
 local PuzzleGen = require(Shared:WaitForChild("PuzzleGen"))
-local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
 local RemoteGuard = require(script.Parent.RemoteGuard)
+local Room = require(script.Parent.Room)
 local LabKit = require(script.Parent.LabKit)
 
 local MiniGames = {}
@@ -165,9 +165,8 @@ function MiniGames.create(kind: string, tier: any, ctx: Context): any
 		nextId += 1
 		-- Consoles stand in the free arc between the landing and the route start.
 		local angle = info.hatchAngle + 38 + (i - 1) * 34
-		local x, z = ShaftLayout.polar(angle, Config.Shaft.Radius - 4)
-		local pos = ctx.origin + Vector3.new(x, info.floorY, z)
-		local cf = CFrame.lookAt(pos, Vector3.new(ctx.origin.X, pos.Y, ctx.origin.Z))
+		Room.use(info.footprint)
+		local cf = Room.ring(ctx.origin, angle, Config.Shaft.Radius - 4, info.floorY)
 		local part, screen = buildStation(folder, cf, kind)
 		local station: Station = {
 			id = "MG" .. nextId,

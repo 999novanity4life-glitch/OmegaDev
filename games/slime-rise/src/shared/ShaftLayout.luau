@@ -5,6 +5,8 @@
 
 local Config = require(script.Parent.Config)
 local CourseLayout = require(script.Parent.CourseLayout)
+local Footprint = require(script.Parent.Footprint)
+local MapDefs = require(script.Parent.MapDefs)
 
 local ShaftLayout = {}
 
@@ -20,8 +22,11 @@ export type Tier = {
 	landing: Pad,
 	bridge: { Pad }, -- landing up through the hatch (only after the solve)
 	puzzle: string,
+	footprint: Footprint.Footprint, -- this map's room shape (same for every tier)
 }
 export type Layout = {
+	map: MapDefs.MapDef,
+	footprint: Footprint.Footprint,
 	tiers: { Tier },
 	exitY: number,
 	exitAngle: number,
@@ -51,21 +56,30 @@ local function shuffled(list: { string }, rand: () -> number): { string }
 	return out
 end
 
-function ShaftLayout.build(seed: number): Layout
+function ShaftLayout.build(seed: number, mapId: string?): Layout
 	local cfg = Config.Shaft
+	local map = MapDefs.get(mapId)
+	local fp = Footprint.new(map.footprint)
 	local rand = lcg(seed)
-	-- Every run gets the three mini-games plus one physical puzzle, shuffled.
+	-- Every run gets the three mini-games plus physical puzzles to fill the
+	-- floors (no repeats until every puzzle has been used), shuffled.
 	local order = Config.Puzzles.Order
 	local pool = { order[1], order[2], order[3] }
-	if #order > 3 then
-		table.insert(pool, order[4 + math.floor(rand() * (#order - 3))])
+	local physical = {}
+	for i = 4, #order do
+		table.insert(physical, order[i])
+	end
+	physical = shuffled(physical, rand)
+	for i = 1, math.max(1, map.tiers - 3) do
+		table.insert(pool, physical[(i - 1) % math.max(1, #physical) + 1])
 	end
 	local puzzles = shuffled(pool, rand)
 	local tiers: { Tier } = {}
 	local hatchAngle = rand() * 360
-	for index = 1, cfg.Tiers do
+	for index = 1, map.tiers do
 		local floorY = (index - 1) * cfg.TierHeight
-		local course = CourseLayout.build(index, hatchAngle, rand)
+		local course =
+			CourseLayout.build(index, hatchAngle, rand, { footprint = fp, gaps = map.gaps, theme = map.theme })
 		local pads: { Pad } = {}
 		for _, e in course do
 			table.insert(pads, { angle = e.angle % 360, radius = e.radius, y = floorY + e.y })
@@ -91,13 +105,16 @@ function ShaftLayout.build(seed: number): Layout
 			landing = landing,
 			bridge = bridge,
 			puzzle = puzzles[(index - 1) % #puzzles + 1],
+			footprint = fp,
 		})
 		-- Next tier's hatch is around the shaft, so every tier is a new climb.
 		hatchAngle = (hatchAngle + 120 + rand() * 120) % 360
 	end
-	local topY = cfg.Tiers * cfg.TierHeight
+	local topY = map.tiers * cfg.TierHeight
 	local last = tiers[#tiers]
 	return {
+		map = map,
+		footprint = fp,
 		tiers = tiers,
 		exitY = topY + 1,
 		exitAngle = (last.hatchAngle + 180) % 360,
@@ -106,16 +123,20 @@ function ShaftLayout.build(seed: number): Layout
 	}
 end
 
--- Position on the ground plane for an angle and radius (x, z).
-function ShaftLayout.polar(angle: number, radius: number): (number, number)
+-- Position on the ground plane for an angle and radius (x, z), in this map's
+-- room when a footprint is given (round reference shaft otherwise).
+function ShaftLayout.polar(angle: number, radius: number, fp: Footprint.Footprint?): (number, number)
+	if fp then
+		return Footprint.polar(fp, angle, radius)
+	end
 	local r = math.rad(angle)
 	return math.cos(r) * radius, math.sin(r) * radius
 end
 
 -- Straight-line distance between two pads (for climbability tests).
-function ShaftLayout.distance(a: Pad, b: Pad): (number, number)
-	local ax, az = ShaftLayout.polar(a.angle, a.radius)
-	local bx, bz = ShaftLayout.polar(b.angle, b.radius)
+function ShaftLayout.distance(a: Pad, b: Pad, fp: Footprint.Footprint?): (number, number)
+	local ax, az = ShaftLayout.polar(a.angle, a.radius, fp)
+	local bx, bz = ShaftLayout.polar(b.angle, b.radius, fp)
 	return math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2), b.y - a.y
 end
 

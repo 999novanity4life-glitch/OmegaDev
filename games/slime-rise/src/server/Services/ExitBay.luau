@@ -14,6 +14,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local ParticleArt = require(Shared:WaitForChild("ParticleArt"))
 local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
 local LabKit = require(script.Parent.LabKit)
+local Room = require(script.Parent.Room)
 
 local ExitBay = {}
 
@@ -84,21 +85,18 @@ function ExitBay.build(model: Model, origin: Vector3, layout: ShaftLayout.Layout
 	local folder = Instance.new("Model")
 	folder.Name = "ExitBay"
 	folder.Parent = model
+	Room.use(layout.footprint)
 	local function at(angle: number, radius: number, y: number): Vector3
-		local x, z = ShaftLayout.polar(angle, radius)
-		return origin + Vector3.new(x, y, z)
-	end
-	local function facing(angle: number, radius: number, y: number): CFrame
-		local p = at(angle, radius, y)
-		return CFrame.lookAt(p, Vector3.new(origin.X, p.Y, origin.Z))
+		return Room.at(origin, angle, radius, y)
 	end
 	local exitPos = at(layout.exitAngle, layout.exitRadius, layout.exitY)
 	local last = layout.tiers[#layout.tiers]
-	local hx, hz = ShaftLayout.polar(last.hatchAngle, last.hatchRadius)
+	local hatch = at(last.hatchAngle, last.hatchRadius, 0)
+	local hx, hz = hatch.X - origin.X, hatch.Z - origin.Z
 
 	-- 1. Clean deck over the roof slab, open around the last hatch.
 	local deckY = top + 0.3
-	local half = R + 2
+	local bx0, bx1, bz0, bz1 = Room.bounds(2)
 	local hh = cfg.HatchSize / 2 + 1.2
 	local function slab(x0: number, x1: number, z0: number, z1: number)
 		if x1 - x0 < 0.1 or z1 - z0 < 0.1 then
@@ -112,10 +110,10 @@ function ExitBay.build(model: Model, origin: Vector3, layout: ShaftLayout.Layout
 			Tint = C.Deck,
 		}, folder)
 	end
-	slab(-half, hx - hh, -half, half)
-	slab(hx + hh, half, -half, half)
-	slab(hx - hh, hx + hh, -half, hz - hh)
-	slab(hx - hh, hx + hh, hz + hh, half)
+	slab(bx0, hx - hh, bz0, bz1)
+	slab(hx + hh, bx1, bz0, bz1)
+	slab(hx - hh, hx + hh, bz0, hz - hh)
+	slab(hx - hh, hx + hh, hz + hh, bz1)
 	for _, side in { { 0, -hh, hh * 2, 0.8 }, { 0, hh, hh * 2, 0.8 }, { -hh, 0, 0.8, hh * 2 }, { hh, 0, 0.8, hh * 2 } } do
 		deco({
 			Size = Vector3.new(side[3], 0.06, side[4]),
@@ -127,27 +125,27 @@ function ExitBay.build(model: Model, origin: Vector3, layout: ShaftLayout.Layout
 
 	-- 2. Clean-room walls: Blender bays re-dressed white and mint, with
 	-- daylight windows along the upper row.
-	local segs = cfg.WallSegments
-	local step = 360 / segs
-	local width = 2 * math.pi * (R + 1) / segs + 0.4
 	local rowH = 10
-	for i = 0, segs - 1 do
-		local angle = i * step
+	for i, seg in Room.segments(origin, 9.7, 0) do
+		local width = seg.width + 0.4
+		local function wallAt(out: number, y: number): CFrame
+			return seg.cf * CFrame.new(0, y, out)
+		end
 		for row = 1, 2 do
 			local piece = if row == 2 and i % 2 == 0 then "WallWindow" elseif i % 3 == 0 then "WallVent" else "WallPlain"
-			local cf = facing(angle, R - 0.05, top + (row - 1) * rowH)
+			local cf = wallAt(-0.05, top + (row - 1) * rowH)
 			cleanBay(LabKit.kit(piece, cf, folder, { scale = Vector3.new((width - 0.3) / 8, rowH / 10.5, 1) }))
 		end
 		-- Steel ring beam and a soft green strip along the top of the bay.
 		deco({
 			Size = Vector3.new(width, 1.2, 1.6),
-			CFrame = facing(angle, R - 0.8, top + 20.6),
+			CFrame = wallAt(-0.8, top + 20.6),
 			Kit = "SR_Steel",
 			Tint = C.Trim,
 		}, folder)
-		glow({ Size = Vector3.new(width, 0.25, 0.25), CFrame = facing(angle, R - 1.7, top + 19.9) }, folder)
+		glow({ Size = Vector3.new(width, 0.25, 0.25), CFrame = wallAt(-1.7, top + 19.9) }, folder)
 		if i % 4 == 2 then
-			LabKit.lightFixture(folder, facing(angle, R - 0.6, top + 8.5), C.Daylight, 26)
+			LabKit.lightFixture(folder, wallAt(-0.6, top + 8.5), C.Daylight, 26)
 		end
 	end
 
@@ -156,8 +154,8 @@ function ExitBay.build(model: Model, origin: Vector3, layout: ShaftLayout.Layout
 	local ceilY = top + 21.5
 	local ceiling = part({
 		Name = "BayCeiling",
-		Size = Vector3.new(half * 2, 1, half * 2),
-		Position = Vector3.new(origin.X, ceilY + 0.5, origin.Z),
+		Size = Vector3.new(bx1 - bx0, 1, bz1 - bz0),
+		Position = Vector3.new(origin.X + (bx0 + bx1) / 2, ceilY + 0.5, origin.Z + (bz0 + bz1) / 2),
 		Color = Color3.fromRGB(196, 210, 210),
 		Material = Enum.Material.SmoothPlastic,
 	}, folder)
@@ -169,16 +167,21 @@ function ExitBay.build(model: Model, origin: Vector3, layout: ShaftLayout.Layout
 	fill.Brightness = 0.45
 	fill.Parent = ceiling
 	-- Ceiling panel grid lines.
-	for k = -3, 3 do
-		for _, axis in { "x", "z" } do
-			deco({
-				Size = if axis == "x" then Vector3.new(0.3, 0.1, half * 2) else Vector3.new(half * 2, 0.1, 0.3),
-				Position = Vector3.new(origin.X, ceilY - 0.05, origin.Z)
-					+ (if axis == "x" then Vector3.new(k * 10, 0, 0) else Vector3.new(0, 0, k * 10)),
-				Color = C.Trim,
-				Material = Enum.Material.SmoothPlastic,
-			}, folder)
-		end
+	for k = math.ceil(bx0 / 10), math.floor(bx1 / 10) do
+		deco({
+			Size = Vector3.new(0.3, 0.1, bz1 - bz0),
+			Position = Vector3.new(origin.X + k * 10, ceilY - 0.05, origin.Z + (bz0 + bz1) / 2),
+			Color = C.Trim,
+			Material = Enum.Material.SmoothPlastic,
+		}, folder)
+	end
+	for k = math.ceil(bz0 / 10), math.floor(bz1 / 10) do
+		deco({
+			Size = Vector3.new(bx1 - bx0, 0.1, 0.3),
+			Position = Vector3.new(origin.X + (bx0 + bx1) / 2, ceilY - 0.05, origin.Z + k * 10),
+			Color = C.Trim,
+			Material = Enum.Material.SmoothPlastic,
+		}, folder)
 	end
 	-- The skylight: a glowing daylight disc in a steel ring right above the lift.
 	deco({
@@ -328,7 +331,8 @@ function ExitBay.build(model: Model, origin: Vector3, layout: ShaftLayout.Layout
 		-- Gantry beam from each tower top out to the ring beam on the wall.
 		local flatDir = Vector3.new(base.X - origin.X, 0, base.Z - origin.Z)
 		if flatDir.Magnitude > 1 then
-			local wall = Vector3.new(origin.X, top + 20.4, origin.Z) + flatDir.Unit * (R - 1.4)
+			local wallAngle = math.deg(math.atan2(flatDir.Z, flatDir.X))
+			local wall = at(wallAngle, R - 1.4, top + 20.4)
 			bar(base + Vector3.new(0, h - 0.6, 0), wall, 1, { Kit = "SR_Steel", Tint = C.Trim }, folder)
 		end
 	end

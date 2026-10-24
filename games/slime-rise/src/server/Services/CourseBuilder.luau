@@ -16,15 +16,32 @@ local ShaftLayout = require(Shared:WaitForChild("ShaftLayout"))
 local CourseLayout = require(Shared:WaitForChild("CourseLayout"))
 local JumpMath = require(Shared:WaitForChild("JumpMath"))
 local LabKit = require(script.Parent.LabKit)
+local Room = require(script.Parent.Room)
+local Themes = require(script.Parent.Themes)
 
 local CourseBuilder = {}
 
 local SAFE = Color3.fromRGB(226, 232, 244)
 
+-- Theme of the map being built (which kit piece stands in for each element).
+local theme: Themes.Theme = Themes.Lab
+
 local function ringCFrame(origin: Vector3, angle: number, radius: number, y: number): CFrame
-	local x, z = ShaftLayout.polar(angle, radius)
-	local pos = origin + Vector3.new(x, y, z)
-	return CFrame.lookAt(pos, Vector3.new(origin.X, pos.Y, origin.Z))
+	return Room.ring(origin, angle, radius, y)
+end
+
+-- The theme's kit piece for a lab piece, falling back to the lab piece.
+local function kit(piece: string, cf: CFrame, parent: Instance, opts: LabKit.KitOptions?): Model?
+	local themed = theme.kit[piece]
+	if themed then
+		local model = LabKit.kit(themed, cf, parent, opts)
+		if model then
+			return model
+		end
+	end
+	local model = LabKit.kit(piece, cf, parent, opts)
+	Themes.dress(model, theme)
+	return model
 end
 
 -- Invisible exact collider for a standing surface (top at `top`).
@@ -78,7 +95,7 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 		local count = math.max(1, math.floor(e.y / 4 + 0.5))
 		for k = 0, count - 1 do
 			local cf = floorCf * CFrame.new(0, k * 4, 0) * CFrame.Angles(0, math.rad((k * 37) % 20 - 10), 0)
-			if not LabKit.kit("Crate", cf, parent, { collide = true }) then
+			if not kit("Crate", cf, parent, { collide = true }) then
 				LabKit.part(
 					{ Size = Vector3.new(4, 4, 4), CFrame = cf * CFrame.new(0, 2, 0), Kit = "SR_Steel" },
 					parent
@@ -90,7 +107,7 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 		local raise = e.y - 9
 		pedestal(parent, floorCf, raise, 6)
 		local cf = floorCf * CFrame.new(0, math.max(raise, 0), 0)
-		if not LabKit.kit("Tank", cf, parent, { collide = true, fidelity = Enum.CollisionFidelity.Hull }) then
+		if not kit("Tank", cf, parent, { collide = true, fidelity = Enum.CollisionFidelity.Hull }) then
 			LabKit.part({
 				Shape = Enum.PartType.Cylinder,
 				Size = Vector3.new(9, 5.2, 5.2),
@@ -103,13 +120,13 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 		local raise = e.y - 12
 		pedestal(parent, floorCf, raise, 5)
 		local cf = floorCf * CFrame.new(0, math.max(raise, 0), 0)
-		if not LabKit.kit("Shelf", cf, parent, { collide = true }) then
+		if not kit("Shelf", cf, parent, { collide = true }) then
 			LabKit.part({ Size = Vector3.new(6, 12, 3), CFrame = cf * CFrame.new(0, 6, 0), Kit = "SR_Steel" }, parent)
 		end
 		return collider(parent, topCf, Vector3.new(6, 0.4, 3))
 	elseif kind == "PipeBeam" then
 		local cf = topCf * CFrame.new(0, -2, 0)
-		if not LabKit.kit("PipeBeam", cf, parent) then
+		if not kit("PipeBeam", cf, parent) then
 			LabKit.deco({
 				Shape = Enum.PartType.Cylinder,
 				Size = Vector3.new(12, 2, 2),
@@ -133,7 +150,7 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 		pedestal(parent, floorCf * CFrame.new(-4, 0, 0), raise, 1.4)
 		pedestal(parent, floorCf * CFrame.new(4, 0, 0), raise, 1.4)
 		local cf = floorCf * CFrame.new(0, math.max(raise, 0), 0)
-		if not LabKit.kit("Conveyor", cf, parent) then
+		if not kit("Conveyor", cf, parent) then
 			LabKit.part(
 				{ Size = Vector3.new(14, 2.4, 4), CFrame = cf * CFrame.new(0, 1.2, 0), Kit = "SR_Steel" },
 				parent
@@ -151,7 +168,7 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 			CFrame = floorCf * CFrame.new(0, columnHeight / 2, 0) * CFrame.Angles(0, 0, math.rad(90)),
 			Kit = "SR_Steel",
 		}, parent)
-		LabKit.kit("CentrifugeBase", floorCf * CFrame.new(0, columnHeight - 2.2, 0), parent)
+		kit("CentrifugeBase", floorCf * CFrame.new(0, columnHeight - 2.2, 0), parent)
 		-- Spinning disc: an unanchored collider on a hinge motor, meshes welded on.
 		local disc = LabKit.part({
 			Name = "CentrifugeDisc",
@@ -160,7 +177,7 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 			CFrame = topCf * CFrame.new(0, -0.3, 0) * CFrame.Angles(0, 0, math.rad(90)),
 			Transparency = 1,
 		}, parent)
-		local visual = LabKit.kit("CentrifugeDisc", topCf * CFrame.new(0, -0.95, 0), parent, { name = "DiscVisual" })
+		local visual = kit("CentrifugeDisc", topCf * CFrame.new(0, -0.95, 0), parent, { name = "DiscVisual" })
 		if not visual then
 			disc.Transparency = 0
 			LabKit.mat(disc, "SR_Pad", SAFE)
@@ -197,7 +214,7 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 		local raise = e.y - 0.6
 		pedestal(parent, floorCf, raise, 5.6)
 		local cf = floorCf * CFrame.new(0, math.max(raise, 0), 0)
-		if not LabKit.kit("BouncePad", cf, parent) then
+		if not kit("BouncePad", cf, parent) then
 			LabKit.deco({
 				Shape = Enum.PartType.Ball,
 				Size = Vector3.new(4.4, 2, 4.4),
@@ -215,8 +232,8 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 		local raise = e.y - 1.05
 		pedestal(parent, floorCf, raise, 7.6)
 		local cf = floorCf * CFrame.new(0, math.max(raise, 0), 0)
-		LabKit.kit("Fan", cf, parent)
-		local blades = LabKit.kit("FanBlades", cf * CFrame.new(0, 0.55, 0), parent)
+		kit("Fan", cf, parent)
+		local blades = kit("FanBlades", cf * CFrame.new(0, 0.55, 0), parent)
 		if blades then
 			for _, m in blades:GetChildren() do
 				CollectionService:AddTag(m, "FanSpinY")
@@ -244,7 +261,7 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 		streaks.Parent = zone
 		return collider(parent, topCf, Vector3.new(7, 0.4, 7), "FanGrill")
 	elseif kind == "Arm" then
-		LabKit.kit("RobotBase", ringCFrame(origin, e.angle, e.radius + 5, floorY + e.y - 9), parent)
+		kit("RobotBase", ringCFrame(origin, e.angle, e.radius + 5, floorY + e.y - 9), parent)
 		local lift = e.rise or 6
 		local platform = LabKit.part({
 			Name = "ArmPlatform",
@@ -252,7 +269,7 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 			CFrame = topCf * CFrame.new(0, -0.35, 0),
 			Transparency = 1,
 		}, parent)
-		local visual = LabKit.kit("ArmPlatform", topCf * CFrame.new(0, -0.7, 0), parent, { name = "ArmVisual" })
+		local visual = kit("ArmPlatform", topCf * CFrame.new(0, -0.7, 0), parent, { name = "ArmVisual" })
 		if not visual then
 			platform.Transparency = 0
 			LabKit.mat(platform, "SR_Pad", SAFE)
@@ -297,8 +314,87 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 			end
 		end)
 		return platform
+	elseif kind == "IceLedge" then
+		-- Steel ledge under a thick ice top: slippery underfoot.
+		if not kit("IceLedge", topCf * CFrame.new(0, -1, 0), parent) then
+			LabKit.part(
+				{ Size = Vector3.new(6, 0.6, 3), CFrame = topCf * CFrame.new(0, -0.7, 0), Kit = "SR_Steel" },
+				parent
+			)
+			LabKit.deco({
+				Size = Vector3.new(6.2, 0.5, 3.2),
+				CFrame = topCf * CFrame.new(0, -0.2, 0),
+				Color = Color3.fromRGB(190, 236, 255),
+				Material = Enum.Material.Ice,
+				Transparency = 0.15,
+			}, parent)
+		end
+		strut(parent, origin, e, top - 0.8)
+		local surface = collider(parent, topCf, Vector3.new(6, 0.4, 3), "IceSurface")
+		surface.CustomPhysicalProperties = PhysicalProperties.new(0.9, 0.02, 0, 100, 1)
+		return surface
+	elseif kind == "FrostPanel" then
+		-- Frosted glass panel: cracks and fades a moment after you land, then
+		-- refreezes. Telegraphed by a frost tint that whitens as it goes.
+		local visual = kit("FrostPanel", topCf * CFrame.new(0, -0.6, 0), parent)
+		local looks: { BasePart } = {}
+		if visual then
+			for _, d in visual:GetDescendants() do
+				if d:IsA("BasePart") then
+					table.insert(looks, d)
+				end
+			end
+		else
+			table.insert(
+				looks,
+				LabKit.deco({
+					Size = Vector3.new(5, 0.5, 5),
+					CFrame = topCf * CFrame.new(0, -0.25, 0),
+					Color = Color3.fromRGB(200, 240, 255),
+					Material = Enum.Material.Glass,
+					Transparency = 0.3,
+				}, parent)
+			)
+			for _, edge in { { 0, 2.6, 5.4, 0.3 }, { 0, -2.6, 5.4, 0.3 }, { 2.6, 0, 0.3, 5.4 }, { -2.6, 0, 0.3, 5.4 } } do
+				table.insert(
+					looks,
+					LabKit.deco({
+						Size = Vector3.new(edge[3], 0.6, edge[4]),
+						CFrame = topCf * CFrame.new(edge[1], -0.3, edge[2]),
+						Kit = "SR_Steel",
+					}, parent)
+				)
+			end
+		end
+		strut(parent, origin, e, top - 0.6)
+		local surface = collider(parent, topCf, Vector3.new(5, 0.4, 5), "FrostPanel")
+		local base: { [BasePart]: number } = {}
+		for _, look in looks do
+			base[look] = look.Transparency
+		end
+		local busy = false
+		surface.Touched:Connect(function(hit)
+			if busy or not hit.Parent or not hit.Parent:FindFirstChildOfClass("Humanoid") then
+				return
+			end
+			busy = true
+			task.spawn(function()
+				task.wait(Config.Course.FrostWarnSeconds)
+				for _, look in looks do
+					look.Transparency = math.max(base[look], 0.75)
+				end
+				surface.CanCollide = false
+				task.wait(Config.Course.FrostGoneSeconds)
+				for _, look in looks do
+					look.Transparency = base[look]
+				end
+				surface.CanCollide = true
+				busy = false
+			end)
+		end)
+		return surface
 	elseif kind == "Catwalk" then
-		if not LabKit.kit("Catwalk", topCf, parent) then
+		if not kit("Catwalk", topCf, parent) then
 			LabKit.part(
 				{ Size = Vector3.new(8, 0.4, 4), CFrame = topCf * CFrame.new(0, -0.2, 0), Kit = "SR_Steel" },
 				parent
@@ -316,7 +412,9 @@ local function build(parent: Instance, origin: Vector3, floorY: number, e: Cours
 end
 
 -- Builds the whole route; returns the standing surfaces in route order.
-function CourseBuilder.build(parent: Instance, origin: Vector3, info: ShaftLayout.Tier): { BasePart }
+function CourseBuilder.build(parent: Instance, origin: Vector3, info: ShaftLayout.Tier, themeId: string?): { BasePart }
+	Room.use(info.footprint)
+	theme = Themes.get(themeId)
 	local folder = Instance.new("Folder")
 	folder.Name = "Course"
 	folder.Parent = parent

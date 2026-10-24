@@ -1,6 +1,7 @@
 --!strict
--- Elevator party panel. Shows while I'm inside a pod: the host picks Solo or
--- Public, the max party size, and presses GO. Everyone else sees the status.
+-- Elevator party panel. Shows while I'm inside a pod: the host picks the map
+-- (cards ranked by difficulty), Solo or Public, the max party size, and
+-- presses GO. Everyone else sees the choices and the status.
 -- Only sends intent; the server (LobbyService) decides everything.
 
 local Players = game:GetService("Players")
@@ -11,6 +12,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local MapDefs = require(Shared:WaitForChild("MapDefs"))
 local Juice = require(script.Parent.Juice)
 
 local PartyController = {}
@@ -74,6 +76,106 @@ local function button(parent: Instance, label: string, color: Color3, props: { [
 	Juice.bindButton(b)
 	b.Parent = parent
 	return b
+end
+
+-- Difficulty colours: Easy green, Medium ice blue, Hard orange, Extreme red.
+local RANK_COLORS = {
+	Color3.fromRGB(107, 255, 61),
+	Color3.fromRGB(90, 210, 255),
+	Color3.fromRGB(255, 150, 40),
+	Color3.fromRGB(255, 60, 80),
+}
+local THEME_TOP: { [string]: Color3 } = {
+	Shaft = Color3.fromRGB(96, 70, 150),
+	Cryo = Color3.fromRGB(70, 130, 180),
+	Greenhouse = Color3.fromRGB(60, 120, 70),
+	Reactor = Color3.fromRGB(150, 60, 50),
+}
+
+local function formatTime(seconds: number): string
+	return string.format("%d:%02d", seconds // 60, math.floor(seconds % 60))
+end
+
+-- One map card: themed gradient, name, rank band with stars, floors, best time.
+local function mapCard(parent: Instance, def: MapDefs.MapDef, index: number): (TextButton, Frame)
+	local b = Instance.new("TextButton")
+	b.AutoButtonColor = false
+	b.Text = ""
+	b.Size = UDim2.fromScale(0.235, 1)
+	b.Position = UDim2.fromScale(0.01 + (index - 1) * 0.247, 0)
+	b.BackgroundColor3 = THEME_TOP[def.id] or MID
+	corner(b, 0.1)
+	stroke(b, 3, DARK, true)
+	local grad = Instance.new("UIGradient")
+	grad.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(70, 70, 90))
+	grad.Rotation = 90
+	grad.Parent = b
+	local gloss = Instance.new("Frame")
+	gloss.BackgroundColor3 = Color3.new(1, 1, 1)
+	gloss.BackgroundTransparency = 0.85
+	gloss.Size = UDim2.fromScale(0.9, 0.3)
+	gloss.Position = UDim2.fromScale(0.05, 0.04)
+	gloss.BorderSizePixel = 0
+	corner(gloss, 0.4)
+	gloss.Parent = b
+	text(
+		b,
+		{ Size = UDim2.fromScale(0.9, 0.26), Position = UDim2.fromScale(0.05, 0.06), Text = string.upper(def.name) }
+	)
+	local band = Instance.new("Frame")
+	band.Size = UDim2.fromScale(0.9, 0.22)
+	band.Position = UDim2.fromScale(0.05, 0.38)
+	band.BackgroundColor3 = RANK_COLORS[def.difficulty] or MID
+	band.BorderSizePixel = 0
+	corner(band, 0.4)
+	stroke(band, 2, DARK, true)
+	band.Parent = b
+	text(band, {
+		Size = UDim2.fromScale(0.92, 0.8),
+		Position = UDim2.fromScale(0.04, 0.1),
+		Text = string.rep("★", def.difficulty) .. "  " .. def.rank,
+	})
+	text(b, {
+		Name = "Info",
+		Size = UDim2.fromScale(0.9, 0.15),
+		Position = UDim2.fromScale(0.05, 0.64),
+		Text = string.format("%d FLOORS", def.tiers),
+		TextColor3 = Color3.fromRGB(220, 220, 240),
+	})
+	text(b, {
+		Name = "Best",
+		Size = UDim2.fromScale(0.9, 0.14),
+		Position = UDim2.fromScale(0.05, 0.81),
+		Text = "",
+		TextColor3 = Color3.fromRGB(255, 220, 90),
+	})
+	-- Selection ring (shown on the pod's current map).
+	local ring = Instance.new("Frame")
+	ring.Name = "Ring"
+	ring.BackgroundTransparency = 1
+	ring.Size = UDim2.new(1, 8, 1, 8)
+	ring.Position = UDim2.fromOffset(-4, -4)
+	ring.Visible = false
+	corner(ring, 0.12)
+	stroke(ring, 4, Config.Colors.Slime, true)
+	ring.Parent = b
+	-- Lock overlay for maps that aren't built yet.
+	local lock = Instance.new("Frame")
+	lock.Size = UDim2.fromScale(1, 1)
+	lock.BackgroundColor3 = DARK
+	lock.BackgroundTransparency = 0.35
+	lock.Visible = not def.playable
+	corner(lock, 0.1)
+	lock.Parent = b
+	text(lock, {
+		Size = UDim2.fromScale(0.86, 0.2),
+		Position = UDim2.fromScale(0.07, 0.62),
+		Text = "COMING SOON",
+		TextColor3 = Color3.fromRGB(200, 190, 230),
+	})
+	Juice.bindButton(b)
+	b.Parent = parent
+	return b, ring
 end
 
 local function myPod(): Model?
@@ -179,6 +281,23 @@ function PartyController.start()
 	)
 	pulse:Play()
 
+	-- Map picker above the panel.
+	local picker = Instance.new("Frame")
+	picker.BackgroundTransparency = 1
+	picker.Size = UDim2.fromScale(1, 0.62)
+	picker.Position = UDim2.fromScale(0, -0.68)
+	picker.Parent = card
+	local cards: { { def: MapDefs.MapDef, button: TextButton, ring: Frame } } = {}
+	for i, def in MapDefs.list do
+		local b, ring = mapCard(picker, def, i)
+		table.insert(cards, { def = def, button = b, ring = ring })
+		b.Activated:Connect(function()
+			if def.playable then
+				action:FireServer("map", def.id)
+			end
+		end)
+	end
+
 	local currentMax = Config.Party.DefaultMax
 	solo.Activated:Connect(function()
 		action:FireServer("mode", "Solo")
@@ -223,6 +342,20 @@ function PartyController.start()
 			b.Visible = isHost
 		end
 		count.Visible = true
+		local podMap = pod:GetAttribute("Map")
+		for _, c in cards do
+			c.ring.Visible = c.def.id == podMap
+			c.button.Active = isHost and c.def.playable
+			local best = player:GetAttribute("Best_" .. c.def.id)
+			local bestLabel = c.button:FindFirstChild("Best") :: TextLabel?
+			if bestLabel then
+				bestLabel.Text = if c.def.playable
+						and type(best) == "number"
+						and best > 0
+					then "BEST " .. formatTime(best)
+					else ""
+			end
+		end
 		local left = if type(startAt) == "number" and startAt > 0 then startAt - workspace:GetServerTimeNow() else 0
 		if left > 0 then
 			status.Text = string.format("Full! Leaving in %d...", math.ceil(left))
