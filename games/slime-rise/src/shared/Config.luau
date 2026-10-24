@@ -73,6 +73,10 @@ Config.Shaft = {
 Config.Course = {
 	FrostWarnSeconds = 0.7, -- a frost panel holds this long after you land
 	FrostGoneSeconds = 2.4, -- then it is gone this long before refreezing
+	LeafSolidSeconds = 2.6, -- phantom leaf cycle: solid,
+	LeafWarnSeconds = 0.7, -- then flutters (half see-through),
+	LeafGoneSeconds = 1.5, -- then gone
+	SweeperSpeed = 1.5, -- plant sweeper arm, radians per second
 }
 
 -- Map intro camera (IntroPath): per tier a wide shot then a push-in on the

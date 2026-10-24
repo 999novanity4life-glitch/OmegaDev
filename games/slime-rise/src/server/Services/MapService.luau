@@ -319,7 +319,80 @@ local function buildCryoCore(model: Model, origin: Vector3, height: number, tier
 	fog.Parent = mist
 end
 
+local function buildGreenCore(model: Model, origin: Vector3, height: number, tiers: number)
+	-- Glass bio-column with a giant vine stalk growing up through every floor:
+	-- stacked Blender segments when the kit is imported, crafted otherwise.
+	local cfg = Config.Shaft
+	local segH = 10.5
+	local kitted = false
+	for k = 0, math.ceil(height / segH) - 1 do
+		local cf = CFrame.new(origin + Vector3.new(0, k * segH, 0)) * CFrame.Angles(0, math.rad(k * 53), 0)
+		kitted = LabKit.kit("GreenColumn", cf, model, { collide = true }) ~= nil or kitted
+	end
+	local glass = deco({
+		Name = "SlimeTank",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(height, cfg.CoreRadius * 2, cfg.CoreRadius * 2),
+		CFrame = CFrame.new(origin + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(210, 255, 220),
+		Material = Enum.Material.Glass,
+		Transparency = if kitted then 1 else 0.6,
+	}, model)
+	glass.CanCollide = true
+	if not kitted then
+		-- One continuous twisting stalk, with paired leaves every few studs.
+		local prev: Vector3? = nil
+		for y = 0, height, 2 do
+			local a = math.rad(y * 9)
+			local point = origin + Vector3.new(math.cos(a) * 1.3, y, math.sin(a) * 1.3)
+			if prev then
+				local stem = deco({
+					Shape = Enum.PartType.Cylinder,
+					Size = Vector3.new((point - prev).Magnitude + 0.6, 1.8, 1.8),
+					CFrame = CFrame.lookAt((point + prev) / 2, point) * CFrame.Angles(0, math.rad(90), 0),
+					Color = Color3.fromRGB(104, 150, 64),
+					Material = Enum.Material.SmoothPlastic,
+				}, model)
+				stem.CastShadow = true
+			end
+			if y % 6 == 0 then
+				for _, side in { 0, math.pi } do
+					deco({
+						Size = Vector3.new(3, 0.25, 1.5),
+						CFrame = CFrame.new(point) * CFrame.Angles(0, a + side, math.rad(25)) * CFrame.new(1.7, 0.3, 0),
+						Color = Color3.fromRGB(96, 200, 84),
+						Material = Enum.Material.SmoothPlastic,
+					}, model)
+				end
+			end
+			prev = point
+		end
+	end
+	for t = 0, tiers do
+		local y = t * cfg.TierHeight
+		deco({
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(1.6, cfg.CoreRadius * 2 + 1.6, cfg.CoreRadius * 2 + 1.6),
+			CFrame = CFrame.new(origin + Vector3.new(0, y + 3, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Kit = "SR_Steel",
+			Tint = theme.pipe,
+		}, model)
+		local band = deco({
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.5, cfg.CoreRadius * 2 + 0.3, cfg.CoreRadius * 2 + 0.3),
+			CFrame = CFrame.new(origin + Vector3.new(0, y + 20, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = theme.accent,
+			Material = Enum.Material.Neon,
+		}, model)
+		LabKit.soften(band)
+	end
+end
+
 local function buildCore(model: Model, origin: Vector3, height: number, tiers: number)
+	if theme.core == "Green" then
+		buildGreenCore(model, origin, height, tiers)
+		return
+	end
 	if theme.core == "Cryo" then
 		buildCryoCore(model, origin, height, tiers)
 		return
@@ -689,6 +762,80 @@ local function frostProps(folder: Instance, origin: Vector3, info: ShaftLayout.T
 	end
 end
 
+-- Greenhouse floors: mutant plant pods along the walls, hanging vines and
+-- warm grow lights (Blender pieces when imported, crafted otherwise).
+local function greenProps(folder: Instance, origin: Vector3, info: ShaftLayout.Tier)
+	local rand = Random.new(info.index * 173 + 11)
+	for k = 1, 5 do
+		local angle = info.hatchAngle + 190 + k * 26 + rand:NextNumber(-6, 6)
+		local cf = ringCFrame(origin, angle, Config.Shaft.Radius - 3, info.floorY)
+		if not LabKit.kit("MutantPlant", cf, folder, { collide = true }) then
+			part({
+				Size = Vector3.new(3, 1.6, 3),
+				CFrame = cf * CFrame.new(0, 0.8, 0),
+				Kit = "SR_Steel",
+				Tint = theme.pipe,
+			}, folder)
+			local bulb = deco({
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(3, 3.6, 3),
+				CFrame = cf * CFrame.new(0, 3.2, 0),
+				Color = Color3.fromRGB(150, 80, 170),
+				Material = Enum.Material.SmoothPlastic,
+			}, folder)
+			bulb.CastShadow = true
+			for l = 0, 4 do
+				deco({
+					Size = Vector3.new(2.6, 0.25, 1.1),
+					CFrame = cf
+						* CFrame.new(0, 1.9, 0)
+						* CFrame.Angles(0, math.rad(l * 72), math.rad(-30))
+						* CFrame.new(1.4, 0, 0),
+					Color = Color3.fromRGB(96, 200, 84),
+					Material = Enum.Material.SmoothPlastic,
+				}, folder)
+			end
+			local glowDot = deco({
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(0.7, 0.7, 0.7),
+				CFrame = cf * CFrame.new(0, 4.9, 0),
+				Color = Config.Colors.Slime,
+				Material = Enum.Material.Neon,
+			}, folder)
+			LabKit.soften(glowDot)
+		end
+	end
+	-- Hanging vines down the walls and grow lights under the ceiling.
+	for k = 1, 8 do
+		local angle = info.hatchAngle + k * 45 + rand:NextNumber(-8, 8)
+		local length = rand:NextNumber(6, 14)
+		local top = info.ceilingY - Config.Shaft.BulkheadThickness
+		local cf = ringCFrame(origin, angle, Config.Shaft.Radius - 0.6, top)
+		for s = 0, math.floor(length / 1.6) do
+			deco({
+				Size = Vector3.new(0.9, 0.25, 0.6),
+				CFrame = cf * CFrame.new((s % 2) * 0.5 - 0.25, -s * 1.6, 0) * CFrame.Angles(0, 0, math.rad(s * 40)),
+				Color = Color3.fromRGB(86 + (s % 3) * 10, 180, 76),
+				Material = Enum.Material.SmoothPlastic,
+			}, folder)
+		end
+	end
+	for k = 1, 3 do
+		local angle = info.hatchAngle + 100 + k * 50
+		local cf = ringCFrame(origin, angle, 18, info.ceilingY - Config.Shaft.BulkheadThickness - 1.6)
+		if not LabKit.kit("GrowLight", cf, folder) then
+			deco({ Size = Vector3.new(4, 0.6, 1.4), CFrame = cf, Kit = "SR_Steel", Tint = theme.pipe }, folder)
+			local strip = deco({
+				Size = Vector3.new(3.6, 0.15, 1),
+				CFrame = cf * CFrame.new(0, -0.35, 0),
+				Color = theme.lamp,
+				Material = Enum.Material.Neon,
+			}, folder)
+			LabKit.soften(strip)
+		end
+	end
+end
+
 local function dressTier(folder: Instance, origin: Vector3, info: ShaftLayout.Tier, landing: BasePart)
 	local cfg = Config.Shaft
 	local floorY = info.floorY
@@ -731,7 +878,7 @@ local function dressTier(folder: Instance, origin: Vector3, info: ShaftLayout.Ti
 		local panel = LabKit.deco({
 			Size = Vector3.new(3.4, 0.2, 10),
 			CFrame = cf * CFrame.new(0, -0.3, 0),
-			Color = Color3.fromRGB(230, 242, 255),
+			Color = if theme.id == "Lab" then Color3.fromRGB(230, 242, 255) else theme.lamp,
 			Material = Enum.Material.Neon,
 		}, folder)
 		local fill = Instance.new("SurfaceLight")
@@ -739,7 +886,7 @@ local function dressTier(folder: Instance, origin: Vector3, info: ShaftLayout.Ti
 		fill.Range = 44
 		fill.Angle = 120
 		fill.Brightness = 1.4 * lampScale
-		fill.Color = Color3.fromRGB(225, 238, 255)
+		fill.Color = theme.lamp
 		if lampScale < 1 then
 			LabKit.soften(panel)
 		end
@@ -928,6 +1075,8 @@ function MapService.buildShaft(origin: Vector3, seed: number, mapId: string?): M
 		dressTier(folder, origin, info, landing)
 		if theme.id == "Cryo" then
 			frostProps(folder, origin, info)
+		elseif theme.id == "Greenhouse" then
+			greenProps(folder, origin, info)
 		end
 		task.wait()
 		useMap(layout)

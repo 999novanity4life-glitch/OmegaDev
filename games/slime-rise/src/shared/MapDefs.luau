@@ -54,13 +54,15 @@ MapDefs.list = {
 		name = "Bio Greenhouse",
 		difficulty = 3,
 		rank = "HARD",
-		blurb = "Overgrown hex domes. Vines, bounce pods, swinging plants.",
+		blurb = "Overgrown hex domes. Vine climbs, mushroom bounces, sweeping plants.",
 		footprint = { shape = "hex", radius = 50 },
 		tiers = 6,
-		theme = "Lab",
-		gaps = { 6.5, 7, 7.5, 8, 8, 8.5 },
+		theme = "Greenhouse",
+		-- Up to ~95% of the flat max gap: the widest jumps are flat, and the
+		-- height comes from vine climbs and mushroom bounces.
+		gaps = { 6.5, 7, 7.5, 7.8, 7.9, 8 },
 		matchSeconds = 190,
-		playable = false,
+		playable = true,
 	},
 	{
 		id = "Reactor",

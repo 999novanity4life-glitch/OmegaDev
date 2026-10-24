@@ -1,5 +1,5 @@
 --!strict
--- Generated from the Blender kits (assets/slime_cryo_kit_manifest.json, assets/slime_lab_kit_manifest.json) by art/gen_kit_manifest.py. Do not edit by hand.
+-- Generated from the Blender kits (assets/slime_cryo_kit_manifest.json, assets/slime_green_kit_manifest.json, assets/slime_lab_kit_manifest.json) by art/gen_kit_manifest.py. Do not edit by hand.
 -- size/offset are in studs, Roblox axes (x, y up, z forward); offset is from the piece origin (base centre).
 
 export type Part = { mesh: string, size: Vector3, offset: Vector3 }
@@ -650,6 +650,551 @@ local KitManifest: { [string]: { [string]: Part } } = {
 			offset = Vector3.new(0.0, 0.335, 0.0),
 		},
 	},
+	GreenBeam = {
+		Bark = {
+			mesh = "GreenBeam__Bark",
+			size = Vector3.new(11.313, 2.403, 2.509),
+			offset = Vector3.new(-0.009, 1.027, -0.007),
+		},
+		Frame = {
+			mesh = "GreenBeam__Frame",
+			size = Vector3.new(12.0, 2.4, 2.4),
+			offset = Vector3.new(0.0, 1.2, 0.0),
+		},
+		Glow = {
+			mesh = "GreenBeam__Glow",
+			size = Vector3.new(12.02, 1.381, 2.45),
+			offset = Vector3.new(0.0, 1.394, 0.0),
+		},
+		Inset = {
+			mesh = "GreenBeam__Inset",
+			size = Vector3.new(10.8, 0.04, 1.7),
+			offset = Vector3.new(0.0, 2.39, 0.0),
+		},
+		Leaf = {
+			mesh = "GreenBeam__Leaf",
+			size = Vector3.new(11.143, 2.524, 3.658),
+			offset = Vector3.new(-0.047, 0.893, -0.016),
+		},
+		Petal = {
+			mesh = "GreenBeam__Petal",
+			size = Vector3.new(9.799, 1.311, 2.413),
+			offset = Vector3.new(0.279, 1.044, -0.027),
+		},
+		Slime = {
+			mesh = "GreenBeam__Slime",
+			size = Vector3.new(9.389, 0.919, 2.418),
+			offset = Vector3.new(0.3, 1.058, 0.001),
+		},
+		Steel = {
+			mesh = "GreenBeam__Steel",
+			size = Vector3.new(12.02, 2.295, 1.86),
+			offset = Vector3.new(0.0, 1.278, 0.0),
+		},
+	},
+	GreenCatwalk = {
+		Bark = {
+			mesh = "GreenCatwalk__Bark",
+			size = Vector3.new(7.347, 4.025, 4.096),
+			offset = Vector3.new(0.038, 1.101, -0.15),
+		},
+		Dark = {
+			mesh = "GreenCatwalk__Dark",
+			size = Vector3.new(7.26, 0.87, 3.26),
+			offset = Vector3.new(0.0, -0.045, 0.0),
+		},
+		Frame = {
+			mesh = "GreenCatwalk__Frame",
+			size = Vector3.new(7.9, 1.89, 3.905),
+			offset = Vector3.new(0.0, 0.565, 0.002),
+		},
+		Glow = {
+			mesh = "GreenCatwalk__Glow",
+			size = Vector3.new(6.9, 0.05, 0.05),
+			offset = Vector3.new(0.0, 0.38, -1.97),
+		},
+		Inset = {
+			mesh = "GreenCatwalk__Inset",
+			size = Vector3.new(7.6, 0.95, 0.75),
+			offset = Vector3.new(0.0, 0.975, 1.53),
+		},
+		Leaf = {
+			mesh = "GreenCatwalk__Leaf",
+			size = Vector3.new(8.078, 3.686, 4.496),
+			offset = Vector3.new(0.047, 1.364, 0.088),
+		},
+		Petal = {
+			mesh = "GreenCatwalk__Petal",
+			size = Vector3.new(3.763, 0.391, 0.428),
+			offset = Vector3.new(0.335, 2.168, 1.477),
+		},
+		Slime = {
+			mesh = "GreenCatwalk__Slime",
+			size = Vector3.new(3.453, 0.294, 0.147),
+			offset = Vector3.new(0.349, 2.175, 1.462),
+		},
+		Soil = {
+			mesh = "GreenCatwalk__Soil",
+			size = Vector3.new(7.4, 0.248, 0.52),
+			offset = Vector3.new(0.0, 1.394, 1.53),
+		},
+		Steel = {
+			mesh = "GreenCatwalk__Steel",
+			size = Vector3.new(7.9, 3.39, 3.89),
+			offset = Vector3.new(0.0, 1.315, -0.035),
+		},
+	},
+	GreenColumn = {
+		Bark = {
+			mesh = "GreenColumn__Bark",
+			size = Vector3.new(3.405, 8.355, 3.427),
+			offset = Vector3.new(-0.036, 5.717, 0.167),
+		},
+		Dark = {
+			mesh = "GreenColumn__Dark",
+			size = Vector3.new(10.0, 9.7, 10.0),
+			offset = Vector3.new(0.0, 5.25, 0.0),
+		},
+		Frame = {
+			mesh = "GreenColumn__Frame",
+			size = Vector3.new(9.999, 10.5, 10.02),
+			offset = Vector3.new(0.0, 5.25, 0.0),
+		},
+		Glass = {
+			mesh = "GreenColumn__Glass",
+			size = Vector3.new(8.7, 8.9, 8.7),
+			offset = Vector3.new(0.0, 5.25, 0.0),
+		},
+		Glow = {
+			mesh = "GreenColumn__Glow",
+			size = Vector3.new(10.02, 9.6, 10.02),
+			offset = Vector3.new(0.0, 5.25, 0.0),
+		},
+		Leaf = {
+			mesh = "GreenColumn__Leaf",
+			size = Vector3.new(7.641, 10.5, 8.55),
+			offset = Vector3.new(0.283, 5.25, 0.022),
+		},
+		Slime = {
+			mesh = "GreenColumn__Slime",
+			size = Vector3.new(2.396, 8.028, 2.553),
+			offset = Vector3.new(-0.152, 5.85, -0.103),
+		},
+		Steel = {
+			mesh = "GreenColumn__Steel",
+			size = Vector3.new(10.04, 10.5, 10.04),
+			offset = Vector3.new(0.0, 5.25, 0.0),
+		},
+	},
+	GreenPlanter = {
+		Bark = {
+			mesh = "GreenPlanter__Bark",
+			size = Vector3.new(3.866, 3.138, 4.037),
+			offset = Vector3.new(0.0, 2.219, 0.0),
+		},
+		Dark = {
+			mesh = "GreenPlanter__Dark",
+			size = Vector3.new(3.2, 3.45, 3.39),
+			offset = Vector3.new(0.0, 1.725, -0.095),
+		},
+		Frame = {
+			mesh = "GreenPlanter__Frame",
+			size = Vector3.new(3.6, 3.76, 3.6),
+			offset = Vector3.new(0.0, 2.0, 0.0),
+		},
+		Glass = {
+			mesh = "GreenPlanter__Glass",
+			size = Vector3.new(1.24, 1.074, 0.03),
+			offset = Vector3.new(0.0, 2.05, -1.745),
+		},
+		Glow = {
+			mesh = "GreenPlanter__Glow",
+			size = Vector3.new(0.24, 0.24, 0.06),
+			offset = Vector3.new(0.95, 1.05, -1.82),
+		},
+		Inset = {
+			mesh = "GreenPlanter__Inset",
+			size = Vector3.new(2.55, 2.85, 0.18),
+			offset = Vector3.new(0.0, 2.025, -1.63),
+		},
+		Leaf = {
+			mesh = "GreenPlanter__Leaf",
+			size = Vector3.new(4.028, 1.967, 4.02),
+			offset = Vector3.new(-0.003, 2.989, 0.008),
+		},
+		Petal = {
+			mesh = "GreenPlanter__Petal",
+			size = Vector3.new(3.466, 0.691, 0.184),
+			offset = Vector3.new(-0.001, 3.308, -1.846),
+		},
+		Rubber = {
+			mesh = "GreenPlanter__Rubber",
+			size = Vector3.new(3.56, 0.14, 3.56),
+			offset = Vector3.new(0.0, 0.07, 0.0),
+		},
+		Slime = {
+			mesh = "GreenPlanter__Slime",
+			size = Vector3.new(3.194, 2.573, 0.283),
+			offset = Vector3.new(0.021, 2.252, -1.791),
+		},
+		Soil = {
+			mesh = "GreenPlanter__Soil",
+			size = Vector3.new(2.84, 0.36, 2.84),
+			offset = Vector3.new(0.0, 3.75, 0.0),
+		},
+		Steel = {
+			mesh = "GreenPlanter__Steel",
+			size = Vector3.new(3.66, 3.66, 3.695),
+			offset = Vector3.new(-0.0, 2.17, -0.038),
+		},
+	},
+	GreenRack = {
+		Bark = {
+			mesh = "GreenRack__Bark",
+			size = Vector3.new(0.385, 3.05, 0.393),
+			offset = Vector3.new(-2.745, 9.997, -1.441),
+		},
+		Dark = {
+			mesh = "GreenRack__Dark",
+			size = Vector3.new(5.7, 11.65, 2.77),
+			offset = Vector3.new(0.0, 5.825, 0.035),
+		},
+		Frame = {
+			mesh = "GreenRack__Frame",
+			size = Vector3.new(6.0, 12.0, 3.0),
+			offset = Vector3.new(0.0, 6.0, 0.0),
+		},
+		Glass = {
+			mesh = "GreenRack__Glass",
+			size = Vector3.new(0.39, 1.2, 0.4),
+			offset = Vector3.new(2.4, 2.2, 1.12),
+		},
+		Glow = {
+			mesh = "GreenRack__Glow",
+			size = Vector3.new(5.1, 10.95, 2.095),
+			offset = Vector3.new(0.0, 6.395, -0.477),
+		},
+		Hazard = {
+			mesh = "GreenRack__Hazard",
+			size = Vector3.new(0.65, 0.64, 0.08),
+			offset = Vector3.new(2.4, 3.2, 0.88),
+		},
+		Inset = {
+			mesh = "GreenRack__Inset",
+			size = Vector3.new(5.3, 11.15, 2.48),
+			offset = Vector3.new(0.0, 6.435, -0.09),
+		},
+		Leaf = {
+			mesh = "GreenRack__Leaf",
+			size = Vector3.new(6.195, 10.459, 3.09),
+			offset = Vector3.new(-0.184, 6.415, -0.087),
+		},
+		Petal = {
+			mesh = "GreenRack__Petal",
+			size = Vector3.new(0.501, 0.238, 0.479),
+			offset = Vector3.new(0.579, 5.779, -0.016),
+		},
+		Slime = {
+			mesh = "GreenRack__Slime",
+			size = Vector3.new(4.795, 10.02, 2.635),
+			offset = Vector3.new(0.153, 5.93, -0.047),
+		},
+		Soil = {
+			mesh = "GreenRack__Soil",
+			size = Vector3.new(5.1, 7.554, 2.2),
+			offset = Vector3.new(0.0, 4.817, 0.02),
+		},
+		Steel = {
+			mesh = "GreenRack__Steel",
+			size = Vector3.new(6.06, 11.569, 3.06),
+			offset = Vector3.new(0.0, 5.884, 0.0),
+		},
+	},
+	GreenTank = {
+		Bark = {
+			mesh = "GreenTank__Bark",
+			size = Vector3.new(0.55, 7.815, 1.128),
+			offset = Vector3.new(-2.114, 4.765, -1.507),
+		},
+		Dark = {
+			mesh = "GreenTank__Dark",
+			size = Vector3.new(5.04, 7.73, 5.355),
+			offset = Vector3.new(0.0, 4.395, -0.063),
+		},
+		Frame = {
+			mesh = "GreenTank__Frame",
+			size = Vector3.new(5.0, 9.0, 5.637),
+			offset = Vector3.new(0.0, 4.5, 0.0),
+		},
+		Glass = {
+			mesh = "GreenTank__Glass",
+			size = Vector3.new(4.4, 5.9, 4.4),
+			offset = Vector3.new(0.0, 4.6, 0.0),
+		},
+		Glow = {
+			mesh = "GreenTank__Glow",
+			size = Vector3.new(5.08, 7.185, 5.31),
+			offset = Vector3.new(0.0, 4.608, -0.115),
+		},
+		Hazard = {
+			mesh = "GreenTank__Hazard",
+			size = Vector3.new(0.106, 0.296, 0.037),
+			offset = Vector3.new(1.146, 2.58, -2.484),
+		},
+		Inset = {
+			mesh = "GreenTank__Inset",
+			size = Vector3.new(1.925, 6.679, 3.432),
+			offset = Vector3.new(0.253, 5.65, -0.896),
+		},
+		Leaf = {
+			mesh = "GreenTank__Leaf",
+			size = Vector3.new(5.188, 6.303, 3.958),
+			offset = Vector3.new(-0.562, 4.902, -0.181),
+		},
+		Petal = {
+			mesh = "GreenTank__Petal",
+			size = Vector3.new(0.747, 0.8, 0.72),
+			offset = Vector3.new(0.03, 6.8, 0.0),
+		},
+		Rubber = {
+			mesh = "GreenTank__Rubber",
+			size = Vector3.new(4.4, 8.24, 5.406),
+			offset = Vector3.new(0.0, 4.88, 0.503),
+		},
+		Slime = {
+			mesh = "GreenTank__Slime",
+			size = Vector3.new(4.16, 6.185, 4.85),
+			offset = Vector3.new(0.0, 4.247, -0.345),
+		},
+		Soil = {
+			mesh = "GreenTank__Soil",
+			size = Vector3.new(2.0, 0.31, 2.0),
+			offset = Vector3.new(0.0, 2.655, 0.0),
+		},
+		Steel = {
+			mesh = "GreenTank__Steel",
+			size = Vector3.new(5.0, 8.85, 5.818),
+			offset = Vector3.new(0.0, 4.575, 0.328),
+		},
+	},
+	GreenWallPlain = {
+		Bark = {
+			mesh = "GreenWallPlain__Bark",
+			size = Vector3.new(5.856, 6.004, 0.429),
+			offset = Vector3.new(-0.167, 4.157, -0.764),
+		},
+		Dark = {
+			mesh = "GreenWallPlain__Dark",
+			size = Vector3.new(6.8, 9.11, 1.3),
+			offset = Vector3.new(0.0, 5.755, -0.07),
+		},
+		Frame = {
+			mesh = "GreenWallPlain__Frame",
+			size = Vector3.new(8.0, 10.5, 1.495),
+			offset = Vector3.new(0.0, 5.25, -0.078),
+		},
+		Glass = {
+			mesh = "GreenWallPlain__Glass",
+			size = Vector3.new(5.527, 0.58, 0.04),
+			offset = Vector3.new(0.175, 10.01, -0.72),
+		},
+		Glow = {
+			mesh = "GreenWallPlain__Glow",
+			size = Vector3.new(6.2, 0.07, 0.16),
+			offset = Vector3.new(0.0, 9.42, -0.62),
+		},
+		Inset = {
+			mesh = "GreenWallPlain__Inset",
+			size = Vector3.new(6.7, 9.39, 0.75),
+			offset = Vector3.new(0.0, 4.695, -0.4),
+		},
+		Leaf = {
+			mesh = "GreenWallPlain__Leaf",
+			size = Vector3.new(7.282, 5.983, 2.479),
+			offset = Vector3.new(0.001, 4.221, -0.409),
+		},
+		Petal = {
+			mesh = "GreenWallPlain__Petal",
+			size = Vector3.new(0.551, 0.519, 0.193),
+			offset = Vector3.new(-2.295, 5.338, -0.845),
+		},
+		Slime = {
+			mesh = "GreenWallPlain__Slime",
+			size = Vector3.new(5.039, 5.088, 0.441),
+			offset = Vector3.new(-0.419, 7.756, -0.72),
+		},
+		Soil = {
+			mesh = "GreenWallPlain__Soil",
+			size = Vector3.new(6.4, 0.237, 0.55),
+			offset = Vector3.new(0.0, 1.099, -0.38),
+		},
+		Steel = {
+			mesh = "GreenWallPlain__Steel",
+			size = Vector3.new(7.56, 9.275, 0.365),
+			offset = Vector3.new(0.0, 4.882, -0.632),
+		},
+	},
+	GreenWallVent = {
+		Bark = {
+			mesh = "GreenWallVent__Bark",
+			size = Vector3.new(0.341, 2.423, 0.494),
+			offset = Vector3.new(-2.9, 2.405, -0.847),
+		},
+		Dark = {
+			mesh = "GreenWallVent__Dark",
+			size = Vector3.new(6.8, 9.11, 1.3),
+			offset = Vector3.new(0.0, 5.755, -0.07),
+		},
+		Frame = {
+			mesh = "GreenWallVent__Frame",
+			size = Vector3.new(8.0, 10.5, 1.495),
+			offset = Vector3.new(0.0, 5.25, -0.078),
+		},
+		Glass = {
+			mesh = "GreenWallVent__Glass",
+			size = Vector3.new(5.527, 0.58, 0.04),
+			offset = Vector3.new(0.175, 10.01, -0.72),
+		},
+		Glow = {
+			mesh = "GreenWallVent__Glow",
+			size = Vector3.new(6.2, 6.455, 0.46),
+			offset = Vector3.new(0.0, 6.227, -0.77),
+		},
+		Hazard = {
+			mesh = "GreenWallVent__Hazard",
+			size = Vector3.new(1.518, 6.403, 0.562),
+			offset = Vector3.new(2.509, 5.541, -0.711),
+		},
+		Inset = {
+			mesh = "GreenWallVent__Inset",
+			size = Vector3.new(6.7, 9.39, 0.75),
+			offset = Vector3.new(0.0, 4.695, -0.4),
+		},
+		Leaf = {
+			mesh = "GreenWallVent__Leaf",
+			size = Vector3.new(7.172, 7.515, 2.617),
+			offset = Vector3.new(-0.067, 4.987, -0.321),
+		},
+		Slime = {
+			mesh = "GreenWallVent__Slime",
+			size = Vector3.new(4.477, 5.08, 0.19),
+			offset = Vector3.new(-0.7, 7.76, -0.795),
+		},
+		Soil = {
+			mesh = "GreenWallVent__Soil",
+			size = Vector3.new(6.4, 0.251, 0.55),
+			offset = Vector3.new(0.0, 1.105, -0.38),
+		},
+		Steel = {
+			mesh = "GreenWallVent__Steel",
+			size = Vector3.new(7.56, 9.275, 0.583),
+			offset = Vector3.new(0.0, 4.882, -0.711),
+		},
+	},
+	GreenWallWindow = {
+		Bark = {
+			mesh = "GreenWallWindow__Bark",
+			size = Vector3.new(6.135, 7.996, 0.428),
+			offset = Vector3.new(-0.06, 5.176, -0.864),
+		},
+		Dark = {
+			mesh = "GreenWallWindow__Dark",
+			size = Vector3.new(6.8, 9.11, 1.3),
+			offset = Vector3.new(0.0, 5.755, -0.07),
+		},
+		Frame = {
+			mesh = "GreenWallWindow__Frame",
+			size = Vector3.new(8.0, 10.5, 1.545),
+			offset = Vector3.new(0.0, 5.25, -0.103),
+		},
+		Glass = {
+			mesh = "GreenWallWindow__Glass",
+			size = Vector3.new(5.639, 8.4, 0.435),
+			offset = Vector3.new(0.119, 6.1, -0.523),
+		},
+		Glow = {
+			mesh = "GreenWallWindow__Glow",
+			size = Vector3.new(6.2, 0.745, 0.7),
+			offset = Vector3.new(0.0, 9.083, -0.35),
+		},
+		Inset = {
+			mesh = "GreenWallWindow__Inset",
+			size = Vector3.new(6.7, 9.39, 0.75),
+			offset = Vector3.new(0.0, 4.695, -0.4),
+		},
+		Leaf = {
+			mesh = "GreenWallWindow__Leaf",
+			size = Vector3.new(7.403, 8.505, 2.568),
+			offset = Vector3.new(-0.045, 5.483, -0.283),
+		},
+		Petal = {
+			mesh = "GreenWallWindow__Petal",
+			size = Vector3.new(5.955, 3.422, 0.197),
+			offset = Vector3.new(0.119, 4.98, -0.955),
+		},
+		Slime = {
+			mesh = "GreenWallWindow__Slime",
+			size = Vector3.new(5.859, 6.877, 0.366),
+			offset = Vector3.new(-0.009, 6.861, -0.883),
+		},
+		Soil = {
+			mesh = "GreenWallWindow__Soil",
+			size = Vector3.new(6.4, 0.243, 0.55),
+			offset = Vector3.new(0.0, 1.101, -0.38),
+		},
+		Steel = {
+			mesh = "GreenWallWindow__Steel",
+			size = Vector3.new(7.56, 9.275, 0.175),
+			offset = Vector3.new(0.0, 4.882, -0.727),
+		},
+	},
+	GrowLight = {
+		Bark = {
+			mesh = "GrowLight__Bark",
+			size = Vector3.new(1.29, 0.763, 0.179),
+			offset = Vector3.new(-1.243, 1.08, 0.345),
+		},
+		Dark = {
+			mesh = "GrowLight__Dark",
+			size = Vector3.new(3.94, 0.64, 0.9),
+			offset = Vector3.new(0.0, 0.435, 0.0),
+		},
+		Frame = {
+			mesh = "GrowLight__Frame",
+			size = Vector3.new(3.6, 0.527, 1.265),
+			offset = Vector3.new(0.0, 0.267, 0.0),
+		},
+		Glow = {
+			mesh = "GrowLight__Glow",
+			size = Vector3.new(3.15, 0.06, 0.69),
+			offset = Vector3.new(0.0, 0.15, 0.0),
+		},
+		Inset = {
+			mesh = "GrowLight__Inset",
+			size = Vector3.new(0.7, 0.2, 0.4),
+			offset = Vector3.new(0.9, 0.78, 0.0),
+		},
+		Leaf = {
+			mesh = "GrowLight__Leaf",
+			size = Vector3.new(0.855, 0.414, 0.506),
+			offset = Vector3.new(-1.191, 0.699, 0.431),
+		},
+		Rubber = {
+			mesh = "GrowLight__Rubber",
+			size = Vector3.new(3.251, 0.69, 0.183),
+			offset = Vector3.new(0.167, 1.111, 0.052),
+		},
+		Slime = {
+			mesh = "GrowLight__Slime",
+			size = Vector3.new(0.095, 0.1, 0.04),
+			offset = Vector3.new(0.9, 0.8, -0.21),
+		},
+		Steel = {
+			mesh = "GrowLight__Steel",
+			size = Vector3.new(3.9, 1.4, 1.2),
+			offset = Vector3.new(0.0, 0.75, 0.0),
+		},
+	},
 	IceCluster = {
 		Frost = {
 			mesh = "IceCluster__Frost",
@@ -694,6 +1239,122 @@ local KitManifest: { [string]: { [string]: Part } } = {
 			offset = Vector3.new(0.0, 0.29, 0.12),
 		},
 	},
+	LeafPad = {
+		Bark = {
+			mesh = "LeafPad__Bark",
+			size = Vector3.new(1.198, 0.14, 1.147),
+			offset = Vector3.new(0.002, 0.07, 0.349),
+		},
+		Leaf = {
+			mesh = "LeafPad__Leaf",
+			size = Vector3.new(5.012, 0.591, 4.988),
+			offset = Vector3.new(0.0, 0.355, -0.001),
+		},
+		Slime = {
+			mesh = "LeafPad__Slime",
+			size = Vector3.new(3.855, 0.24, 4.698),
+			offset = Vector3.new(-0.001, 0.445, -0.196),
+		},
+	},
+	MushroomPad = {
+		Bark = {
+			mesh = "MushroomPad__Bark",
+			size = Vector3.new(2.912, 0.409, 3.229),
+			offset = Vector3.new(0.0, 0.44, 0.0),
+		},
+		Dark = {
+			mesh = "MushroomPad__Dark",
+			size = Vector3.new(3.603, 0.06, 4.16),
+			offset = Vector3.new(0.0, 0.22, 0.0),
+		},
+		Frame = {
+			mesh = "MushroomPad__Frame",
+			size = Vector3.new(3.984, 0.2, 4.563),
+			offset = Vector3.new(0.0, 0.1, 0.0),
+		},
+		Glow = {
+			mesh = "MushroomPad__Glow",
+			size = Vector3.new(3.776, 0.05, 4.36),
+			offset = Vector3.new(0.0, 0.21, 0.0),
+		},
+		Inset = {
+			mesh = "MushroomPad__Inset",
+			size = Vector3.new(4.5, 0.75, 4.5),
+			offset = Vector3.new(0.0, 0.675, 0.0),
+		},
+		Leaf = {
+			mesh = "MushroomPad__Leaf",
+			size = Vector3.new(2.268, 0.201, 3.631),
+			offset = Vector3.new(0.236, 0.458, 0.147),
+		},
+		Petal = {
+			mesh = "MushroomPad__Petal",
+			size = Vector3.new(5.022, 1.1, 5.06),
+			offset = Vector3.new(0.051, 1.05, 0.0),
+		},
+		Slime = {
+			mesh = "MushroomPad__Slime",
+			size = Vector3.new(4.208, 0.94, 4.198),
+			offset = Vector3.new(0.0, 1.19, 0.0),
+		},
+		Soil = {
+			mesh = "MushroomPad__Soil",
+			size = Vector3.new(3.5, 0.32, 3.5),
+			offset = Vector3.new(0.0, 0.36, 0.0),
+		},
+		Steel = {
+			mesh = "MushroomPad__Steel",
+			size = Vector3.new(4.24, 0.1, 3.704),
+			offset = Vector3.new(0.0, 0.24, 0.0),
+		},
+	},
+	MutantPlant = {
+		Dark = {
+			mesh = "MutantPlant__Dark",
+			size = Vector3.new(2.893, 0.12, 3.34),
+			offset = Vector3.new(0.0, 0.32, 0.0),
+		},
+		Frame = {
+			mesh = "MutantPlant__Frame",
+			size = Vector3.new(2.858, 1.35, 3.237),
+			offset = Vector3.new(0.0, 0.675, 0.0),
+		},
+		Glow = {
+			mesh = "MutantPlant__Glow",
+			size = Vector3.new(2.91, 0.04, 3.36),
+			offset = Vector3.new(0.0, 0.32, 0.0),
+		},
+		Inset = {
+			mesh = "MutantPlant__Inset",
+			size = Vector3.new(3.002, 5.279, 3.097),
+			offset = Vector3.new(0.0, 3.239, -0.088),
+		},
+		Leaf = {
+			mesh = "MutantPlant__Leaf",
+			size = Vector3.new(3.577, 4.869, 3.835),
+			offset = Vector3.new(0.104, 3.686, 0.084),
+		},
+		Petal = {
+			mesh = "MutantPlant__Petal",
+			size = Vector3.new(2.547, 3.349, 2.542),
+			offset = Vector3.new(0.327, 4.207, -0.271),
+		},
+		Slime = {
+			mesh = "MutantPlant__Slime",
+			size = Vector3.new(1.61, 1.912, 2.457),
+			offset = Vector3.new(0.605, 4.173, -0.552),
+		},
+		Soil = {
+			mesh = "MutantPlant__Soil",
+			size = Vector3.new(2.9, 0.16, 2.856),
+			offset = Vector3.new(0.0, 1.44, 0.0),
+		},
+		Steel = {
+			mesh = "MutantPlant__Steel",
+			size = Vector3.new(2.737, 0.16, 3.139),
+			offset = Vector3.new(0.0, 1.38, 0.0),
+		},
+	},
 	Pillar = {
 		Dark = {
 			mesh = "Pillar__Dark",
@@ -731,6 +1392,90 @@ local KitManifest: { [string]: { [string]: Part } } = {
 			mesh = "PipeBeam__Steel",
 			size = Vector3.new(12.0, 2.056, 2.351),
 			offset = Vector3.new(0.0, 1.0, 0.0),
+		},
+	},
+	PlantSweeper = {
+		Bark = {
+			mesh = "PlantSweeper__Bark",
+			size = Vector3.new(2.868, 1.12, 2.788),
+			offset = Vector3.new(-0.025, 1.3, 0.111),
+		},
+		Dark = {
+			mesh = "PlantSweeper__Dark",
+			size = Vector3.new(2.633, 1.78, 3.04),
+			offset = Vector3.new(0.0, 1.13, 0.0),
+		},
+		Frame = {
+			mesh = "PlantSweeper__Frame",
+			size = Vector3.new(2.598, 0.9, 2.948),
+			offset = Vector3.new(0.0, 0.45, 0.0),
+		},
+		Glow = {
+			mesh = "PlantSweeper__Glow",
+			size = Vector3.new(2.65, 1.7, 3.06),
+			offset = Vector3.new(0.0, 1.13, 0.0),
+		},
+		Inset = {
+			mesh = "PlantSweeper__Inset",
+			size = Vector3.new(2.734, 0.32, 2.66),
+			offset = Vector3.new(0.0, 0.62, -0.0),
+		},
+		Leaf = {
+			mesh = "PlantSweeper__Leaf",
+			size = Vector3.new(1.775, 0.375, 1.738),
+			offset = Vector3.new(0.069, 1.053, -0.019),
+		},
+		Petal = {
+			mesh = "PlantSweeper__Petal",
+			size = Vector3.new(1.163, 0.185, 1.163),
+			offset = Vector3.new(0.0, 1.512, 0.0),
+		},
+		Soil = {
+			mesh = "PlantSweeper__Soil",
+			size = Vector3.new(2.6, 0.16, 2.561),
+			offset = Vector3.new(0.0, 1.0, 0.0),
+		},
+		Steel = {
+			mesh = "PlantSweeper__Steel",
+			size = Vector3.new(2.46, 1.12, 2.819),
+			offset = Vector3.new(0.0, 1.42, 0.0),
+		},
+	},
+	PlantSweeperArm = {
+		Bark = {
+			mesh = "PlantSweeperArm__Bark",
+			size = Vector3.new(9.532, 0.849, 0.895),
+			offset = Vector3.new(0.0, 0.0, 0.0),
+		},
+		Frame = {
+			mesh = "PlantSweeperArm__Frame",
+			size = Vector3.new(1.2, 0.14, 1.2),
+			offset = Vector3.new(0.0, 0.0, 0.0),
+		},
+		Glow = {
+			mesh = "PlantSweeperArm__Glow",
+			size = Vector3.new(0.5, 0.44, 0.5),
+			offset = Vector3.new(0.0, 0.0, 0.0),
+		},
+		Leaf = {
+			mesh = "PlantSweeperArm__Leaf",
+			size = Vector3.new(9.96, 0.893, 1.166),
+			offset = Vector3.new(0.0, 0.027, -0.039),
+		},
+		Petal = {
+			mesh = "PlantSweeperArm__Petal",
+			size = Vector3.new(10.141, 1.225, 1.172),
+			offset = Vector3.new(0.0, 0.002, 0.001),
+		},
+		Slime = {
+			mesh = "PlantSweeperArm__Slime",
+			size = Vector3.new(9.385, 0.877, 0.856),
+			offset = Vector3.new(0.0, 0.0, 0.0),
+		},
+		Steel = {
+			mesh = "PlantSweeperArm__Steel",
+			size = Vector3.new(1.1, 0.4, 1.1),
+			offset = Vector3.new(0.0, 0.0, 0.0),
 		},
 	},
 	RobotBase = {
@@ -822,6 +1567,53 @@ local KitManifest: { [string]: { [string]: Part } } = {
 			mesh = "Tank__Steel",
 			size = Vector3.new(5.728, 8.65, 6.27),
 			offset = Vector3.new(0.0, 4.325, 0.265),
+		},
+	},
+	VineTruss = {
+		Bark = {
+			mesh = "VineTruss__Bark",
+			size = Vector3.new(2.661, 11.238, 2.569),
+			offset = Vector3.new(0.005, 5.802, -0.005),
+		},
+		Dark = {
+			mesh = "VineTruss__Dark",
+			size = Vector3.new(1.9, 0.08, 1.9),
+			offset = Vector3.new(0.0, 11.62, 0.0),
+		},
+		Frame = {
+			mesh = "VineTruss__Frame",
+			size = Vector3.new(2.0, 12.0, 2.0),
+			offset = Vector3.new(0.0, 6.0, 0.0),
+		},
+		Glow = {
+			mesh = "VineTruss__Glow",
+			size = Vector3.new(1.94, 0.04, 1.94),
+			offset = Vector3.new(0.0, 11.62, 0.0),
+		},
+		Inset = {
+			mesh = "VineTruss__Inset",
+			size = Vector3.new(1.5, 0.04, 1.5),
+			offset = Vector3.new(0.0, 12.0, 0.0),
+		},
+		Leaf = {
+			mesh = "VineTruss__Leaf",
+			size = Vector3.new(3.985, 9.291, 4.36),
+			offset = Vector3.new(0.013, 6.056, 0.007),
+		},
+		Petal = {
+			mesh = "VineTruss__Petal",
+			size = Vector3.new(2.535, 7.911, 2.753),
+			offset = Vector3.new(-0.024, 6.509, 0.01),
+		},
+		Slime = {
+			mesh = "VineTruss__Slime",
+			size = Vector3.new(2.351, 7.605, 2.686),
+			offset = Vector3.new(-0.02, 6.51, 0.03),
+		},
+		Steel = {
+			mesh = "VineTruss__Steel",
+			size = Vector3.new(2.06, 11.3, 2.06),
+			offset = Vector3.new(0.0, 6.0, 0.0),
 		},
 	},
 	WallPipes = {

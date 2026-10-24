@@ -170,6 +170,8 @@ function AmbienceController.start()
 		Lab = { tint = Color3.new(1, 1, 1), saturation = 0, contrast = 0, softBloom = false },
 		-- White rooms trip the place's strong default Bloom, so it is turned off.
 		Cryo = { tint = Color3.fromRGB(214, 234, 255), saturation = -0.08, contrast = 0.06, softBloom = true },
+		-- Warm, sunlit and lush.
+		Greenhouse = { tint = Color3.fromRGB(255, 246, 224), saturation = 0.1, contrast = 0.04, softBloom = true },
 	}
 	local defaultBloom = game:GetService("Lighting"):FindFirstChild("Bloom")
 	local lastTheme = ""
