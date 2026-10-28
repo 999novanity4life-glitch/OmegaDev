@@ -1,18 +1,22 @@
 {
   "MM_RockA": {
-    "tris": 2400,
+    "tris": 5120,
     "baked_from": 327680
   },
   "MM_RockB": {
-    "tris": 2400,
+    "tris": 5120,
     "baked_from": 327680
   },
   "MM_RockC": {
-    "tris": 2400,
+    "tris": 5120,
     "baked_from": 327680
   },
   "MM_RockD": {
-    "tris": 2400,
+    "tris": 5120,
+    "baked_from": 327680
+  },
+  "MM_RockE": {
+    "tris": 5120,
     "baked_from": 327680
   }
 }
