@@ -45,3 +45,13 @@ reports no blockers against `vault/13 Building It Right.md` and the quality chec
 - Keep tasks small (one agent, one sitting, one acceptance test).
 - If two cycles in a row make no progress on a task, mark it `blocked` and say why.
 - Never invent results. If an agent says it couldn't run something, the task is not done.
+
+## Visual quality (added 2026-10-28)
+- Anything that changes how the game looks (zone, screen, model, effect, store
+  art) follows `docs/VISUAL_QA.md`: goal board before building, captures, then
+  a **fresh** `visual-reviewer` dispatch given only the board, BRIEF, shots and
+  audit. Never let the agent that built it review it.
+- Three review rounds max per item; then `omega review add` it to the human
+  with the board and the last verdict.
+- Pass vault chapters 15 (lighting) and 16 (level design) to Scenic, and
+  chapter 05 "Look and motion" to Builder for UI tasks.

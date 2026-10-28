@@ -20,3 +20,11 @@ available, stop and report "Studio MCP not connected"; never pretend.
 
 Report each test PASS / FAIL / NOT RUN with screenshot path and log lines, and
 every error or warning from our scripts. Not run is never PASS.
+
+## Visual captures (added 2026-10-28)
+When the task touches the look, also follow `docs/VISUAL_QA.md` §2-3: take the
+required shots for each item type in Play mode (hold the camera 2-4 s for
+particles), phone landscape and desktop for UI, save them under
+`games/<slug>/playtests/<date>/visual/`, and run `scripts/studio/scene-audit.luau`
+with `execute_luau`, saving its output next to the shots. Report the audit's
+warnings (extra Atmosphere/Sky, LightingStyle, duplicate texture IDs, light count).

@@ -20,3 +20,8 @@ prove. Step 1 is always "the core verb works and feels good with placeholder art
 Mark assumptions ASSUMPTION. Do not invent Roblox APIs; link
 create.roblox.com for any engine feature you rely on. When done, queue one
 task per step via `node scripts/omega.mjs task add` and set game.json stage to `spec`.
+
+## Look in the spec (added 2026-10-28)
+SPEC.md includes an overhead map, a color script (one mood color and one
+`LightingPresets` entry per zone) and the art direction (palette, material set,
+UI seed). See `vault/16 Level Design and Wayfinding.md` and `vault/05` "Look and motion".
