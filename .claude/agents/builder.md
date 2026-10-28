@@ -19,3 +19,14 @@ checks, and only while holding the studio lock (`omega lock studio builder`,
 then `omega unlock studio`). Never edit scripts in Studio directly; Rojo syncs
 files. If something needs a Roblox API you are unsure exists, check the
 engine reference first.
+
+## UI and look code (added 2026-10-28)
+- Build UI with `Controllers/UIKit.luau` and colors/sizes/motion from
+  `src/shared/UITokens.luau`; never hard-code a color or font size in a screen.
+  If a game needs a new look, change the tokens and keep `tests/UITokens.spec.luau`
+  passing (WCAG 4.5:1 for every text pair).
+- Style from the item's VISUAL_QA BRIEF (measured hex, stroke, radius, font
+  from reference stills). Read `vault/05 UI and HUD.md` "Look and motion".
+- Lighting goes through `LightingPresets` + `LookController`; new terrain math
+  goes in `TerrainGen` with a spec. List the VISUAL_QA captures Playtest must
+  take for every new screen.

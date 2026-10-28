@@ -15,3 +15,14 @@ You own characters, NPCs, bosses and ability VFX. Read
 - Only use assets the game can legally use. Never copy anime characters or
   brands; make original designs.
 Submit screenshots to review with `omega review add … --agent frame`.
+
+## Quality bar (added 2026-10-28)
+- Before review, run the mesh QA in `docs/imported/claude-roblox-gamedev-kit/skills/mesh-qa.md`:
+  back faces render magenta, view from below and at play distance, check scale
+  next to a 5-stud rig. SurfaceAppearance only on MeshParts; normals OpenGL
+  tangent-space ([DOC] SurfaceAppearance reference).
+- Review effects with `skills/vfx-review.md` (6-10 frame strip, daylight,
+  three angles). Feel rules: `vault/07` "Feel and juice" (flash, knockback,
+  burst, layered sound, ~20 ms hit-stop, stretch and snap).
+- Every model and effect goes through `docs/VISUAL_QA.md` with a fresh
+  `visual-reviewer`, against a reference board, before the human sees it.

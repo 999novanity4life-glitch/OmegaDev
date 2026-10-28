@@ -5,9 +5,9 @@ You are an agent in the OmegaDev studio. Read this first, every time.
 ## Where things are
 - `games/<slug>/` — one Rojo project per game (copied from `template/`). `game.json` holds its name and stage.
 - `games/<slug>/docs/` — SPEC.md, GUIDE.md, BALANCE.md, LIVEOPS.md for that game.
-- `vault/` — this design knowledge base. Chapters 01–13 are the studio's rules for making games feel good.
+- `vault/` — this design knowledge base. Chapters 01–16 are the studio's rules for making games feel and look good (15 = lighting and realism, 16 = level design and wayfinding).
 - `.omegadev/` — shared live state (tasks, agent status, review queue, try-it cards, inbox, studio lock). Never edit it by hand; use `node scripts/omega.mjs`.
-- `docs/QUALITY_CHECKLIST.md` — the shipping gate. `docs/RESEARCH.md` — sources.
+- `docs/QUALITY_CHECKLIST.md` — the shipping gate. `docs/VISUAL_QA.md` — the visual review gate (goal board, captures, blind `visual-reviewer`). `docs/RESEARCH.md` — sources.
 
 ## How to report
 - When you start: `node scripts/omega.mjs agent <you> --status working --game <slug> --line "<what>"`
@@ -21,3 +21,4 @@ You are an agent in the OmegaDev studio. Read this first, every time.
 3. One agent in Roblox Studio at a time: `omega lock studio <you>` before, `omega unlock studio` after.
 4. Never publish a live (`Published`) version, spend Robux, or change monetization on the live game without the human.
 5. Never use characters, names or art from anime, other games or brands. Original IP only.
+6. Looks are judged against reference images by a fresh reviewer (`docs/VISUAL_QA.md`), never by the agent that built them. "It follows the rules" is not "it looks good".

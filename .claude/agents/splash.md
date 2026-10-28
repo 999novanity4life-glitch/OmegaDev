@@ -16,3 +16,8 @@ You make what players see before they click. Read
 - Text on thumbnails: 3 words max, readable at phone size. Never use other
   games' or anime IP.
 - Submit every candidate: `omega review add --game <slug> --agent splash --kind image --title "Icon A" --file <png>`.
+
+## Quality bar (added 2026-10-28)
+Store art goes through `docs/VISUAL_QA.md` like any other look: reference board
+of top games' thumbnails first, then a fresh `visual-reviewer`. The composed
+spawn and landmark shots from Scenic are the best raw material (vault/16).

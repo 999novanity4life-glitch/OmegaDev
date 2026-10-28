@@ -58,3 +58,12 @@ Sources are linked so nobody has to trust this list on faith.
 - [ ] Icon and thumbnails show the game's actual fun moment, readable at phone size.
 - [ ] Update cadence planned: small updates every 2-4 weeks, big ones every 2-3 months. ([retention](https://create.roblox.com/docs/en-us/production/analytics/retention))
 - [ ] After launch, read D1/D7, session length and the onboarding funnel in Creator Analytics; Roblox publishes no target numbers, so compare against your own previous build and the benchmark set. ([analytics](https://create.roblox.com/docs/production/analytics))
+
+## 8. Visual quality (added 2026-10-28, process in `docs/VISUAL_QA.md`)
+- [ ] Every shipped screen, zone, model and effect has a reference goal board and BRIEF in `games/<slug>/art/refs/`, and passed a blind `visual-reviewer` round (verdict file + side-by-side in the review queue). Self-review is not evidence.
+- [ ] The spawn shot, usual play camera and one vista were captured in Play mode and compared to the references.
+- [ ] Scene audit saved: one Sky and one Atmosphere, no forgotten Studio starter effects, LightingStyle chosen on purpose. (`LightingStyle` and `PrioritizeLightingQuality` replace the deprecated `Technology`: [Lighting](https://create.roblox.com/docs/reference/engine/classes/Lighting))
+- [ ] Main paths and exits are lit brighter than side areas; a landmark is visible from spawn. ([Level Design Book: lighting](https://book.leveldesignbook.com/process/lighting), [wayfinding](https://book.leveldesignbook.com/process/blockout/wayfinding))
+- [ ] Materials come from a small shared set (trim sheets, MaterialVariants, packaged SurfaceAppearances), not dozens of one-offs; no duplicate texture IDs for the same asset. ([Duvall Drive materials](https://create.roblox.com/docs/resources/the-mystery-of-duvall-drive/materialize-the-world), [optimize](https://create.roblox.com/docs/tutorials/curriculums/environmental-art/optimize-your-experience))
+- [ ] Every imported or generated mesh passed mesh QA: no see-through faces from any game angle, below included (Roblox culls back faces). ([imported kit](imported/claude-roblox-gamedev-kit/skills/mesh-qa.md))
+- [ ] UI colours, outline widths, corner radii, font and spacing were measured from reference stills and match within the BRIEF's targets at phone and desktop sizes.

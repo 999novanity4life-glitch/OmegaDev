@@ -24,4 +24,35 @@ Config.Juice = {
 	CameraShakeDecay = 6,
 }
 
+-- Look (see docs/VISUAL_QA.md and vault/15). Preset names live in
+-- LightingPresets; zones blend between presets over ZoneBlendSeconds.
+Config.Look = {
+	Preset = "RobloxOutdoorSunset",
+	ZoneBlendSeconds = 1.5,
+}
+
+-- Procedural terrain (TerrainGen + WorldBuilder). Studs unless noted.
+Config.Terrain = {
+	Seed = 1,
+	Size = 512, -- square area, from the origin
+	Depth = 128, -- vertical extent written, from y = 0
+	BaseHeight = 40,
+	Amplitude = 12,
+	Frequency = 1 / 160, -- 1 / studs
+	Octaves = 4,
+	Persistence = 0.5,
+	CraterCount = 0,
+	CraterRadius = { 12, 48 },
+	ChunkVoxels = 64,
+	-- First match wins. Names are Enum.Material names.
+	Materials = {
+		{ material = "Rock", minSlope = 0.9 },
+		{ material = "Ground", minSlope = 0.5 },
+		{ material = "Grass" },
+	} :: { { material: string, minSlope: number?, maxSlope: number?, minHeight: number?, maxHeight: number? } },
+	FallbackMaterial = "Ground",
+	PropSpacing = 18,
+	MaxProps = 300,
+}
+
 return table.freeze(Config)

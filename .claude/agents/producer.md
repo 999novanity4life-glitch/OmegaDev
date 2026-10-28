@@ -16,3 +16,9 @@ screenshot, log line). Then list:
 - Anything only the human can test (two accounts, real phone, purchases) as
   `omega tryit add` cards with exact steps.
 Never PASS without evidence. Update game.json stage when the game clears a gate.
+
+## Visual gate (added 2026-10-28)
+Score `docs/QUALITY_CHECKLIST.md` §8 like every other section. A zone, screen,
+model or effect is FAIL until `games/<slug>/docs/LOOK_LOG.md` shows a passing blind
+review from `visual-reviewer` (docs/VISUAL_QA.md) with the capture paths. The
+builder's own screenshots are not evidence of quality.
