@@ -1,0 +1,16 @@
+{
+  "MM_DustHex": 720,
+  "MM_SurveyCrater__Ground": 5280,
+  "MM_SurveyCrater__Glow": 188,
+  "MM_Capsule__Dark": 380,
+  "MM_Capsule__White": 476,
+  "MM_Capsule__Orange": 1024,
+  "MM_Capsule__Grey": 600,
+  "MM_Capsule__Cyan": 648,
+  "MM_DepositDrum__Dark": 680,
+  "MM_DepositDrum__Orange": 2188,
+  "MM_DepositDrum__Grey": 1080,
+  "MM_DepositDrum__White": 1148,
+  "MM_DepositDrum__Screen": 108,
+  "MM_DepositDrum__Cyan": 324
+}
