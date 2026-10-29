@@ -55,20 +55,10 @@ folder.Parent = Workspace
 local Terrain = Workspace.Terrain
 local DUSTY = Enum.Material.Ground
 local BARE = Enum.Material.Basalt
--- Local only: bare ground wears the same regolith texture as the dust (a copy of the Ground
--- variant moved onto Basalt), just darker, so cleaning reveals Moon rather than flat paint.
-do
-	local MaterialService = game:GetService("MaterialService")
-	local regolith = MaterialService:FindFirstChild("MoonRegolith", true)
-	if regolith and regolith:IsA("MaterialVariant") and not MaterialService:FindFirstChild("MoonBedrock") then
-		local bedrock = regolith:Clone()
-		bedrock.Name = "MoonBedrock"
-		bedrock.BaseMaterial = BARE
-		bedrock.Parent = MaterialService
-		MaterialService:SetBaseMaterialOverride(BARE, "MoonBedrock")
-	end
-	Terrain:SetMaterialColor(BARE, CLEAN)
-end
+-- Bare ground wears the same regolith texture as the dust, just darker, so cleaning reveals
+-- Moon rather than flat paint. The "MoonBedrock" variant on Basalt lives in the place
+-- (tools/studio/MoonBedrock.luau; game scripts may not create one). The tint is local.
+Terrain:SetMaterialColor(BARE, CLEAN)
 
 local terrainOnly = RaycastParams.new()
 terrainOnly.FilterType = Enum.RaycastFilterType.Include
