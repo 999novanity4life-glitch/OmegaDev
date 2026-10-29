@@ -16,6 +16,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local Juice = require(script.Parent.Juice)
+local Menus = require(script.Parent.Menus)
 local Movement = require(script.Parent.Movement)
 local State = require(script.Parent.State)
 local Theme = require(script.Parent.Theme)
@@ -204,6 +205,7 @@ local function cutscene(caption: string, sub: string, shots: { Shot })
 		return
 	end
 	playing = true
+	Menus.close()
 	local gui = Theme.screen("Cutscene", player:WaitForChild("PlayerGui"), 50)
 	gui.ScreenInsets = Enum.ScreenInsets.None
 	local top = Theme.frame(UDim2.fromScale(1, 0.12), UDim2.fromScale(0, -0.12), Theme.BLACK)

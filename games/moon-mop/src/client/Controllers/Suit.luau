@@ -114,7 +114,7 @@ function Suit.start()
 			local n = Theme.text(g.name, UDim2.new(0.6, 0, 0, 24), Theme.WHITE, Enum.Font.GothamBlack, 18)
 			n.Position = UDim2.fromOffset(10, 6)
 			n.Parent = row
-			local t = Theme.text(g.text, UDim2.new(0.6, 0, 0, 18), Theme.MUTED, Enum.Font.GothamBold, 13)
+			local t = Theme.text(g.text, UDim2.new(0.5, 0, 0, 18), Theme.MUTED, Enum.Font.GothamBold, 13)
 			t.Position = UDim2.fromOffset(10, 32)
 			t.Parent = row
 			if gear[g.id] then

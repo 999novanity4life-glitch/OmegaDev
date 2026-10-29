@@ -42,6 +42,10 @@ if RunService:IsStudio() then
 		elseif cmd == "meteor" then
 			task.spawn(Meteors.shower, (arg :: number?) or 5)
 			return "shower coming"
+		elseif cmd == "cutscene" then
+			local char = player.Character
+			Crew.feedback(player, "Cutscene", { name = arg, at = char and char:GetPivot().Position })
+			return "playing " .. tostring(arg)
 		elseif cmd == "stats" then
 			return game:GetService("HttpService"):JSONEncode(d.stats)
 		elseif cmd == "tank" then
