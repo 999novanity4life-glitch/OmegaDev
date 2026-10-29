@@ -1,0 +1,46 @@
+{
+  "name": "moon-mop",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Packages": {
+        "$path": "Packages"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "ServerStorage": {
+      "Vendor": {
+        "$className": "Folder",
+        "ProfileStore": {
+          "$path": "vendor/ProfileStore.luau"
+        }
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "LightingStyle": "Realistic",
+        "PrioritizeLightingQuality": true
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "Gravity": 0,
+        "FallenPartsDestroyHeight": -50000
+      }
+    }
+  }
+}

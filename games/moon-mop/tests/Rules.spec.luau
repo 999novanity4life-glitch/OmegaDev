@@ -1,0 +1,251 @@
+--!nocheck
+return function(t, load)
+	local Config = load("src/shared/Config")
+	local Economy = load("src/shared/Economy")
+	local Upgrades = load("src/shared/Upgrades")
+	local Loadout = load("src/shared/Loadout")
+	local Sweep = load("src/shared/Sweep")
+	local Factory = load("src/shared/Factory")
+	local Vector3 = require("@lune/roblox").Vector3
+	local describe, it, expect = t.describe, t.it, t.expect
+
+	describe("Config", function()
+		it("has the 13-step broom ladder from Old Toothbrush to Cosmic Broom", function()
+			expect(#Config.Tools).toBe(13)
+			expect(Config.Tools[1].name).toBe("Old Toothbrush")
+			expect(Config.Tools[1].price).toBe(0)
+			expect(Config.Tools[13].name).toBe("Cosmic Broom")
+			expect(Config.Tools[13].price).toBe(25000)
+		end)
+		it("keeps the original's first six tool prices", function()
+			local want = { 0, 5, 10, 25, 75, 150 }
+			for i, p in want do
+				expect(Config.Tools[i].price).toBe(p)
+			end
+		end)
+		it("makes every broom strictly better and pricier than the last", function()
+			for i = 2, #Config.Tools do
+				local a, b = Config.Tools[i - 1], Config.Tools[i]
+				expect(b.price > a.price).toBeTruthy()
+				expect(b.width > a.width).toBeTruthy()
+				expect(b.pack > a.pack).toBeTruthy()
+			end
+		end)
+		it("has 56 upgrades on 5 tabs with one capstone each", function()
+			expect(#Config.Upgrades).toBe(56)
+			local caps = {}
+			for _, u in Config.Upgrades do
+				expect(table.find(Config.UpgradeTabs, u.tab) ~= nil).toBeTruthy()
+				if u.capstone then
+					expect(caps[u.tab]).toBe(nil)
+					caps[u.tab] = true
+				end
+			end
+			for _, tab in Config.UpgradeTabs do
+				expect(caps[tab]).toBe(true)
+			end
+		end)
+		it("only points upgrade requirements at real upgrades", function()
+			for _, u in Config.Upgrades do
+				for needId in u.needs or {} do
+					expect(needId == "@packUpgrade" or Upgrades.byId[needId] ~= nil).toBeTruthy()
+				end
+			end
+		end)
+		it("prices vehicles like the original", function()
+			local want =
+				{ PushCart = 300, SitSweeper = 1000, CrewShuttle = 2000, CraterSweeper = 2500, BigSuckRover = 6000 }
+			for _, v in Config.Vehicles do
+				expect(v.price).toBe(want[v.id])
+			end
+			expect(#Config.VehicleUpgrades.List).toBe(7)
+			expect(Config.GaragePrice).toBe(200)
+		end)
+		it("has 12 stations, 195 flags and 26 probes", function()
+			expect(#Config.Stations.Names).toBe(12)
+			expect(Config.Flags.Count).toBe(195)
+			expect(Config.Probes.Count).toBe(26)
+		end)
+		it("has 33 achievements with unique ids", function()
+			expect(#Config.Achievements).toBe(33)
+			local seen = {}
+			for _, a in Config.Achievements do
+				expect(seen[a.id]).toBe(nil)
+				seen[a.id] = true
+			end
+		end)
+		it("nests the grids", function()
+			local g = Config.Grid
+			expect(g.PatchFrequency % g.SectorFrequency).toBe(0)
+			expect(g.SectorFrequency % g.RegionFrequency).toBe(0)
+		end)
+	end)
+
+	describe("Upgrades", function()
+		it("prices levels by growth", function()
+			local def = Upgrades.byId.WideHead
+			expect(Upgrades.cost(def, 1)).toBe(40)
+			expect(Upgrades.cost(def, 2)).toBe(88)
+		end)
+		it("checks requirements and the pack-upgrade rule", function()
+			local ok, why = Upgrades.check({}, "DustCompactor", { packUpgrade = false })
+			expect(ok).toBe(false)
+			expect(why).toBe("Needs a Bigger Pack first")
+			ok = Upgrades.check({}, "DustCompactor", { packUpgrade = true })
+			expect(ok).toBe(true)
+			ok, why = Upgrades.check({}, "LongArm")
+			expect(ok).toBe(false)
+			ok = Upgrades.check({ WideHead = 1 }, "LongArm")
+			expect(ok).toBe(true)
+		end)
+		it("stops at max level", function()
+			local ok, why = Upgrades.check({ AutoPacker = 1 }, "AutoPacker")
+			expect(ok).toBe(false)
+			expect(why).toBe("Maxed")
+		end)
+		it("sums effects per level", function()
+			local fx = Upgrades.effects({ WideHead = 2, DoubleSweep = 1 })
+			expect(fx.widthPct).toBe(26)
+		end)
+		it("hides nodes until a requirement has a level", function()
+			expect(Upgrades.visible({}, "LongArm")).toBe(false)
+			expect(Upgrades.visible({ WideHead = 1 }, "LongArm")).toBe(true)
+			expect(Upgrades.visible({}, "WideHead")).toBe(true)
+		end)
+	end)
+
+	describe("Economy", function()
+		it("pays $10 by the station and $40 far away", function()
+			expect(Economy.sectorReward(0)).toBe(10)
+			expect(Economy.sectorReward(90)).toBe(40)
+			expect(Economy.sectorReward(35)).toBe(25)
+		end)
+		it("applies Market Contracts to deposits", function()
+			local base = Economy.depositPayout({ { kg = 10 } })
+			expect(base).toBe(15)
+			expect(Economy.depositPayout({ { kg = 10 } }, { launchPct = 6 })).toBe(15.9)
+		end)
+		it("values Stardust at five times dust", function()
+			expect(Economy.depositPayout({ { kg = 2, stardust = 2 } })).toBe(15)
+		end)
+		it("discounts but never below a cent", function()
+			expect(Economy.price(100, { discountPct = 15 })).toBe(85)
+			expect(Economy.price(100, { discountPct = 90 })).toBe(50)
+		end)
+		it("charges $50 to teleport, less with the Commuter Pass", function()
+			expect(Economy.teleportPrice()).toBe(50)
+			expect(Economy.teleportPrice({ teleportOff = 40 })).toBe(10)
+		end)
+		it("makes each Cosmic Octo 50% dearer", function()
+			expect(Economy.octoPrice(0)).toBe(20000)
+			expect(Economy.octoPrice(1)).toBe(30000)
+		end)
+		it("pays away earnings at 25% capped at 8 hours", function()
+			expect(Economy.awayEarnings(100, 60)).toBe(0)
+			expect(Economy.awayEarnings(100, 3600)).toBe(1500)
+			expect(Economy.awayEarnings(100, 3600 * 20)).toBe(100 * 480 * 0.25)
+		end)
+		it("refunds in full for a minute after placing", function()
+			expect(Economy.refund(100, 30)).toBe(100)
+			expect(Economy.refund(100, 120)).toBe(50)
+		end)
+	end)
+
+	describe("Loadout", function()
+		it("doubles the pack with a Bigger Pack and adds compactor percent", function()
+			local tool = Loadout.tool("MercuryBroom")
+			local s = Loadout.toolStats(tool, true, { packPct = 15 })
+			expect(s.pack).toBeNear(7 * 2 * 1.15, 1e-6)
+		end)
+		it("takes the Big Suck Rover to 5,700 kg like the original", function()
+			local rover = Loadout.vehicle("BigSuckRover")
+			expect(math.abs(Loadout.maxTank(rover) - 5700) < 1).toBeTruthy()
+		end)
+		it("trades width for speed on the Suction Dial", function()
+			local rover = Loadout.vehicle("BigSuckRover")
+			local a = Loadout.vehicleStats(rover, { SuctionDial = 2 }, nil, 0)
+			local b = Loadout.vehicleStats(rover, { SuctionDial = 2 }, nil, 2)
+			expect(b.width < a.width and b.speed > a.speed).toBeTruthy()
+			local c = Loadout.vehicleStats(rover, { SuctionDial = 0 }, nil, 2)
+			expect(c.width).toBe(a.width)
+		end)
+		it("carries three pods to start", function()
+			expect(Loadout.carryLimit(0)).toBe(3)
+			expect(Loadout.carryLimit(1, { carry = 2 })).toBe(6)
+		end)
+	end)
+
+	describe("Sweep", function()
+		local up = Vector3.new(0, 1, 0)
+		it("covers the swept strip's area", function()
+			local s = Sweep.samples(Vector3.new(0, 0, 0), Vector3.new(10, 0, 0), up, 3)
+			local area = 0
+			for _, x in s do
+				area += x.area
+			end
+			expect(area).toBeNear(30, 1e-4)
+		end)
+		it("sweeps nothing standing still", function()
+			expect(#Sweep.samples(Vector3.new(0, 0, 0), Vector3.new(0, 0.5, 0), up, 3)).toBe(0)
+		end)
+		it("finishes a patch off below the clean threshold", function()
+			local left, frac = Sweep.scrub(30, Sweep.PATCH_AREA * 0.05, 1)
+			expect(left).toBe(0)
+			expect(frac).toBeNear(30 / 255, 1e-9)
+		end)
+		it("rejects teleports", function()
+			expect(Sweep.plausible(16, 1, 16)).toBe(true)
+			expect(Sweep.plausible(200, 0.1, 16)).toBe(false)
+		end)
+	end)
+
+	describe("Balance", function()
+		-- time to clean one sector with a tool, walking while brushing, 25% overlap waste
+		local SECTOR_AREA = Sweep.PATCH_AREA * 25
+		local function sectorSeconds(width)
+			local speed = Config.Moon.WalkSpeed * Config.Moon.BrushSpeedFactor
+			return SECTOR_AREA / (width * speed) * 1.25
+		end
+		it("cleans the first sector with the toothbrush in about a minute", function()
+			local s = sectorSeconds(Config.Tools[1].width)
+			expect(s > 40 and s < 90).toBeTruthy()
+		end)
+		it("lets the Cosmic Broom clear a sector in seconds", function()
+			expect(sectorSeconds(Config.Tools[13].width) < 12).toBeTruthy()
+		end)
+		it("pays for the first new brush with the first sector", function()
+			local kg = SECTOR_AREA * Config.Dust.KgPerStud2
+			local cash = Economy.depositPayout({ { kg = kg } }) + Economy.sectorReward(0)
+			expect(cash >= Config.Tools[2].price).toBeTruthy()
+		end)
+	end)
+
+	describe("Factory", function()
+		it("has nights", function()
+			local light, night = Factory.sun(Config.DayNight.CycleSeconds * 0.9)
+			expect(night).toBe(true)
+			expect(light).toBe(0)
+			light, night = Factory.sun(Config.DayNight.CycleSeconds * 0.4)
+			expect(night).toBe(false)
+			expect(light > 0.9).toBeTruthy()
+		end)
+		it("covers night demand from the battery", function()
+			local p = Factory.power(10, 0, 10, 20, 20, 3600)
+			expect(p.satisfied).toBe(1)
+			expect(p.battery).toBeNear(10, 1e-9)
+			p = Factory.power(0, 0, 10, 2, 20, 3600)
+			expect(p.satisfied).toBeNear(0.2, 1e-9)
+		end)
+		it("presses 1 dust + 1 glass into 2 gems", function()
+			local gem, dust, glass = Factory.press(10, 10, 60, 1)
+			expect(gem).toBe(20)
+			expect(dust).toBe(0)
+			expect(glass).toBe(0)
+		end)
+		it("finds new achievements", function()
+			local got = Factory.newAchievements({ kg = 150 }, { Dust10 = true })
+			expect(#got).toBe(1)
+			expect(got[1].id).toBe("Dust100")
+		end)
+	end)
+end
