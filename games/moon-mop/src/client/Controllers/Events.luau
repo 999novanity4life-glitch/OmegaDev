@@ -206,6 +206,14 @@ local function cutscene(caption: string, sub: string, shots: { Shot })
 	end
 	playing = true
 	Menus.close()
+	-- the HUD steps aside while the scene plays
+	local hidden: { ScreenGui } = {}
+	for _, g in player:WaitForChild("PlayerGui"):GetChildren() do
+		if g:IsA("ScreenGui") and g.Enabled then
+			g.Enabled = false
+			table.insert(hidden, g)
+		end
+	end
 	local gui = Theme.screen("Cutscene", player:WaitForChild("PlayerGui"), 50)
 	gui.ScreenInsets = Enum.ScreenInsets.None
 	local top = Theme.frame(UDim2.fromScale(1, 0.12), UDim2.fromScale(0, -0.12), Theme.BLACK)
@@ -262,6 +270,9 @@ local function cutscene(caption: string, sub: string, shots: { Shot })
 	task.delay(0.35, function()
 		gui:Destroy()
 		safe:Destroy()
+		for _, g in hidden do
+			g.Enabled = true
+		end
 	end)
 	playing = false
 end
