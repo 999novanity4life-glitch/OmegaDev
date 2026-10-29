@@ -23,6 +23,7 @@ local NAMES = {
 	"MoonSnapshot", -- (completedSectors: buffer, partialPatches: buffer) on join
 	"MoonDelta", -- (patches: buffer, sectorsDone: buffer, sectorsRedusted: buffer)
 	"WorldEvent", -- (kind, data): meteor warnings, launches, region completes
+	"Factory", -- ({ [plotIndex]: flat pod list id, x, z, h, kind, ... }) for drawing belts
 }
 
 local FOLDER_NAME = "Remotes"

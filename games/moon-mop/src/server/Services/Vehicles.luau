@@ -17,6 +17,7 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local Sweep = require(Shared:WaitForChild("Sweep"))
 local Validate = require(Shared:WaitForChild("Validate"))
 
+local Automation = require(script.Parent.Automation)
 local Base = require(script.Parent.Base)
 local Crew = require(script.Parent.Crew)
 local Dust = require(script.Parent.Dust)
@@ -159,6 +160,19 @@ end
 local function dump(s: Crew.Session)
 	if not s.vehicle or s.tankKg < 0.01 then
 		Crew.feedback(s.player, "Error", { text = "The tank is empty" })
+		return
+	end
+	-- a Collector Pad wired to belts takes the load as pods for the Pod Cannon
+	local uid, padAt = Automation.collectorFor(s.player)
+	if uid then
+		local dust = s.tankKg - s.tankStar
+		Automation.feed(s.player, uid, "Dust", dust)
+		Automation.feed(s.player, uid, "Stardust", s.tankStar)
+		Crew.stat(s, "dumps", 1)
+		s.tankKg, s.tankStar = 0, 0
+		s.dirty = true
+		Crew.feedback(s.player, "Toast", { text = "Tank emptied onto the belts" })
+		worldEvent:FireAllClients("Unload", { at = padAt, by = s.player.UserId })
 		return
 	end
 	local at: Vector3? = nil

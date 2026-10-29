@@ -28,6 +28,7 @@ require(Services.Shop)
 require(Services.Stations)
 require(Services.Finds)
 require(Services.Base)
+require(Services.Automation)
 require(Services.Vehicles)
 require(Services.Debug)
 

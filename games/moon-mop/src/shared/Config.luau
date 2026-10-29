@@ -1016,7 +1016,7 @@ Config.Buildings = {
 		tab = "Logistics",
 		price = 30,
 		size = Vector3.new(4, 8, 4),
-		text = "Raises a belt so it can cross another",
+		text = "Hops pods over the next tile so belts can cross",
 	},
 	{
 		id = "PodPacker",
@@ -1076,7 +1076,7 @@ Config.Buildings = {
 		tab = "Robots",
 		price = 250,
 		size = Vector3.new(8, 4, 8),
-		text = "Cleans the 19 sectors round its dock, 8 kg/min",
+		text = "Cleans the 19 sectors nearest your base, 8 kg/min",
 	},
 	{
 		id = "DotBotMk2",
@@ -1084,7 +1084,7 @@ Config.Buildings = {
 		tab = "Robots",
 		price = 500,
 		size = Vector3.new(8, 4, 8),
-		text = "Cleans 37 sectors, 15 kg/min",
+		text = "Cleans the 37 sectors nearest your base, 15 kg/min",
 	},
 	{
 		id = "PodCatcher",

@@ -38,6 +38,7 @@ export type SaveData = {
 	purchases: { [string]: boolean },
 	dropPads: { { number } },
 	nextUid: number,
+	battery: number, -- kWh left in the base's batteries
 }
 
 local TEMPLATE: SaveData = {
@@ -67,6 +68,7 @@ local TEMPLATE: SaveData = {
 	purchases = {},
 	dropPads = {},
 	nextUid = 1,
+	battery = 0,
 }
 
 local Data = {}
