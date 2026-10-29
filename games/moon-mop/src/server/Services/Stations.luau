@@ -41,6 +41,8 @@ end
 
 local spawns: { CFrame } = {}
 Stations.spawns = spawns
+local supplyStands: { CFrame } = {}
+Stations.supplyStands = supplyStands
 
 local function prompt(parent: BasePart, action: string, object: string, hold: number, menu: string?): ProximityPrompt
 	local p = Instance.new("ProximityPrompt")
@@ -80,6 +82,9 @@ for _, st in Places.stations do
 	model:SetAttribute("StationIndex", st.index)
 	model.Parent = folder
 	spawns[st.index] = a.spawn
+	-- where a new hire starts: in front of the supply wall, facing it (P1 f_003)
+	local wall = a.supply
+	supplyStands[st.index] = CFrame.lookAt((wall * CFrame.new(0, 0, -8)).Position, wall.Position, wall.UpVector)
 
 	local drumPoint = anchorPart("DrumPrompt", a.drum * CFrame.new(0, 4, 0), model)
 	local deposit = prompt(drumPoint, "Deposit pods", "Dust Drum", Config.Timings.DepositSeconds)
@@ -104,7 +109,6 @@ for _, st in Places.stations do
 		"teleport"
 	)
 	Zones.add("teleport", a.teleport.Position, 16)
-	prompt(anchorPart("BossPrompt", a.boss * CFrame.new(0, 5, 0), model), "Talk", "Boss Bot", 0, "boss")
 	model:SetAttribute("Cannon", a.cannon.Position)
 	model:SetAttribute("Spawn", a.spawn.Position)
 	Zones.add("station", a.floor.Position, 60)

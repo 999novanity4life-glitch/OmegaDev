@@ -23,7 +23,8 @@ local Crew = require(script.Parent.Crew)
 local Dust = require(script.Parent.Dust)
 local RemoteGuard = require(script.Parent.RemoteGuard)
 local Zones = require(script.Parent.Zones)
-local buildVehicle = require(script.Parent.Parent.World.Vehicles)
+local buildVehicle =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("World"):WaitForChild("Vehicles"))
 
 local Vehicles = {}
 

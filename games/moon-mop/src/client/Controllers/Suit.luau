@@ -39,130 +39,209 @@ local function swatch(color: Color3, selected: boolean, order: number): TextButt
 	local b = Instance.new("TextButton")
 	b.Text = ""
 	b.AutoButtonColor = false
-	b.Size = UDim2.fromOffset(52, 52)
-	b.BackgroundColor3 = color
+	b.Size = UDim2.fromOffset(58, 58)
+	b.BackgroundColor3 = if selected then Theme.ORANGE else Theme.ROW
 	b.LayoutOrder = order
-	Theme.corner(b, 26)
-	Theme.stroke(b, if selected then Theme.ORANGE else Theme.SLATE_HI, if selected then 4 else 2)
+	Theme.corner(b, 6)
+	local dot = Theme.frame(UDim2.fromOffset(40, 40), UDim2.fromScale(0.5, 0.5), color)
+	dot.AnchorPoint = Vector2.new(0.5, 0.5)
+	Theme.corner(dot, 20)
+	Theme.stroke(dot, Theme.EDGE, 2)
+	dot.Parent = b
 	Juice.bindButton(b)
 	return b
 end
 
 local function grid(parent: Instance, y: number, height: number): Frame
-	local f = Theme.frame(UDim2.new(1, 0, 0, height), UDim2.fromOffset(0, y), Theme.SLATE, 1)
+	local f = Theme.frame(UDim2.new(1, -24, 0, height), UDim2.fromOffset(12, y), Theme.INNER, 1)
 	local layout = Instance.new("UIGridLayout")
-	layout.CellSize = UDim2.fromOffset(52, 52)
-	layout.CellPadding = UDim2.fromOffset(10, 10)
+	layout.CellSize = UDim2.fromOffset(58, 58)
+	layout.CellPadding = UDim2.fromOffset(8, 8)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = f
 	f.Parent = parent
 	return f
 end
 
+local function heading(parent: Instance, text: string, y: number)
+	local h = Theme.label(text, 11, Theme.TEAL, Theme.F.bold, UDim2.new(1, -24, 0, 16), UDim2.fromOffset(12, y))
+	h.Parent = parent
+end
+
 function Suit.start()
 	local gui = Theme.screen("Suit", player:WaitForChild("PlayerGui"), 6)
-	local card, body = Theme.card(gui, "Suit locker", "Moon Mop Co. crew", UDim2.fromScale(0.8, 0.8))
+	local m = Theme.stationMenu(gui, "Suit locker")
 	local customize = Remotes.get("Customize")
 	local gearRemote = Remotes.get("Gear")
-	local pick = { visor = 1, colour = 1 }
+	local tab = "Suit"
+	local selectedGear = GEAR_NAMES[1].id
+	local action: (() -> ())? = nil
+	local refresh: () -> ()
 
-	local function refresh()
-		for _, c in body:GetChildren() do
-			if c:IsA("GuiObject") then
-				c:Destroy()
-			end
-		end
+	local function pickTab(name: string)
+		tab = name
+		refresh()
+	end
+
+	function refresh()
+		Theme.clear(m.body)
+		Theme.clear(m.detail)
+		action = nil
 		local s = State.get()
 		local suit = s.suit or { visor = 1, colour = 1 }
-		pick.visor, pick.colour = suit.visor, suit.colour
-		local left = Theme.frame(UDim2.new(0.58, -8, 1, 0), nil, Theme.SLATE, 1)
-		left.Parent = body
-		local head = Theme.text("SUIT COLOUR", UDim2.new(1, 0, 0, 22), Theme.TEAL, Enum.Font.GothamBold, 16)
-		head.Parent = left
-		local colours = grid(left, 28, 124)
-		for i, c in G.SuitColours do
-			local b = swatch(Color3.fromRGB(c[1], c[2], c[3]), i == pick.colour, i)
-			b.Activated:Connect(function()
-				customize:FireServer(pick.visor, i)
-				pick.colour = i
-			end)
-			b.Parent = colours
-		end
-		local vhead = Theme.text("VISOR", UDim2.new(1, 0, 0, 22), Theme.TEAL, Enum.Font.GothamBold, 16)
-		vhead.Position = UDim2.fromOffset(0, 160)
-		vhead.Parent = left
-		local visors = grid(left, 188, 200)
-		for i = 1, G.VisorStyles do
-			local b = swatch(visorColour(i), i == pick.visor, i)
-			b.Activated:Connect(function()
-				customize:FireServer(i, pick.colour)
-				pick.visor = i
-			end)
-			b.Parent = visors
-		end
-		local right = Theme.frame(UDim2.new(0.42, -8, 1, 0), UDim2.new(0.58, 8, 0, 0), Theme.SLATE_HI)
-		Theme.corner(right, 8)
-		Theme.pad(right, 12)
-		right.Parent = body
-		local ghead = Theme.text("GEAR", UDim2.new(1, 0, 0, 22), Theme.TEAL, Enum.Font.GothamBold, 16)
-		ghead.Parent = right
 		local gear = s.gear or {}
-		for i, g in GEAR_NAMES do
-			local row = Theme.frame(UDim2.new(1, 0, 0, 60), UDim2.fromOffset(0, 30 + (i - 1) * 68), Theme.SLATE)
-			Theme.corner(row, 6)
-			row.Parent = right
-			local n = Theme.text(g.name, UDim2.new(0.6, 0, 0, 24), Theme.WHITE, Enum.Font.GothamBlack, 18)
-			n.Position = UDim2.fromOffset(10, 6)
-			n.Parent = row
-			local t = Theme.text(g.text, UDim2.new(0.5, 0, 0, 18), Theme.MUTED, Enum.Font.GothamBold, 13)
-			t.Position = UDim2.fromOffset(10, 32)
-			t.Parent = row
+		m.money.Text = Theme.cash(s.money or 0)
+		m.counterLabel.Text = "GEAR OWNED"
+		local owned = 0
+		for _, g in GEAR_NAMES do
 			if gear[g.id] then
-				-- the Jetpack is on unless switched off; the others are off until switched on
-				local on = if g.id == "Jetpack" then gear.JetpackOn ~= false else gear[g.id .. "On"] == true
-				local b =
-					Theme.button(if on then "ON" else "OFF", UDim2.fromOffset(80, 44), if on then "Green" else "Dark")
-				b.AnchorPoint = Vector2.new(1, 0.5)
-				b.Position = UDim2.new(1, -8, 0.5, 0)
-				b.Activated:Connect(function()
-					gearRemote:FireServer(g.id, not on)
-				end)
-				b.Parent = row
-			else
-				local tag = Theme.tag("SUPPLY WALL", "Info")
-				tag.Size = UDim2.fromOffset(110, 24)
-				tag.AnchorPoint = Vector2.new(1, 0.5)
-				tag.Position = UDim2.new(1, -8, 0.5, 0)
-				tag.Parent = row
+				owned += 1
 			end
+		end
+		m.counter.Text = string.format("%d / %d", owned, #GEAR_NAMES)
+		Theme.setTabs(m.tabs, { "Suit", "Gear" }, tab, pickTab)
+		Theme.setHints(m.hints, {
+			{ "1", "2", "Tabs" },
+			{ "LMB", "Choose" },
+			{ "Enter", if tab == "Suit" then "Done" else "Switch on or off" },
+			{ "C", "Esc", "Leave" },
+		})
+		local colour = G.SuitColours[suit.colour] or G.SuitColours[1]
+		local suitColour = Color3.fromRGB(colour[1], colour[2], colour[3])
+
+		if tab == "Suit" then
+			heading(m.body, "SUIT COLOUR", 12)
+			local colours = grid(m.body, 34, 132)
+			for i, c in G.SuitColours do
+				local b = swatch(Color3.fromRGB(c[1], c[2], c[3]), i == suit.colour, i)
+				b.Activated:Connect(function()
+					customize:FireServer(suit.visor, i)
+				end)
+				b.Parent = colours
+			end
+			heading(m.body, "VISOR TINT", 184)
+			local visors = grid(m.body, 206, 200)
+			for i = 1, G.VisorStyles do
+				local b = swatch(visorColour(i), i == suit.visor, i)
+				b.Activated:Connect(function()
+					customize:FireServer(i, suit.colour)
+				end)
+				b.Parent = visors
+			end
+			-- detail: a helmet badge in the chosen colours
+			local thumb = Theme.frame(UDim2.fromScale(1, 1), nil, suitColour)
+			Theme.corner(thumb, 6)
+			local visor = Theme.frame(UDim2.fromScale(0.7, 0.42), UDim2.fromScale(0.5, 0.45), visorColour(suit.visor))
+			visor.AnchorPoint = Vector2.new(0.5, 0.5)
+			Theme.corner(visor, 10)
+			Theme.stroke(visor, Theme.EDGE, 2)
+			visor.Parent = thumb
+			Theme.detailHead(m.detail, "Spacesuit", "Your suit", "Pick a colour and a visor. The crew sees it.", thumb)
+			Theme.statRow(m.detail, 140, "Colour", string.format("No. %d of %d", suit.colour, #G.SuitColours))
+			Theme.statRow(m.detail, 176, "Visor", string.format("No. %d of %d", suit.visor, G.VisorStyles))
+			local b = Theme.action(m.detail, "DONE", true, 300)
+			local function done()
+				Menus.close()
+			end
+			b.Activated:Connect(done)
+			action = done
+			return
+		end
+
+		local list = Theme.list(m.body, UDim2.new(1, -16, 1, -16), UDim2.fromOffset(8, 8), 7)
+		local chosen = GEAR_NAMES[1]
+		for i, g in GEAR_NAMES do
+			local sel = g.id == selectedGear
+			if sel then
+				chosen = g
+			end
+			local row = Theme.cell(UDim2.new(1, -6, 0, 40), if sel then Theme.ORANGE else Theme.ROW)
+			row.LayoutOrder = i
+			Theme.corner(row, 3)
+			local n = Theme.label(
+				g.name,
+				14,
+				if gear[g.id] or sel then Theme.WHITE else Theme.DIM,
+				Theme.F.bold,
+				UDim2.fromOffset(300, 40),
+				UDim2.fromOffset(16, 0)
+			)
+			n.Parent = row
+			local on = if g.id == "Jetpack" then gear.JetpackOn ~= false else gear[g.id .. "On"] == true
+			local word = if not gear[g.id] then "NOT OWNED" elseif on then "ON" else "OFF"
+			local t = Theme.label(
+				word,
+				10,
+				if sel then Theme.WHITE elseif not gear[g.id] then Theme.MUTED elseif on then Theme.MINT else Theme.MUTED,
+				Theme.F.bold,
+				UDim2.fromOffset(120, 40),
+				UDim2.new(1, -132, 0, 0)
+			)
+			t.TextXAlignment = Enum.TextXAlignment.Right
+			t.Parent = row
+			row.Activated:Connect(function()
+				selectedGear = g.id
+				refresh()
+			end)
+			row.Parent = list
+		end
+		Theme.detailHead(m.detail, "Gear", chosen.name, chosen.text)
+		if gear[chosen.id] then
+			local on = if chosen.id == "Jetpack" then gear.JetpackOn ~= false else gear[chosen.id .. "On"] == true
+			Theme.statRow(
+				m.detail,
+				140,
+				"Status",
+				if on then "Switched on" else "Switched off",
+				if on then Theme.MINT else nil
+			)
+			local function toggle()
+				gearRemote:FireServer(chosen.id, not on)
+			end
+			local b = Theme.action(m.detail, if on then "SWITCH OFF" else "SWITCH ON", true, 300)
+			b.Activated:Connect(toggle)
+			action = toggle
+		else
+			Theme.statRow(m.detail, 140, "Where", "Supply wall, Gears")
+			Theme.action(m.detail, "BUY IT AT THE SUPPLY WALL", false, 300)
 		end
 	end
 
-	Menus.register("suit", card, refresh)
+	Menus.register("suit", m.root, refresh, function()
+		if action then
+			action()
+		end
+	end)
 	State.changed(function()
-		if card.Visible then
+		if m.root.Visible then
 			refresh()
 		end
 	end)
 	-- a SUIT button for touch and mouse players, clear of the thumbstick and jump button
 	local launcherGui = Theme.screen("SuitButton", player:WaitForChild("PlayerGui"), 3)
+	launcherGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	local launcher = Theme.button("SUIT", UDim2.fromOffset(72, 44), "Dark")
 	launcher.Position = UDim2.fromOffset(16, 150)
+	launcher.Visible = UserInputService.TouchEnabled
 	launcher.Parent = launcherGui
-	launcher.Activated:Connect(function()
-		if card.Visible then
+	local function toggleMenu()
+		if m.root.Visible then
 			Menus.close()
 		else
 			Menus.open("suit")
 		end
-	end)
-	UserInputService.InputBegan:Connect(function(input, processed)
-		if not processed and input.KeyCode == Enum.KeyCode.C then
-			if card.Visible then
-				Menus.close()
-			else
-				Menus.open("suit")
-			end
+	end
+	launcher.Activated:Connect(toggleMenu)
+	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+		if processed then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.C then
+			toggleMenu()
+		elseif m.root.Visible and input.KeyCode == Enum.KeyCode.One then
+			pickTab("Suit")
+		elseif m.root.Visible and input.KeyCode == Enum.KeyCode.Two then
+			pickTab("Gear")
 		end
 	end)
 end

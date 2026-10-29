@@ -526,8 +526,17 @@ local function update()
 		local reach = (char:GetAttribute("ToolReach") :: number?) or 2
 		local hand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
 		local handPos = if hand and hand:IsA("BasePart") then hand.Position else root.Position + right * 1 + up * 0.5
+		-- your own tool in first person: held from the lower right of the view (P1 f_006, f_328)
+		local cam = Workspace.CurrentCamera
+		local eye = root.Position + up * 1.55
+		local mine = plr == Players.LocalPlayer and (cam.CFrame.Position - eye).Magnitude < 0.6
+		if mine then
+			handPos = (cam.CFrame * CFrame.new(0.75, -1.05, -0.9)).Position
+		end
 		local headPos: Vector3
-		if brushing then
+		if mine and not brushing then
+			headPos = (cam.CFrame * CFrame.new(1.25, -1.15, -3.4)).Position
+		elseif brushing then
 			-- sweep side to side in front of you, head on the ground
 			local sway = if reduced then 0 else math.sin(now * 7) * 0.9
 			local probe = root.Position + fwd * reach + right * sway
@@ -590,6 +599,17 @@ local function update()
 			built[char] = nil
 		end
 	end
+end
+
+-- A fresh model of a tool, for 3D icons in menus and on the belt slots. Cached per id.
+local iconCache: { [string]: Model } = {}
+function Brooms.model(id: string): Model
+	local m = iconCache[id]
+	if not m then
+		m = build(id).model
+		iconCache[id] = m
+	end
+	return m
 end
 
 function Brooms.start()

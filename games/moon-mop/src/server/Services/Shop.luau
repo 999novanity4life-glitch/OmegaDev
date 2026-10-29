@@ -15,6 +15,7 @@ local Validate = require(Shared:WaitForChild("Validate"))
 
 local Crew = require(script.Parent.Crew)
 local RemoteGuard = require(script.Parent.RemoteGuard)
+local Stations = require(script.Parent.Stations)
 local Zones = require(script.Parent.Zones)
 
 local Shop = {}
@@ -254,6 +255,8 @@ end, function(player: Player, id: string, on: boolean)
 	end
 end)
 
+-- The employment contract is signed (or declined, which also hires you): start the shift in
+-- front of the North Station supply wall.
 RemoteGuard.connect(Remotes.get("Story"), function(step: any)
 	return step == "hired"
 end, function(player: Player)
@@ -261,6 +264,10 @@ end, function(player: Player)
 	if s and not s.data.hired then
 		s.data.hired = true
 		s.dirty = true
+		local stand = Stations.supplyStands[1]
+		if stand then
+			Stations.moveTo(player, stand)
+		end
 	end
 end)
 

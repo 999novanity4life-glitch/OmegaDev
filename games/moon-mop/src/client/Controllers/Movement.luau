@@ -7,7 +7,10 @@
 -- * Humanoid.EvaluateStateMachine = false hands movement to a ControllerManager whose UpDirection
 --   is the radial up every frame. The ground sensor is Manual: we raycast toward the centre.
 -- * The camera is Scriptable and carries its own up vector, parallel-transported as you walk, so
---   the horizon stays level anywhere on the sphere. Third person by default, V for first person.
+--   the horizon stays level anywhere on the sphere. On foot it is always first person, like the
+--   original (P1 f_006: eye height, wide FOV, the tool held lower right); vehicles and cutscenes
+--   take it over with a chase or story camera. The mouse is locked to the centre unless a menu,
+--   the map or the intro frees the cursor.
 -- * The default Animate script listens to Humanoid states, which no longer run, so it is
 --   disabled and its idle / walk / jump / fall animations are played from here.
 -- * Speeds come from the server (character attributes WalkSpeed / JumpSpeed).
@@ -25,9 +28,9 @@ local Movement = {}
 
 local CENTRE = Config.Moon.Centre
 local GRAVITY = Config.Moon.Gravity
-local CAM_DIST = 14
-local CAM_MIN, CAM_MAX = 0.5, 60
-local PITCH_MIN, PITCH_MAX = math.rad(-75), math.rad(60)
+local EYE = 1.55 -- studs above the root part
+local FOV = 80
+local PITCH_MIN, PITCH_MAX = math.rad(-80), math.rad(80)
 
 local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
@@ -46,10 +49,10 @@ end
 
 -- Camera state survives respawns.
 local frame = CFrame.identity -- orientation only; UpVector is the local up
-local yaw, pitch, zoom = 0, math.rad(-15), CAM_DIST
-local dragging = false
-local firstPerson = false
+local yaw, pitch = 0, math.rad(-10)
 local brushing = false
+-- Reasons the cursor is free (menu, map, intro...). Empty = mouse look.
+local freeReasons: { [string]: boolean } = {}
 
 -- Something else (a cutscene, a vehicle chase camera, the map) can take the camera.
 export type CameraOverride = (dt: number) -> CFrame?
@@ -71,13 +74,37 @@ function Movement.setBrushing(on: boolean)
 	brushing = on
 end
 
-function Movement.toggleFirstPerson()
-	firstPerson = not firstPerson
-	zoom = if firstPerson then CAM_MIN else CAM_DIST
+function Movement.isFirstPerson(): boolean
+	return true
 end
 
-function Movement.isFirstPerson(): boolean
-	return firstPerson
+-- Hold the character still (the intro and contract play over the station).
+local frozen = false
+function Movement.setFrozen(on: boolean)
+	frozen = on
+end
+
+-- Free the mouse cursor for a reason (a menu, the map, the intro) or lock it again.
+function Movement.freeCursor(reason: string, on: boolean)
+	if on then
+		freeReasons[reason] = true
+	else
+		freeReasons[reason] = nil
+	end
+end
+
+local function cursorFree(): boolean
+	return next(freeReasons) ~= nil
+end
+Movement.cursorFree = cursorFree
+
+-- Look along a world direction (after a teleport or the intro).
+function Movement.lookAlong(dir: Vector3)
+	local l = frame:VectorToObjectSpace(dir)
+	if Vector2.new(l.X, l.Z).Magnitude > 1e-3 then
+		yaw = math.atan2(-l.X, -l.Z)
+	end
+	pitch = math.rad(-8)
 end
 
 -- The camera's frame: up is the local up, look is where the player faces the view.
@@ -93,35 +120,24 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 	if processed then
 		return
 	end
-	if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		dragging = true
-	elseif input.KeyCode == Enum.KeyCode.V then
-		Movement.toggleFirstPerson()
-	elseif input.KeyCode == Enum.KeyCode.Space then
+	if input.KeyCode == Enum.KeyCode.Space then
 		jetpackHeld = true
 	end
 end)
 UserInputService.InputEnded:Connect(function(input: InputObject)
-	if input.UserInputType == Enum.UserInputType.MouseButton2 then
-		dragging = false
-	elseif input.KeyCode == Enum.KeyCode.Space then
+	if input.KeyCode == Enum.KeyCode.Space then
 		jetpackHeld = false
 	end
 end)
-UserInputService.InputChanged:Connect(function(input: InputObject, processed: boolean)
-	if input.UserInputType == Enum.UserInputType.MouseWheel and not processed then
-		zoom = math.clamp(zoom * (1 - input.Position.Z * 0.12), CAM_MIN, CAM_MAX)
-		firstPerson = zoom < 1
-	elseif input.UserInputType == Enum.UserInputType.MouseMovement then
-		if dragging or zoom < 1 then
-			yaw -= input.Delta.X * 0.004
-			pitch = math.clamp(pitch - input.Delta.Y * 0.004, PITCH_MIN, PITCH_MAX)
-		end
+UserInputService.InputChanged:Connect(function(input: InputObject)
+	if input.UserInputType == Enum.UserInputType.MouseMovement and not cursorFree() then
+		yaw -= input.Delta.X * 0.004
+		pitch = math.clamp(pitch - input.Delta.Y * 0.004, PITCH_MIN, PITCH_MAX)
 	end
 end)
 -- Touch: drags that the thumbstick or buttons did not claim turn the camera.
 UserInputService.TouchMoved:Connect(function(touch: InputObject, processed: boolean)
-	if processed then
+	if processed or cursorFree() then
 		return
 	end
 	yaw -= touch.Delta.X * 0.006
@@ -209,7 +225,7 @@ local function setup(character: Model)
 	-- gamepad are read directly; touch falls back to undoing the camera-relative MoveDirection.
 	local function moveInput(): Vector3
 		local x, z = 0, 0
-		if UserInputService:GetFocusedTextBox() then
+		if frozen or UserInputService:GetFocusedTextBox() then
 			return Vector3.zero
 		end
 		local function down(a: Enum.KeyCode, b: Enum.KeyCode): boolean
@@ -311,15 +327,15 @@ local function setup(character: Model)
 			end
 		end
 		cm.MovingDirection = move
-		if move.Magnitude > 0.05 then
-			cm.FacingDirection = move.Unit
-		elseif firstPerson then
-			local f = flatten((frame * CFrame.Angles(0, yaw, 0)).LookVector, up)
-			if f.Magnitude > 1e-3 then
-				cm.FacingDirection = f.Unit
-			end
+		-- first person: the body (and the tool) always face where you look; you strafe
+		local f = flatten((frame * CFrame.Angles(0, yaw, 0)).LookVector, up)
+		if f.Magnitude > 1e-3 then
+			cm.FacingDirection = f.Unit
 		end
 
+		if frozen then
+			jumpQueued = false
+		end
 		if jumpQueued and grounded then
 			cm.ActiveController = air
 			local v = root.AssemblyLinearVelocity
@@ -349,24 +365,33 @@ local function setup(character: Model)
 		local custom = override and override(dt)
 		if custom then
 			camera.CFrame = custom
+			for _, d in character:GetDescendants() do
+				if d:IsA("BasePart") then
+					d.LocalTransparencyModifier = 0
+				end
+			end
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			UserInputService.MouseIconEnabled = true
 			return
 		end
-		local view = frame * CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
-		local focus = root.Position + up * 1.5
-		local dist = if firstPerson then 0.5 else zoom
-		local back = -view.LookVector
-		local block = Workspace:Raycast(focus, back * dist, rayParams)
-		if block then
-			dist = math.max(0.5, (block.Position - focus).Magnitude - 0.5)
-		end
-		camera.CFrame = CFrame.lookAt(focus + back * dist, focus, view.UpVector)
-		local fp = dist < 1.2
-		for _, d in character:GetDescendants() do
-			if d:IsA("BasePart") and d ~= root then
-				d.LocalTransparencyModifier = if fp and not d:GetAttribute("ShowInFirstPerson") then 1 else 0
+		-- right stick looks around on a gamepad
+		for _, st in UserInputService:GetGamepadState(Enum.UserInputType.Gamepad1) do
+			if st.KeyCode == Enum.KeyCode.Thumbstick2 and st.Position.Magnitude > 0.15 then
+				yaw -= st.Position.X * dt * 3
+				pitch = math.clamp(pitch + st.Position.Y * dt * 2.4, PITCH_MIN, PITCH_MAX)
 			end
 		end
-		UserInputService.MouseBehavior = if fp then Enum.MouseBehavior.LockCenter else Enum.MouseBehavior.Default
+		local view = frame * CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
+		camera.FieldOfView = FOV
+		camera.CFrame = CFrame.new(root.Position + up * EYE) * view.Rotation
+		for _, d in character:GetDescendants() do
+			if d:IsA("BasePart") and d ~= root then
+				d.LocalTransparencyModifier = if d:GetAttribute("ShowInFirstPerson") then 0 else 1
+			end
+		end
+		local free = cursorFree()
+		UserInputService.MouseBehavior = if free then Enum.MouseBehavior.Default else Enum.MouseBehavior.LockCenter
+		UserInputService.MouseIconEnabled = free
 	end)
 
 	local function cleanup()
@@ -393,6 +418,7 @@ function Movement.teleport(cf: CFrame)
 	character:PivotTo(cf)
 	root.AssemblyLinearVelocity = Vector3.zero
 	frame = rotationBetween(Vector3.yAxis, (cf.Position - CENTRE).Unit)
+	Movement.lookAlong(cf.LookVector)
 end
 
 function Movement.start()

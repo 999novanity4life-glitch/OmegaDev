@@ -1,9 +1,10 @@
 --!strict
--- The Build Tool (B): a catalog of the Mop Base buildings in six tabs, and a ghost of the chosen
--- building that follows the pointer over your plot, blue where it fits and red where it doesn't
--- (Shared/Plot decides, the same rules the server uses). R rotates, click places. Belts take two
--- clicks: start and end of a straight run. Remove mode (X) picks a building to sell back
--- (full refund for a minute after placing). Touch: tap to aim, then PLACE.
+-- The Build Tool (B). V opens the BUILD catalogue (six tabs of 3D renders with cream price
+-- tags, P1 f_181); the chosen building follows the centre of your view as a see-through blue
+-- ghost over your plot, red where it doesn't fit (Shared/Plot decides, the same rules the
+-- server uses). R rotates, click places. Belts take two clicks: start and end of a straight run.
+-- Remove mode (X) picks a building to sell back (full refund for a minute after placing).
+-- Touch: tap to aim, then PLACE.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,8 +17,10 @@ local Config = require(Shared:WaitForChild("Config"))
 local Places = require(Shared:WaitForChild("Places"))
 local Plot = require(Shared:WaitForChild("Plot"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local buildModel = require(Shared:WaitForChild("World"):WaitForChild("Buildings"))
 
 local Hud = require(script.Parent.Hud)
+local Menus = require(script.Parent.Menus)
 local Juice = require(script.Parent.Juice)
 local State = require(script.Parent.State)
 local Theme = require(script.Parent.Theme)
@@ -82,18 +85,37 @@ end
 
 local function makeGhost(id: string): Model
 	local def = Plot.def(id) :: Config.BuildDef
-	local m = Instance.new("Model")
+	-- a see-through blue copy of the real building (P1 f_149, f_251)
+	local ok, built = pcall(buildModel, id)
+	local m: Model
+	if ok then
+		m = built
+		for _, d in m:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.Anchored = true
+				d.CanCollide = false
+				d.CanQuery = false
+				d.CanTouch = false
+				d.CastShadow = false
+				d.Material = Enum.Material.SmoothPlastic
+				d.Transparency = math.max(d.Transparency, 0.55)
+			elseif d:IsA("Light") or d:IsA("SurfaceGui") or d:IsA("BillboardGui") or d:IsA("ParticleEmitter") then
+				d:Destroy()
+			end
+		end
+	else
+		m = Instance.new("Model")
+		local p = Instance.new("Part")
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.Size = def.size
+		p.CFrame = CFrame.new(0, def.size.Y / 2, 0)
+		p.Transparency = 0.55
+		p.Parent = m
+	end
 	m.Name = "BuildGhost"
-	local p = Instance.new("Part")
-	p.Anchored = true
-	p.CanCollide = false
-	p.CanQuery = false
-	p.CanTouch = false
-	p.Size = def.size
-	p.CFrame = CFrame.new(0, def.size.Y / 2, 0)
-	p.Material = Enum.Material.ForceField
-	p.Color = Theme.TEAL
-	p.Parent = m
 	local arrow = Instance.new("Part")
 	arrow.Name = "Arrow"
 	arrow.Anchored = true
@@ -111,9 +133,9 @@ end
 
 local function setGhostColour(ok: boolean)
 	if ghost then
-		for _, p in ghost:GetChildren() do
+		for _, p in ghost:GetDescendants() do
 			if p:IsA("BasePart") and p.Name ~= "Arrow" then
-				p.Color = if ok then Color3.fromRGB(80, 170, 255) else Theme.RED
+				p.Color = if ok then Color3.fromRGB(80, 190, 255) else Theme.RED
 			end
 		end
 	end
@@ -139,17 +161,40 @@ local function plotPointAt(screen: Vector2): Vector2?
 end
 
 ---------------------------------------------------------------------------- UI
+-- Build mode HUD (P1 f_149): a round orange-ringed icon, the item name, a yellow PLACE tag with
+-- the price (red NOT ENOUGH MONEY), grey specs, and key hints along the bottom. V opens the
+-- BUILD catalogue (P1 f_181), a station menu with tabs, 3D renders and cream price tags.
 local gui: ScreenGui
-local panel: Frame
-local itemsFrame: ScrollingFrame
-local tabRow: Frame
+local hud: Frame
+local hudIcon: Frame
+local hudName: TextLabel
+local hudTag: TextLabel
 local status: TextLabel
+local hudHints: Frame
 local placeButton: TextButton
+local menu: Theme.StationMenu
 local currentTab = Config.BuildTabs[1]
+local menuPick = Config.Buildings[1].id
 
 local function priceOf(id: string): number
 	local s = State.get()
 	return Plot.price(s.buildings or {}, id, s.fx)
+end
+
+local iconModels: { [string]: Model } = {}
+local function iconModel(id: string): Model?
+	if not iconModels[id] then
+		local ok, m = pcall(buildModel, id)
+		if ok then
+			iconModels[id] = m
+		end
+	end
+	return iconModels[id]
+end
+
+local function priceText(id: string): string
+	local p = priceOf(id)
+	return if id == "Belt" then Theme.money(p) .. " / tile" else Theme.money(p)
 end
 
 local refreshItems: () -> ()
@@ -168,66 +213,185 @@ local function select(id: string?)
 	refreshItems()
 end
 
-function refreshItems()
-	for _, c in itemsFrame:GetChildren() do
-		if c:IsA("GuiObject") then
-			c:Destroy()
-		end
+local function sizeText(def: Config.BuildDef): string
+	return string.format("%s x %s", Theme.metres(def.size.X), Theme.metres(def.size.Z))
+end
+
+-- the HUD while building
+local function refreshHud()
+	if not hud then
+		return
 	end
 	local s = State.get()
 	local money = s.money or 0
+	Theme.clear(hudIcon)
+	if removing then
+		hudName.Text = "REMOVE MODE"
+		hudTag.Text = if hovered
+			then string.format("LMB  REMOVE %s", string.upper(tostring(hovered.Name)))
+			else "POINT AT A BUILDING"
+		hudTag.BackgroundColor3 = Theme.RED
+		hudTag.TextColor3 = Theme.WHITE
+	elseif chosen then
+		local def = Plot.def(chosen) :: Config.BuildDef
+		local mdl = iconModel(chosen)
+		if mdl then
+			Theme.icon3d(mdl, UDim2.fromScale(1, 1), nil, 35, 25).Parent = hudIcon
+		end
+		hudName.Text = string.upper(def.name)
+		local price = priceOf(chosen)
+		local afford = money >= price
+		hudTag.Text = if afford then "PLACE  " .. priceText(chosen) else "NOT ENOUGH MONEY"
+		hudTag.BackgroundColor3 = if afford then Theme.YELLOW else Theme.RED
+		hudTag.TextColor3 = if afford then Theme.BLACK else Theme.WHITE
+	else
+		hudName.Text = "BUILD TOOL"
+		hudTag.Text = "PRESS V TO CHOOSE"
+		hudTag.BackgroundColor3 = Theme.YELLOW
+		hudTag.TextColor3 = Theme.BLACK
+	end
+	Theme.setHints(hudHints, {
+		{ "LMB", if removing then "Remove" elseif chosen == "Belt" and beltStart then "Place end" else "Place" },
+		{ "R", "Rotate" },
+		{ "V", "Build menu" },
+		{ "X", "Remove mode" },
+		{ "B", "Put away" },
+	})
+end
+
+-- the BUILD catalogue
+local function refreshMenu()
+	if not menu then
+		return
+	end
+	local s = State.get()
+	local money = s.money or 0
+	menu.money.Text = Theme.cash(money)
+	Theme.setTabs(menu.tabs, Config.BuildTabs, currentTab, function(name: string)
+		currentTab = name
+		for _, def in Config.Buildings do
+			if def.tab == name then
+				menuPick = def.id
+				break
+			end
+		end
+		refreshMenu()
+	end)
+	local grid = menu.body:FindFirstChild("Grid") :: ScrollingFrame
+	Theme.clear(grid)
 	local order = 0
 	for _, def in Config.Buildings do
 		if def.tab ~= currentTab then
 			continue
 		end
 		order += 1
+		local sel = def.id == menuPick
 		local price = priceOf(def.id)
-		local b = Instance.new("TextButton")
-		b.Size = UDim2.fromOffset(150, 96)
-		b.LayoutOrder = order
-		b.AutoButtonColor = false
-		b.Text = ""
-		b.BackgroundColor3 = if chosen == def.id then Theme.ORANGE else Theme.SLATE_HI
-		Theme.corner(b, 8)
-		local n = Theme.text(
-			def.name,
-			UDim2.new(1, -12, 0, 22),
-			if chosen == def.id then Theme.BLACK else Theme.WHITE,
-			Enum.Font.GothamBlack,
-			17
-		)
-		n.Position = UDim2.fromOffset(8, 6)
-		n.Parent = b
-		local t = Theme.text(
-			def.text,
-			UDim2.new(1, -12, 0, 34),
-			if chosen == def.id then Theme.SLATE else Theme.MUTED,
-			Enum.Font.GothamBold,
-			11
-		)
-		t.TextYAlignment = Enum.TextYAlignment.Top
-		t.TextWrapped = true
-		t.Position = UDim2.fromOffset(8, 30)
-		t.Parent = b
-		local tag = if Plot.atLimit(s.buildings or {}, def.id)
-			then Theme.tag("BUILT", "Owned")
-			else Theme.tag(
-				if def.id == "Belt" then Theme.money(price) .. "/tile" else Theme.money(price),
-				if money >= price then "Good" else "Bad"
-			)
-		tag.Position = UDim2.new(0, 8, 1, -30)
-		tag.Parent = b
-		b.Activated:Connect(function()
-			select(if chosen == def.id then nil else def.id)
-		end)
-		b.Parent = itemsFrame
-	end
-	for _, c in tabRow:GetChildren() do
-		if c:IsA("TextButton") then
-			c.BackgroundColor3 = if c.Name == currentTab then Theme.TEAL else Theme.SLATE_HI
-			c.TextColor3 = if c.Name == currentTab then Theme.BLACK else Theme.WHITE
+		local cell = Theme.cell(UDim2.fromOffset(176, 196), Theme.INNER)
+		cell.BackgroundTransparency = 1
+		cell.LayoutOrder = order
+		local mdl = iconModel(def.id)
+		if mdl then
+			Theme.icon3d(mdl, UDim2.fromOffset(176, 150), UDim2.fromOffset(0, 16), 35, 25).Parent = cell
 		end
+		local chip =
+			Theme.frame(UDim2.fromOffset(172, 24), UDim2.fromOffset(2, 168), if sel then Theme.ORANGE else Theme.ROW)
+		Theme.corner(chip, 3)
+		local n = Theme.label(def.name, 11, Theme.WHITE, Theme.F.bold, UDim2.fromScale(1, 1))
+		n.TextXAlignment = Enum.TextXAlignment.Center
+		n.Parent = chip
+		chip.Parent = cell
+		if Plot.atLimit(s.buildings or {}, def.id) then
+			local t =
+				Theme.label("BUILT", 9, Theme.TEAL, Theme.F.bold, UDim2.fromOffset(60, 18), UDim2.new(1, -66, 0, 8))
+			t.BackgroundColor3 = Theme.ROW
+			t.BackgroundTransparency = 0
+			t.TextXAlignment = Enum.TextXAlignment.Center
+			Theme.corner(t, 3)
+			t.Parent = cell
+		else
+			local tag = Theme.luggage(priceText(def.id), "Cream", 6)
+			tag.AnchorPoint = Vector2.new(1, 0)
+			tag.Position = UDim2.new(1, -4, 0, 6)
+			if money < price then
+				local l = tag:FindFirstChildOfClass("TextLabel")
+				if l then
+					l.TextColor3 = Theme.RED
+				end
+			end
+			tag.Parent = cell
+		end
+		cell.Activated:Connect(function()
+			if menuPick == def.id then
+				-- second click builds it
+				select(def.id)
+				Menus.close()
+				return
+			end
+			menuPick = def.id
+			refreshMenu()
+		end)
+		cell.Parent = grid
+	end
+	-- detail card
+	Theme.clear(menu.detail)
+	local def = Plot.def(menuPick) :: Config.BuildDef
+	local cat =
+		Theme.label(string.upper(def.tab), 10, Theme.TEAL, Theme.F.bold, UDim2.new(1, 0, 0, 14), UDim2.fromOffset(0, 2))
+	cat.Parent = menu.detail
+	local nm = Theme.label(def.name, 22, Theme.WHITE, Theme.F.heavy, UDim2.new(1, 0, 0, 30), UDim2.fromOffset(0, 16))
+	nm.Parent = menu.detail
+	local box = Theme.inset(menu.detail, UDim2.new(1, 0, 0, 160), UDim2.fromOffset(0, 56))
+	local mdl = iconModel(def.id)
+	if mdl then
+		Theme.icon3d(mdl, UDim2.fromScale(1, 1), nil, 35, 25).Parent = box
+	end
+	local tag = Theme.luggage(priceText(def.id), "Cream", 6)
+	tag.AnchorPoint = Vector2.new(1, 0)
+	tag.Position = UDim2.new(1, -8, 0, 10)
+	tag.Parent = box
+	local d = Theme.label(
+		def.text,
+		13,
+		Color3.fromRGB(214, 218, 224),
+		Theme.F.regular,
+		UDim2.new(1, 0, 0, 40),
+		UDim2.fromOffset(0, 226)
+	)
+	d.TextWrapped = true
+	d.TextYAlignment = Enum.TextYAlignment.Top
+	d.Parent = menu.detail
+	local price = priceOf(def.id)
+	Theme.statRow(menu.detail, 300, "Footprint", if def.id == "Belt" then "Any straight run" else sizeText(def))
+	Theme.statRow(menu.detail, 336, "Height", Theme.metres(def.size.Y))
+	Theme.statRow(
+		menu.detail,
+		372,
+		"Power",
+		if def.power == nil
+			then "None"
+			elseif def.power < 0 then string.format("Makes %g kW", -def.power)
+			else string.format("Uses %g kW", def.power)
+	)
+	Theme.statRow(menu.detail, 408, "Price", priceText(def.id), if money >= price then nil else Theme.RED)
+	if money < price then
+		local n = Theme.label(
+			string.format("You need %s more to build this. You can still preview it.", Theme.money(price - money)),
+			11,
+			Theme.RED,
+			Theme.F.semi,
+			UDim2.new(1, 0, 0, 30),
+			UDim2.fromOffset(0, 446)
+		)
+		n.TextWrapped = true
+		n.Parent = menu.detail
+	end
+end
+
+function refreshItems()
+	refreshHud()
+	if menu and menu.root.Visible then
+		refreshMenu()
 	end
 end
 
@@ -245,11 +409,14 @@ local function setActive(on: boolean)
 		return
 	end
 	active = on
-	panel.Visible = on
+	hud.Visible = on
 	Hud.setBuildMode(on)
 	if on then
-		Juice.popIn(panel)
+		Juice.popIn(hud)
 		refreshItems()
+		if not chosen then
+			Menus.open("build")
+		end
 	else
 		select(nil)
 		removing = false
@@ -323,6 +490,7 @@ local function updateHover()
 			end
 		end
 		hovered = model
+		refreshHud()
 		if model then
 			local h = Instance.new("Highlight")
 			h.Name = "RemoveHighlight"
@@ -337,88 +505,107 @@ end
 
 function Build.start()
 	gui = Theme.screen("BuildTool", player:WaitForChild("PlayerGui"), 4)
-	panel = Theme.frame(UDim2.new(0.86, 0, 0, 200), UDim2.new(0.5, 0, 1, -12), Theme.SLATE, 0.05)
-	panel.AnchorPoint = Vector2.new(0.5, 1)
-	panel.Visible = false
-	Theme.corner(panel, 10)
-	Theme.stripe(panel, 8)
-	panel.Parent = gui
-	local size = Instance.new("UISizeConstraint")
-	size.MaxSize = Vector2.new(1000, 200)
-	size.Parent = panel
-	tabRow = Theme.frame(UDim2.new(1, -24, 0, 34), UDim2.fromOffset(12, 14), Theme.SLATE, 1)
-	local tl = Instance.new("UIListLayout")
-	tl.FillDirection = Enum.FillDirection.Horizontal
-	tl.Padding = UDim.new(0, 6)
-	tl.Parent = tabRow
-	tabRow.Parent = panel
-	for _, tab in Config.BuildTabs do
-		local b = Theme.button(string.upper(tab), UDim2.fromOffset(112, 32), "Dark")
-		b.Name = tab
-		b.Activated:Connect(function()
-			currentTab = tab
-			refreshItems()
-		end)
-		b.Parent = tabRow
-	end
-	itemsFrame = Instance.new("ScrollingFrame")
-	itemsFrame.Size = UDim2.new(1, -24, 0, 106)
-	itemsFrame.Position = UDim2.fromOffset(12, 54)
-	itemsFrame.BackgroundTransparency = 1
-	itemsFrame.BorderSizePixel = 0
-	itemsFrame.ScrollBarThickness = 4
-	itemsFrame.ScrollingDirection = Enum.ScrollingDirection.X
-	itemsFrame.AutomaticCanvasSize = Enum.AutomaticSize.X
-	itemsFrame.CanvasSize = UDim2.new()
-	local il = Instance.new("UIListLayout")
-	il.FillDirection = Enum.FillDirection.Horizontal
-	il.Padding = UDim.new(0, 8)
-	il.SortOrder = Enum.SortOrder.LayoutOrder
-	il.Parent = itemsFrame
-	itemsFrame.Parent = panel
-	status = Theme.text("", UDim2.new(0.6, 0, 0, 20), Theme.MUTED, Enum.Font.GothamBold, 14)
-	status.Position = UDim2.new(0, 14, 1, -28)
-	status.Parent = panel
-	local buttons = Theme.frame(UDim2.new(0.4, 0, 0, 34), UDim2.new(0.6, -12, 1, -40), Theme.SLATE, 1)
-	local bl = Instance.new("UIListLayout")
-	bl.FillDirection = Enum.FillDirection.Horizontal
-	bl.HorizontalAlignment = Enum.HorizontalAlignment.Right
-	bl.Padding = UDim.new(0, 6)
-	bl.Parent = buttons
-	buttons.Parent = panel
-	local rotate = Theme.button("ROTATE (R)", UDim2.fromOffset(110, 32), "Dark")
-	rotate.Activated:Connect(function()
-		rot = (rot + 1) % 4
-	end)
-	rotate.Parent = buttons
-	local remove = Theme.button("REMOVE (X)", UDim2.fromOffset(110, 32), "Red")
-	remove.Activated:Connect(function()
-		select(nil)
-		removing = true
-	end)
-	remove.Parent = buttons
-	placeButton = Theme.button("PLACE", UDim2.fromOffset(90, 32), "Orange")
+	hud = Theme.frame(UDim2.fromScale(1, 1), nil, Theme.PANEL, 1)
+	hud.Visible = false
+	hud.Parent = gui
+	local canvas = Theme.canvas(hud)
+	local disc = Theme.frame(UDim2.fromOffset(64, 64), UDim2.fromOffset(40, 600), Color3.fromRGB(34, 38, 44))
+	Theme.corner(disc, 32)
+	Theme.stroke(disc, Theme.ORANGE, 3)
+	disc.Parent = canvas
+	hudIcon = Theme.frame(UDim2.fromOffset(52, 52), UDim2.fromOffset(6, 6), Theme.PANEL, 1)
+	hudIcon.Parent = disc
+	hudName = Theme.label("", 26, Theme.WHITE, Theme.F.heavy, UDim2.fromOffset(700, 32), UDim2.fromOffset(116, 596))
+	Theme.shadow(hudName)
+	hudName.Parent = canvas
+	hudTag = Theme.label("", 11, Theme.BLACK, Theme.F.bold, UDim2.fromOffset(0, 20), UDim2.fromOffset(116, 632))
+	hudTag.AutomaticSize = Enum.AutomaticSize.X
+	hudTag.BackgroundTransparency = 0
+	hudTag.BackgroundColor3 = Theme.YELLOW
+	Theme.corner(hudTag, 3)
+	local tp = Instance.new("UIPadding")
+	tp.PaddingLeft = UDim.new(0, 8)
+	tp.PaddingRight = UDim.new(0, 8)
+	tp.Parent = hudTag
+	hudTag.Parent = canvas
+	status = Theme.label("", 11, Theme.MUTED, Theme.F.semi, UDim2.fromOffset(600, 16), UDim2.fromOffset(116, 656))
+	Theme.shadow(status)
+	status.Parent = canvas
+	hudHints = Theme.hints(canvas, {}, 700)
+	placeButton = Theme.button("PLACE", UDim2.fromOffset(110, 48), "Orange")
+	placeButton.Position = UDim2.fromOffset(1130, 560)
 	placeButton.Visible = Hud.touch
 	placeButton.Activated:Connect(function()
 		confirm(aim)
 	end)
-	placeButton.Parent = buttons
+	placeButton.Parent = canvas
+	if Hud.touch then
+		local rotate = Theme.button("ROTATE", UDim2.fromOffset(110, 44), "Dark")
+		rotate.Position = UDim2.fromOffset(1130, 510)
+		rotate.Activated:Connect(function()
+			rot = (rot + 1) % 4
+		end)
+		rotate.Parent = canvas
+		local catalogue = Theme.button("BUILD MENU", UDim2.fromOffset(110, 44), "Dark")
+		catalogue.Position = UDim2.fromOffset(1130, 460)
+		catalogue.Activated:Connect(function()
+			Menus.open("build")
+		end)
+		catalogue.Parent = canvas
+		local remove = Theme.button("REMOVE", UDim2.fromOffset(110, 44), "Red")
+		remove.Position = UDim2.fromOffset(1130, 410)
+		remove.Activated:Connect(function()
+			select(nil)
+			removing = true
+			refreshHud()
+		end)
+		remove.Parent = canvas
+	end
+
+	-- the BUILD catalogue
+	local menuGui = Theme.screen("BuildMenu", player:WaitForChild("PlayerGui"), 6)
+	menu = Theme.stationMenu(menuGui, "Build")
+	local grid = Instance.new("ScrollingFrame")
+	grid.Name = "Grid"
+	grid.Size = UDim2.new(1, -16, 1, -16)
+	grid.Position = UDim2.fromOffset(8, 8)
+	grid.BackgroundTransparency = 1
+	grid.BorderSizePixel = 0
+	grid.ScrollBarThickness = 4
+	grid.ScrollBarImageColor3 = Theme.ORANGE
+	grid.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	grid.CanvasSize = UDim2.new()
+	local gl = Instance.new("UIGridLayout")
+	gl.CellSize = UDim2.fromOffset(176, 196)
+	gl.CellPadding = UDim2.fromOffset(6, 10)
+	gl.SortOrder = Enum.SortOrder.LayoutOrder
+	gl.Parent = grid
+	grid.Parent = menu.body
+	Theme.setHints(
+		menu.hints,
+		{ { "LMB", "Choose, again to build" }, { "MMB", "Scroll" }, { "Enter", "Build" }, { "Esc", "Close" } }
+	)
+	Menus.register("build", menu.root, refreshMenu, function()
+		select(menuPick)
+		Menus.close()
+	end)
 
 	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
-		if input.KeyCode == Enum.KeyCode.B and not processed then
+		if input.KeyCode == Enum.KeyCode.B and not processed and not Menus.isOpen("build") then
 			setActive(not active)
 			return
 		end
-		if not active or processed then
+		if not active or processed or Menus.isOpen("build") then
 			return
 		end
 		if input.KeyCode == Enum.KeyCode.R then
 			rot = (rot + 1) % 4
+		elseif input.KeyCode == Enum.KeyCode.V then
+			Menus.open("build")
 		elseif input.KeyCode == Enum.KeyCode.X then
 			select(nil)
 			removing = true
-		elseif input.KeyCode == Enum.KeyCode.Escape then
-			setActive(false)
+			refreshHud()
 		elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
 			confirm(plotPointAt(pointer()))
 		elseif input.UserInputType == Enum.UserInputType.Touch then
@@ -430,6 +617,7 @@ function Build.start()
 	end)
 
 	RunService.RenderStepped:Connect(function()
+		hud.Visible = active and not Hud.isMenuOpen()
 		if not active then
 			return
 		end
@@ -467,7 +655,7 @@ function Build.start()
 	end)
 
 	State.changed(function()
-		if active then
+		if active or menu.root.Visible then
 			refreshItems()
 		end
 	end)

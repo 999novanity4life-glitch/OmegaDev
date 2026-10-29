@@ -22,7 +22,8 @@ local Crew = require(script.Parent.Crew)
 local Moon = require(script.Parent.Moon)
 local Sky = require(script.Parent.Sky)
 local Stations = require(script.Parent.Stations)
-local Robots = require(script.Parent.Parent.World.Robots)
+local Robots =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("World"):WaitForChild("Robots"))
 
 local Automation = {}
 

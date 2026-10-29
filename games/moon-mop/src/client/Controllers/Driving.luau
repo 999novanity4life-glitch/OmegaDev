@@ -202,7 +202,7 @@ local function step(dt: number)
 		dust.Rate = if math.abs(cur.speed) > 2 and cur.alt < 0.5 and cur.def.cleans then 40 else 0
 	end
 	-- HUD
-	Hud.vehicleSpeed.Text = string.format("%d KM/H", math.floor(math.abs(cur.speed) * 0.28 * 3.6 + 0.5))
+	Hud.vehicleSpeed.Text = string.format("%d", math.floor(math.abs(cur.speed) * 0.28 * 3.6 + 0.5))
 end
 
 local function chase(dt: number): CFrame?

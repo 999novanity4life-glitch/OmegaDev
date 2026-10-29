@@ -21,7 +21,8 @@ local Dust = require(script.Parent.Dust)
 local RemoteGuard = require(script.Parent.RemoteGuard)
 local Stations = require(script.Parent.Stations)
 local Zones = require(script.Parent.Zones)
-local buildModel = require(script.Parent.Parent.World.Buildings)
+local buildModel =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("World"):WaitForChild("Buildings"))
 
 local Base = {}
 
