@@ -20,7 +20,7 @@ local CENTRE = Vector3.new(0, -R, 0)
 local KIT = ServerStorage:WaitForChild("MoonMopKit")
 
 local HEX_R = 20 -- circumradius; matches the DustHex mesh (40 x 34.64, flat sides on +-Z)
-local CLEAN = Color3.fromRGB(142, 144, 164)
+local CLEAN = Color3.fromRGB(128, 131, 152)
 local LINE = Color3.fromRGB(226, 240, 246)
 
 local terrainOnly = RaycastParams.new()
