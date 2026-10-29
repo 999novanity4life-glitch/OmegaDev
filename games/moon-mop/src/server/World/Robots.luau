@@ -33,6 +33,7 @@ end
 local function dustEmitter(body: BasePart, size: number)
 	local dust = Instance.new("ParticleEmitter")
 	dust.Name = "Dust"
+	dust.Texture = "rbxasset://textures/particles/smoke_main.dds"
 	dust.Color = ColorSequence.new(Color3.fromRGB(200, 200, 205))
 	dust.Size = NumberSequence.new(size * 0.3, size)
 	dust.Transparency = NumberSequence.new(0.3, 1)

@@ -88,6 +88,10 @@ local function emitter(parent: BasePart, color: Color3, rate: number, light: boo
 	local e = Instance.new("ParticleEmitter")
 	e.Color = ColorSequence.new(color)
 	e.LightEmission = if light then 0.8 else 0
+	-- plain dust is a soft puff; magic brooms keep the default sparkle
+	if not light then
+		e.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	end
 	e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1.6) })
 	e.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
 	e.Lifetime = NumberRange.new(0.5, 1.2)

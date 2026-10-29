@@ -54,16 +54,12 @@ end
 local function paint(char: Model)
 	local colour = suitColour((char:GetAttribute("SuitColour") :: number?) or 1)
 	local visor = Suits.visorColour((char:GetAttribute("Visor") :: number?) or 1)
-	local body = char:FindFirstChildOfClass("BodyColors")
-	if body then
-		body.HeadColor3 = colour
-		body.TorsoColor3 = colour
-		body.LeftArmColor3 = colour
-		body.RightArmColor3 = colour
-		body.LeftLegColor3 = colour
-		body.RightLegColor3 = colour
-	end
 	local suit = char:FindFirstChild("MoonSuit")
+	for _, p in char:GetChildren() do
+		if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+			p.Color = colour
+		end
+	end
 	if suit then
 		local v = suit:FindFirstChild("Visor") :: BasePart?
 		if v then
@@ -77,10 +73,23 @@ local function paint(char: Model)
 end
 
 local function dress(char: Model)
-	for _, d in char:GetChildren() do
-		if d:IsA("Accessory") or d:IsA("Shirt") or d:IsA("Pants") or d:IsA("ShirtGraphic") then
-			d:Destroy()
+	-- a plain body (no avatar meshes, clothes or accessories) so every crew member is the same
+	-- astronaut shape and takes the suit colour
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		local ok = pcall(function()
+			humanoid:ApplyDescription(Instance.new("HumanoidDescription"))
+		end)
+		if not ok then
+			for _, d in char:GetChildren() do
+				if d:IsA("Accessory") or d:IsA("Shirt") or d:IsA("Pants") or d:IsA("ShirtGraphic") then
+					d:Destroy()
+				end
+			end
 		end
+	end
+	if not char.Parent then
+		return
 	end
 	local head = char:FindFirstChild("Head") :: BasePart?
 	local torso = (char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")) :: BasePart?
@@ -96,7 +105,7 @@ local function dress(char: Model)
 	local helmet = piece(
 		"Helmet",
 		Enum.PartType.Ball,
-		Vector3.one * (head.Size.Y * 1.9),
+		Vector3.one * math.min(head.Size.Y * 1.9, 2.6),
 		Color3.fromRGB(236, 238, 243),
 		Enum.Material.SmoothPlastic
 	)

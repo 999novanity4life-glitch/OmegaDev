@@ -111,6 +111,7 @@ local function brush(k: Kit, width: number, y: number, z: number, d: number)
 	end
 	local dust = Instance.new("ParticleEmitter")
 	dust.Name = "Dust"
+	dust.Texture = "rbxasset://textures/particles/smoke_main.dds"
 	dust.Color = ColorSequence.new(Color3.fromRGB(200, 200, 205))
 	dust.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 2.4) })
 	dust.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 1) })

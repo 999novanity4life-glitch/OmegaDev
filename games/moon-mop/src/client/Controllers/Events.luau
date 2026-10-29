@@ -53,8 +53,11 @@ local function glow(size: number, color: Color3): Part
 	return p
 end
 
-local function trail(parent: BasePart, color: Color3, size: number)
+local function trail(parent: BasePart, color: Color3, size: number, texture: string?)
 	local e = Instance.new("ParticleEmitter")
+	if texture then
+		e.Texture = texture
+	end
 	e.Color = ColorSequence.new(color, Color3.fromRGB(80, 80, 90))
 	e.Size = NumberSequence.new(size, size * 0.2)
 	e.Transparency = NumberSequence.new(0.1, 1)
@@ -149,6 +152,7 @@ local function impact(at: Vector3)
 	burst.Parent = Workspace.Terrain
 	burst.WorldPosition = at + up * 2
 	local dust = Instance.new("ParticleEmitter")
+	dust.Texture = "rbxasset://textures/particles/smoke_main.dds"
 	dust.Color = ColorSequence.new(Color3.fromRGB(205, 205, 212))
 	dust.Size = NumberSequence.new(4, 10)
 	dust.Transparency = NumberSequence.new(0.2, 1)
@@ -175,7 +179,7 @@ local function meteor(at: Vector3, fall: number)
 	local up = upAt(at)
 	local from = at + up * 600 + sideOf(up) * 260
 	local rock = glow(7, Color3.fromRGB(255, 120, 30))
-	trail(rock, Color3.fromRGB(255, 200, 80), 6)
+	trail(rock, Color3.fromRGB(255, 200, 80), 6, "rbxasset://textures/particles/fire_main.dds")
 	rock.Parent = fx
 	animate(rock, fall, function(t)
 		return from:Lerp(at, t * t)
