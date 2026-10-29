@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 
 local Config = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Config"))
 local Crew = require(script.Parent.Crew)
+local Meteors = require(script.Parent.Meteors)
 
 local Debug = {}
 
@@ -38,6 +39,9 @@ if RunService:IsStudio() then
 			d.money = arg :: number
 			s.dirty = true
 			return d.money
+		elseif cmd == "meteor" then
+			task.spawn(Meteors.shower, (arg :: number?) or 5)
+			return "shower coming"
 		elseif cmd == "stats" then
 			return game:GetService("HttpService"):JSONEncode(d.stats)
 		elseif cmd == "tank" then

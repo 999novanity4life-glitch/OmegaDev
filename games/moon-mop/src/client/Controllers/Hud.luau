@@ -641,7 +641,7 @@ function Hud.start()
 		b3.Parent = col
 	else
 		local keys = Theme.text(
-			"HOLD LMB  brush\nQ  pack a pod\nE  interact\n1-6  tools\nM  Moon Map\nH  field manual\nV  first person\nB  build\nL  lamp",
+			"HOLD LMB  brush\nQ  pack a pod\nE  interact\n1-6  tools\nM  Moon Map\nH  field manual\nV  first person\nB  build\nL  lamp\nC  suit",
 			UDim2.new(0, 150, 0, 170),
 			Theme.MUTED,
 			Enum.Font.GothamBold,
@@ -698,6 +698,16 @@ function Hud.start()
 			end
 		elseif kind == "Toast" then
 			toast(data.text, data.color or Theme.WHITE)
+		elseif kind == "Away" then
+			local hours = math.floor(data.minutes / 60)
+			toast(
+				string.format(
+					"WHILE YOU WERE AWAY (%s) YOUR BASE EARNED %s",
+					if hours > 0 then string.format("%dh %dm", hours, data.minutes % 60) else data.minutes .. "m",
+					Theme.money(data.amount)
+				),
+				Theme.TEAL
+			)
 		end
 	end)
 	bindInput()

@@ -22,6 +22,7 @@ local Crew = require(script.Parent.Crew)
 local Moon = require(script.Parent.Moon)
 local Sky = require(script.Parent.Sky)
 local Stations = require(script.Parent.Stations)
+local Robots = require(script.Parent.Parent.World.Robots)
 
 local Automation = {}
 
@@ -32,6 +33,8 @@ local PAY_EVERY = 2
 
 type Bot = {
 	uid: number,
+	octo: boolean, -- a Cosmic Octo: roams far, fires pods home to the Pod Catcher
+	carry: number, -- kg an Octo holds before it fires a pod
 	model: Model,
 	area: { number }, -- sectors this bot looks after, nearest first
 	target: number?,
@@ -74,54 +77,6 @@ local function botArea(dockPos: Vector3, rings: number): { number }
 		end
 	end
 	return out
-end
-
-local function botModel(color: Color3): Model
-	local m = Instance.new("Model")
-	m.Name = "DotBot"
-	local body = Instance.new("Part")
-	body.Name = "Body"
-	body.Shape = Enum.PartType.Ball
-	body.Size = Vector3.new(3, 3, 3)
-	body.Color = Color3.fromRGB(236, 238, 243)
-	body.Material = Enum.Material.SmoothPlastic
-	body.Anchored = true
-	body.CanCollide = false
-	body.CastShadow = true
-	body.Parent = m
-	local ring = Instance.new("Part")
-	ring.Name = "Ring"
-	ring.Shape = Enum.PartType.Cylinder
-	ring.Size = Vector3.new(0.4, 3.6, 3.6)
-	ring.Color = color
-	ring.Material = Enum.Material.Neon
-	ring.Anchored = true
-	ring.CanCollide = false
-	ring.CFrame = body.CFrame * CFrame.Angles(0, 0, math.pi / 2)
-	ring.Parent = m
-	local eye = Instance.new("Part")
-	eye.Name = "Eye"
-	eye.Shape = Enum.PartType.Ball
-	eye.Size = Vector3.new(0.8, 0.8, 0.8)
-	eye.Color = Color3.fromRGB(20, 22, 26)
-	eye.Material = Enum.Material.Glass
-	eye.Anchored = true
-	eye.CanCollide = false
-	eye.CFrame = body.CFrame * CFrame.new(0, 0.4, -1.3)
-	eye.Parent = m
-	local dust = Instance.new("ParticleEmitter")
-	dust.Name = "Dust"
-	dust.Color = ColorSequence.new(Color3.fromRGB(200, 200, 205))
-	dust.Size = NumberSequence.new(0.6, 1.6)
-	dust.Transparency = NumberSequence.new(0.3, 1)
-	dust.Lifetime = NumberRange.new(0.6, 1.2)
-	dust.Speed = NumberRange.new(2, 4)
-	dust.SpreadAngle = Vector2.new(60, 60)
-	dust.Rate = 0
-	dust.Parent = body
-	m.PrimaryPart = body
-	m.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-	return m
 end
 
 local function moveBot(bot: Bot, to: CFrame, seconds: number)
@@ -204,20 +159,34 @@ local function refresh(player: Player)
 				end)
 			end
 		end
-		if b.id == "DotBotMk1" or b.id == "DotBotMk2" then
+		if b.id == "DotBotMk1" or b.id == "DotBotMk2" or b.id == "CosmicOcto" then
 			alive[b.uid] = true
 			if not base.bots[b.uid] then
-				local tier = if b.id == "DotBotMk2" then A.BotMk2 else A.BotMk1
-				local rings = tier.rings + (s.fx.botRings or 0)
-				local m =
-					botModel(if b.id == "DotBotMk2" then Color3.fromRGB(255, 205, 40) else Color3.fromRGB(60, 220, 210))
+				local octo = b.id == "CosmicOcto"
+				local rings = if octo
+					then A.OctoRange * 8
+					else (if b.id == "DotBotMk2" then A.BotMk2 else A.BotMk1).rings + (s.fx.botRings or 0)
+				local m = if octo
+					then Robots.octo()
+					else Robots.dotBot(
+						if b.id == "DotBotMk2" then Color3.fromRGB(255, 205, 40) else Color3.fromRGB(60, 220, 210)
+					)
 				local dock = model:GetPivot()
-				m:PivotTo(dock * CFrame.new(0, 2.5, 0))
+				m:PivotTo(dock * CFrame.new(0, if octo then 7 else 2.5, 0))
+				if os.time() - b.t <= 10 then
+					-- just built (not a base coming back on join)
+					Crew.stat(s, if octo then "octos" else "bots", 1)
+					if octo then
+						Crew.feedback(player, "Cutscene", { name = "Octo", at = dock.Position })
+					end
+				end
 				m:SetAttribute("Owner", player.UserId)
-				m.Name = string.format("DotBot_%d", b.uid)
+				m.Name = string.format("%s_%d", if octo then "Octo" else "DotBot", b.uid)
 				m.Parent = plot.buildings
 				base.bots[b.uid] = {
 					uid = b.uid,
+					octo = octo,
+					carry = 0,
 					model = m,
 					area = botArea(dock.Position, rings),
 					target = nil,
@@ -317,20 +286,42 @@ local function solarAndStorage(buildings: { Plot.Building }): (number, number)
 	return rated, capacity
 end
 
+-- Where a base's Pod Catcher catches (the top of its net), if it has one.
+local function catcherAt(player: Player, s: Crew.Session): Vector3?
+	for _, b in s.data.buildings do
+		if b.id == "PodCatcher" then
+			local m = Base.model(player, b.uid)
+			local net = m and m:FindFirstChild("Net") :: BasePart?
+			return if net then net.Position else nil
+		end
+	end
+	return nil
+end
+
+local function fly(bot: Bot, to: CFrame, now: number)
+	local here = bot.model:GetPivot().Position
+	local speed = if bot.octo then A.OctoMoveSpeed else 20
+	local seconds = math.clamp((to.Position - here).Magnitude / speed, 0.5, if bot.octo then 20 else 8)
+	moveBot(bot, to, seconds)
+	bot.busyUntil = now + seconds
+end
+
 local function stepBot(player: Player, s: Crew.Session, st: BaseState, bot: Bot, now: number)
 	if now < bot.busyUntil then
 		return
 	end
 	local dockModel = Base.model(player, bot.uid)
-	local node = st.net.nodes[bot.uid]
-	if not dockModel or not node then
+	if not dockModel then
 		return
 	end
-	local tier = if node.id == "DotBotMk2" then A.BotMk2 else A.BotMk1
+	local node = st.net.nodes[bot.uid]
+	local catcher = if bot.octo then catcherAt(player, s) else nil
 	local status: string
-	if not Belts.connected(st.net, bot.uid) then
+	if bot.octo and not catcher then
+		status = "Needs a Pod Catcher"
+	elseif not bot.octo and not (node and Belts.connected(st.net, bot.uid)) then
 		status = "Lay a belt from the dock to a Pod Cannon"
-	elseif (node.store.Dust or 0) >= A.BotStoreKg - 0.01 then
+	elseif not bot.octo and node and (node.store.Dust or 0) >= A.BotStoreKg - 0.01 then
 		status = "Dock full: the belt is backed up"
 	else
 		if bot.target == nil or Moon.isSectorDone(bot.target) then
@@ -344,11 +335,10 @@ local function stepBot(player: Player, s: Crew.Session, st: BaseState, bot: Bot,
 			end
 			if bot.target then
 				local dir = Moon.sector:position(bot.target)
-				local here = bot.model:GetPivot().Position
-				local to = hoverAt(dir, Stations.groundAt(dir) - here)
-				local seconds = math.clamp((to.Position - here).Magnitude / 20, 0.5, 8)
-				moveBot(bot, to, seconds)
-				bot.busyUntil = now + seconds
+				local lift = if bot.octo then 7 else 3
+				local to = hoverAt(dir, Stations.groundAt(dir) - bot.model:GetPivot().Position)
+					* CFrame.new(0, lift - 3, 0)
+				fly(bot, to, now)
 				dockModel:SetAttribute("Status", "Flying out")
 				return
 			end
@@ -357,7 +347,11 @@ local function stepBot(player: Player, s: Crew.Session, st: BaseState, bot: Bot,
 		if not target then
 			status = "All clean round here"
 		else
-			local budget = tier.kgPerMin / 60 * (1 + (s.fx.botRatePct or 0) / 100)
+			local rate = if bot.octo
+				then A.OctoKgPerMin * (1 + (s.fx.octoRatePct or 0) / 100)
+				else (if node and node.id == "DotBotMk2" then A.BotMk2 else A.BotMk1).kgPerMin
+					* (1 + (s.fx.botRatePct or 0) / 100)
+			local budget = rate / 60
 			local a, b = Moon.patchesOf(target)
 			local kg = 0
 			while kg < budget and a + bot.cursor < b do
@@ -365,12 +359,25 @@ local function stepBot(player: Player, s: Crew.Session, st: BaseState, bot: Bot,
 				bot.cursor += 1
 			end
 			if a + bot.cursor >= b then
-				-- steep patches a bot can't reach leave the sector for a broom
+				-- steep patches a robot can't reach leave the sector for a broom
 				bot.area = table.clone(bot.area)
 				table.remove(bot.area, table.find(bot.area, target) :: number)
 				bot.target = nil
 			end
-			if kg > 0 then
+			if kg > 0 and bot.octo and catcher then
+				bot.carry += kg
+				Crew.stat(s, "octoKg", kg)
+				while bot.carry >= A.PodValueKg do
+					bot.carry -= A.PodValueKg
+					local from = bot.model:GetPivot().Position
+					local flight = math.clamp((catcher - from).Magnitude / 120, 1, 4)
+					worldEvent:FireAllClients("OctoPod", { from = from, to = catcher, t = flight })
+					task.delay(flight, function()
+						st.owed.Dust = (st.owed.Dust or 0) + A.PodValueKg
+						st.owedAt = catcher
+					end)
+				end
+			elseif kg > 0 then
 				Belts.feed(st.net, bot.uid, "Dust", kg)
 				Crew.stat(s, "botKg", kg)
 			end
@@ -380,14 +387,12 @@ local function stepBot(player: Player, s: Crew.Session, st: BaseState, bot: Bot,
 	local body = bot.model.PrimaryPart
 	local dust = body and body:FindFirstChild("Dust") :: ParticleEmitter?
 	if dust then
-		dust.Rate = if status == "Cleaning" then 25 else 0
+		dust.Rate = if status == "Cleaning" then (if bot.octo then 60 else 25) else 0
 	end
-	if status ~= "Cleaning" and status ~= "Flying out" then
-		local home = dockModel:GetPivot() * CFrame.new(0, 2.5, 0)
+	if status ~= "Cleaning" then
+		local home = dockModel:GetPivot() * CFrame.new(0, if bot.octo then 7 else 2.5, 0)
 		if (bot.model:GetPivot().Position - home.Position).Magnitude > 4 then
-			local seconds = math.clamp((home.Position - bot.model:GetPivot().Position).Magnitude / 20, 0.5, 8)
-			moveBot(bot, home, seconds)
-			bot.busyUntil = now + seconds
+			fly(bot, home, now)
 		end
 	end
 	dockModel:SetAttribute("Status", status)
@@ -408,15 +413,32 @@ local function pay(player: Player, s: Crew.Session, st: BaseState)
 		Crew.stat(s, "kg", kg)
 	end
 	table.clear(st.owed)
+	-- smoothed $/min over the last minute or so, for "while you were away"
+	s.data.awayRate = s.data.awayRate * 0.95 + total / PAY_EVERY * 60 * 0.05
+	s.data.lastOnline = os.time()
 	if total > 0 then
 		Crew.earn(s, total, "Launch", st.owedAt)
 		Crew.stat(s, "launches", pods)
-		s.data.awayRate = s.data.awayRate * 0.8 + total / PAY_EVERY * 60 * 0.2
 		if st.owedAt then
 			worldEvent:FireAllClients("Launch", { at = st.owedAt, pods = pods, by = player.UserId })
 		end
 	end
 end
+
+-- While you were away: a share of what the base was earning, paid when you come back.
+Crew.onReady(function(s)
+	local d = s.data
+	local now = os.time()
+	if d.lastOnline > 0 then
+		local away = now - d.lastOnline
+		local amount = Economy.awayEarnings(d.awayRate, away, s.fx)
+		if amount > 0 then
+			Crew.earn(s, amount, "Away")
+			Crew.feedback(s.player, "Away", { amount = amount, minutes = math.floor(away / 60) })
+		end
+	end
+	d.lastOnline = now
+end)
 
 local viewT = 0
 

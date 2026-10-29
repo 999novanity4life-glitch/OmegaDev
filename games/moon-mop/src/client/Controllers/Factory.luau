@@ -5,10 +5,12 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 
 local Theme = require(script.Parent.Theme)
@@ -143,7 +145,7 @@ local function updateReadouts()
 		if not anchor then
 			continue
 		end
-		if id == "DotBotMk1" or id == "DotBotMk2" then
+		if id == "DotBotMk1" or id == "DotBotMk2" or id == "CosmicOcto" then
 			local label = readout(anchor, "BotStatus")
 			local status = m:GetAttribute("Status") :: string? or "Starting up"
 			label.Text = status
@@ -165,6 +167,33 @@ local function updateReadouts()
 			label.TextColor3 = if powerIn >= powerUse then Theme.YELLOW else Theme.RED
 		end
 	end
+end
+
+-- A Cosmic Octo firing a pod home: it arcs over the Moon to the Pod Catcher.
+local function octoPod(from: Vector3, to: Vector3, seconds: number, folder: Instance)
+	local pod = podPart("Dust")
+	pod.Size = Vector3.new(2.4, 2.4, 2.4)
+	pod.Color = Color3.fromRGB(190, 160, 255)
+	pod.Material = Enum.Material.Neon
+	pod.Parent = folder
+	local band = pod:FindFirstChild("Band") :: BasePart
+	local mid = (from + to) / 2
+	local up = (mid - Config.Moon.Centre).Unit
+	local peak = mid + up * math.max(20, (to - from).Magnitude * 0.35)
+	local t = 0
+	local conn: RBXScriptConnection
+	conn = RunService.Heartbeat:Connect(function(dt: number)
+		t = math.min(1, t + dt / seconds)
+		local a = from:Lerp(peak, t)
+		local b = peak:Lerp(to, t)
+		local cf = CFrame.new(a:Lerp(b, t))
+		pod.CFrame = cf
+		band.CFrame = cf * CFrame.Angles(0, 0, math.pi / 2)
+		if t >= 1 then
+			conn:Disconnect()
+			pod:Destroy()
+		end
+	end)
 end
 
 function Factory.start()
@@ -221,6 +250,16 @@ function Factory.start()
 				part:Destroy()
 				pods[id] = nil
 			end
+		end
+	end)
+	Remotes.get("WorldEvent").OnClientEvent:Connect(function(kind: any, data: any)
+		if
+			kind == "OctoPod"
+			and typeof(data) == "table"
+			and typeof(data.from) == "Vector3"
+			and typeof(data.to) == "Vector3"
+		then
+			octoPod(data.from, data.to, if typeof(data.t) == "number" then math.clamp(data.t, 0.5, 6) else 2, folder)
 		end
 	end)
 	task.spawn(function()

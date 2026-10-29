@@ -30,6 +30,8 @@ require(Services.Finds)
 require(Services.Base)
 require(Services.Automation)
 require(Services.Vehicles)
+require(Services.Meteors)
+require(Services.Suits)
 require(Services.Debug)
 
 print(string.format("[MoonMop] Moon ready: %d sectors, %d patches", Moon.sector.count, Moon.patch.count))
