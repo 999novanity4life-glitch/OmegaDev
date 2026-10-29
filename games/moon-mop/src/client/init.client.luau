@@ -35,3 +35,21 @@ Factory.start()
 Events.start()
 Suit.start()
 Intro.start()
+
+-- Studio-only test hook so playtests can open screens and turn the view without a mouse:
+-- Invoke("open", menuName) or Invoke("look", Vector3 direction). Never created in live games.
+if game:GetService("RunService"):IsStudio() then
+	local hook = Instance.new("BindableFunction")
+	hook.Name = "MoonMopClientDebug"
+	hook.OnInvoke = function(kind: string, arg: any): any -- arg is a menu name or a direction
+		if kind == "open" and type(arg) == "string" then
+			Menus.open(arg)
+		elseif kind == "look" and typeof(arg) == "Vector3" then
+			Movement.lookAlong(arg)
+		elseif kind == "close" then
+			Menus.close()
+		end
+		return true
+	end
+	hook.Parent = script
+end

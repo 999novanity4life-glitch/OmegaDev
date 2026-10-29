@@ -553,7 +553,7 @@ function Intro.play()
 		end
 		local limit = b:FindFirstChildOfClass("UITextSizeConstraint")
 		if limit then
-			limit.MaxTextSize = 13
+			limit.MaxTextSize = 12
 		end
 	end
 
