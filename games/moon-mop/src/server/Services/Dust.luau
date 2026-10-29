@@ -293,6 +293,8 @@ task.spawn(function()
 				continue
 			end
 			local room = stats.pack - s.packKg
+			-- clients only draw brush trails while the tool can actually take dust
+			char:SetAttribute("JarFull", room <= 1e-4 and not s.fx.autoPack)
 			if room <= 1e-4 then
 				if s.fx.autoPack and Dust.pack(s, true) then
 					room = stats.pack

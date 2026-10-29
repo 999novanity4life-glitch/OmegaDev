@@ -5,7 +5,7 @@
 -- dark trail into pale dust, nothing is raised). So, around the camera only:
 -- * clean patches repaint the terrain under them from Ground to bare Basalt, same height,
 -- * finished sectors are fully repainted and get thin light edge lines (reference p1_1320),
--- * fresh lanes right behind every brush, the tool's exact width, lie flush on the ground,
+-- * fresh trails right behind every brush uncover the ground the same way, as you go,
 -- * a gold outline round the sector you stand in, and a mint flash and ripple when one finishes.
 -- Everything here is cosmetic; the server decides what is clean.
 
@@ -32,7 +32,6 @@ local CENTRE = Config.Moon.Centre
 local FULL = 255
 local VIEW = 300 -- studs round the camera that get tiles
 local DROP = 380
-local MAX_LANES = 1400
 
 local function rgb(c: { number }): Color3
 	return Color3.fromRGB(c[1], c[2], c[3])
@@ -56,8 +55,20 @@ folder.Parent = Workspace
 local Terrain = Workspace.Terrain
 local DUSTY = Enum.Material.Ground
 local BARE = Enum.Material.Basalt
--- local only: the bare ground colour under the dust
-Terrain:SetMaterialColor(BARE, CLEAN)
+-- Local only: bare ground wears the same regolith texture as the dust (a copy of the Ground
+-- variant moved onto Basalt), just darker, so cleaning reveals Moon rather than flat paint.
+do
+	local MaterialService = game:GetService("MaterialService")
+	local regolith = MaterialService:FindFirstChild("MoonRegolith", true)
+	if regolith and regolith:IsA("MaterialVariant") and not MaterialService:FindFirstChild("MoonBedrock") then
+		local bedrock = regolith:Clone()
+		bedrock.Name = "MoonBedrock"
+		bedrock.BaseMaterial = BARE
+		bedrock.Parent = MaterialService
+		MaterialService:SetBaseMaterialOverride(BARE, "MoonBedrock")
+	end
+	Terrain:SetMaterialColor(BARE, CLEAN)
+end
 
 local terrainOnly = RaycastParams.new()
 terrainOnly.FilterType = Enum.RaycastFilterType.Include
@@ -236,7 +247,6 @@ end
 -- Rendering state.
 type SectorVis = { edges: { Instance }, kind: number }
 local shown: { [number]: SectorVis } = {}
-local lanes: { { part: Part, sector: number } } = {}
 
 local function clearVis(s: number)
 	local v = shown[s]
@@ -311,13 +321,6 @@ local function showDone(s: number)
 		paint(id, true)
 	end
 	shown[s] = { edges = edgeLines(cf, flat, folder), kind = 2 }
-	-- lanes inside a finished sector are no longer needed
-	for i = #lanes, 1, -1 do
-		if lanes[i].sector == s then
-			lanes[i].part:Destroy()
-			table.remove(lanes, i)
-		end
-	end
 end
 
 local function showPartial(s: number)
@@ -337,9 +340,20 @@ local function refreshSector(s: number)
 	elseif touched[s] then
 		showPartial(s)
 	else
-		-- dust came back everywhere (a meteor shower): cover the bare ground again
+		-- dust came back everywhere (a meteor shower): cover the bare ground again, brush
+		-- trails included
 		for _, id in patchesOf(s) do
 			paint(id, false)
+		end
+		local hit = ground(sector:position(s))
+		if hit then
+			local h = sectorSpacing(s) * 0.5
+			Terrain:ReplaceMaterial(
+				Region3.new(hit.Position - Vector3.one * h, hit.Position + Vector3.one * h):ExpandToGrid(4),
+				4,
+				BARE,
+				DUSTY
+			)
 		end
 		clearVis(s)
 	end
@@ -496,7 +510,7 @@ local function laneTick()
 	for _, plr in Players:GetPlayers() do
 		local char = plr.Character
 		local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if not char or not root or not char:GetAttribute("Brushing") then
+		if not char or not root or not char:GetAttribute("Brushing") or char:GetAttribute("JarFull") then
 			if char then
 				laneState[char] = nil
 			end
@@ -540,26 +554,19 @@ local function laneTick()
 			laneState[char] = p
 			continue
 		end
-		local lane = Instance.new("Part")
-		lane.Name = "Lane"
-		lane.Anchored = true
-		lane.CanCollide = false
-		lane.CanQuery = false
-		lane.CanTouch = false
-		lane.CastShadow = false
-		lane.Material = Enum.Material.SmoothPlastic
-		lane.Color = CLEAN
-		-- paper-thin and flush, so it reads as dust taken away rather than something laid on top
-		lane.Size = Vector3.new(width, 0.03, len + width * 0.3)
-		local n = hit.Normal:Lerp(up, 0.5).Unit
-		lane.CFrame = CFrame.lookAlong((last + p) / 2 + n * 0.005, seg.Unit, n)
-		lane.Parent = folder
-		table.insert(lanes, { part = lane, sector = s })
-		if #lanes > MAX_LANES then
-			local old = table.remove(lanes, 1)
-			if old then
-				old.part:Destroy()
-			end
+		-- uncover the ground along the stroke: same terrain repaint as clean patches, so the
+		-- trail is the bare Moon under the dust, flush, never a strip laid on top
+		local dir = seg.Unit
+		local half = math.max(width * 0.5, 1.2)
+		local steps = math.max(1, math.ceil(len / 2))
+		for k = 0, steps do
+			local c = last + dir * (len * k / steps)
+			Terrain:ReplaceMaterial(
+				Region3.new(c - Vector3.one * half, c + Vector3.one * half):ExpandToGrid(4),
+				4,
+				DUSTY,
+				BARE
+			)
 		end
 		laneState[char] = p
 	end
