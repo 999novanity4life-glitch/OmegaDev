@@ -137,6 +137,9 @@ function Stations.moveTo(player: Player, cf: CFrame)
 	end
 	char:PivotTo(cf * CFrame.new(0, 3, 0))
 	root.AssemblyLinearVelocity = Vector3.zero
+	-- the client owns its character's physics and its gravity controller keeps its own frame,
+	-- so it is told to move too
+	Crew.feedback(player, "MoveTo", cf * CFrame.new(0, 3, 0))
 end
 
 RemoteGuard.connect(Remotes.get("Teleport"), function(index: any)

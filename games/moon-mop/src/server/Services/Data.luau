@@ -6,16 +6,10 @@ local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
 local ProfileStore = require(ServerStorage:WaitForChild("Vendor"):WaitForChild("ProfileStore")) :: any
+local Plot = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Plot"))
 
-export type Building = {
-	id: string,
-	x: number, -- plot-local position on the build grid, studs
-	z: number,
-	rot: number, -- quarter turns
-	paid: number,
-	len: number?, -- belts
-	t: number?, -- os.time() placed
-}
+-- A building on the player's plot, in plot coordinates (see Shared/Plot).
+export type Building = Plot.Building
 
 export type SaveData = {
 	money: number,
@@ -43,6 +37,7 @@ export type SaveData = {
 	awayRate: number, -- $/min of automation when the player left
 	purchases: { [string]: boolean },
 	dropPads: { { number } },
+	nextUid: number,
 }
 
 local TEMPLATE: SaveData = {
@@ -71,6 +66,7 @@ local TEMPLATE: SaveData = {
 	awayRate = 0,
 	purchases = {},
 	dropPads = {},
+	nextUid = 1,
 }
 
 local Data = {}

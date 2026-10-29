@@ -112,7 +112,7 @@ function MoonMap.start()
 
 	-- one disc per region, coloured by progress
 	local discs: { [number]: Part } = {}
-	local discSize = GLOBE * 2 * math.pi / (region.n * 5.2) * 1.18
+	local discSize = GLOBE * 2 * math.pi / (region.n * 5.2) * 0.86
 	for r = 0, region.count - 1 do
 		local d = bit(
 			regionLayer,
@@ -220,15 +220,9 @@ function MoonMap.start()
 		local s = State.get()
 		for _, st in Places.stations do
 			local cf = surfaceCF(st.dir, 0)
-			bit(pinLayer, Vector3.new(0.18, 1.1, 0.18), cf * CFrame.new(0, 0.55, 0), Theme.ORANGE, Enum.Material.Neon)
-			bit(
-				pinLayer,
-				Vector3.one * 0.5,
-				cf * CFrame.new(0, 1.15, 0),
-				Theme.ORANGE,
-				Enum.Material.Neon,
-				Enum.PartType.Ball
-			)
+			-- stations: a white mast with an orange cap, so they read apart from the yellow probes
+			bit(pinLayer, Vector3.new(0.16, 1.2, 0.16), cf * CFrame.new(0, 0.6, 0), Theme.WHITE)
+			bit(pinLayer, Vector3.new(0.7, 0.4, 0.7), cf * CFrame.new(0, 1.3, 0), Theme.ORANGE)
 		end
 		local seeFlags = s.fx and (s.fx.flagPct or 0) > 0
 		for i, dir in Places.flags do
@@ -307,13 +301,13 @@ function MoonMap.start()
 			end
 			if yard[r] and frac < 1 then
 				d.Color = BLUE:Lerp(GREEN, frac)
-				d.Transparency = 0.15
+				d.Transparency = 0
 			elseif frac > 0 then
 				d.Color = (if busy[r] and frac < 1 then ORANGE else DUSTY):Lerp(GREEN, math.max(frac, 0.25))
-				d.Transparency = 0.1
+				d.Transparency = 0
 			elseif busy[r] then
 				d.Color = ORANGE
-				d.Transparency = 0.3
+				d.Transparency = 0
 			else
 				d.Transparency = 1
 			end

@@ -19,6 +19,7 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local State = require(script.Parent.State)
 
 local Movement = {}
 
@@ -381,7 +382,25 @@ local function setup(character: Model)
 	end)
 end
 
+-- Server-ordered moves (teleports, respawn at a station): move the character and restart the
+-- camera's up frame at the new spot.
+function Movement.teleport(cf: CFrame)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not character or not root then
+		return
+	end
+	character:PivotTo(cf)
+	root.AssemblyLinearVelocity = Vector3.zero
+	frame = rotationBetween(Vector3.yAxis, (cf.Position - CENTRE).Unit)
+end
+
 function Movement.start()
+	State.onFeedback(function(kind: string, data: any)
+		if kind == "MoveTo" and typeof(data) == "CFrame" then
+			Movement.teleport(data)
+		end
+	end)
 	if player.Character then
 		task.spawn(setup, player.Character)
 	end

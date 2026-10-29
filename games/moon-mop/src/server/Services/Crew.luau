@@ -151,6 +151,7 @@ local function snapshot(s: Session)
 		dial = s.dial,
 		buildTool = d.buildTool,
 		plot = d.plot,
+		buildings = d.buildings,
 		gear = d.gear,
 		suit = d.suit,
 		achievements = d.achievements,

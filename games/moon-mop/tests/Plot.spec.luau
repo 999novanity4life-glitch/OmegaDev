@@ -1,0 +1,60 @@
+--!nocheck
+return function(t, load)
+	local Plot = load("src/shared/Plot")
+	local Config = load("src/shared/Config")
+	local describe, it, expect = t.describe, t.it, t.expect
+
+	describe("Plot", function()
+		it("swaps the footprint on quarter turns", function()
+			local g = Plot.def("Garage")
+			local w0, d0 = Plot.footprint(g, 0)
+			local w1, d1 = Plot.footprint(g, 1)
+			expect(w0).toBe(d1)
+			expect(d0).toBe(w1)
+		end)
+		it("keeps buildings inside the plot and apart", function()
+			local ok = Plot.canPlace({}, "Garage", 0, 0, 0)
+			expect(ok).toBeTruthy()
+			local inside, why = Plot.canPlace({}, "Garage", Plot.HALF, 0, 0)
+			expect(inside).toBe(false)
+			expect(why).toBe("Keep it inside your plot")
+			local list = { { uid = 1, id = "Garage", x = 0, z = 0, r = 0, paid = 200, t = 0 } }
+			expect((Plot.canPlace(list, "SolarPost", 2, 2, 0))).toBe(false)
+			expect((Plot.canPlace(list, "SolarPost", 40, 40, 0))).toBe(true)
+			expect((Plot.canPlace(list, "Garage", -60, -50, 0))).toBe(false) -- one per plot
+		end)
+		it("lets belt tiles sit edge to edge", function()
+			local list = { { uid = 1, id = "Belt", x = 0, z = 0, r = 1, paid = 1, t = 0 } }
+			expect((Plot.canPlace(list, "Belt", 4, 0, 1))).toBe(true)
+			expect((Plot.canPlace(list, "Belt", 2, 0, 1))).toBe(false)
+		end)
+		it("lays straight belt runs facing along the run", function()
+			local run = Plot.beltRun(0, 0, 16, 3)
+			expect(#run).toBe(5)
+			for _, tile in run do
+				expect(tile.r).toBe(1)
+				expect(tile.z).toBe(0)
+			end
+			expect(run[5].x).toBe(16)
+			local back = Plot.beltRun(0, 0, 0, -8)
+			expect(back[1].r).toBe(0)
+			expect(back[3].z).toBe(-8)
+			expect(#Plot.beltRun(0, 0, 9999, 0)).toBe(Config.Automation.BeltMaxRun)
+		end)
+		it("makes each extra Cosmic Octo dearer", function()
+			local one = Plot.price({}, "CosmicOcto")
+			local two =
+				Plot.price({ { uid = 1, id = "CosmicOcto", x = 0, z = 0, r = 0, paid = one, t = 0 } }, "CosmicOcto")
+			expect(two).toBeNear(one * Config.Automation.OctoPriceGrowth, 1)
+		end)
+		it("refunds in full for a minute, then half", function()
+			local b = { uid = 1, id = "Battery", x = 0, z = 0, r = 0, paid = 150, t = 0 }
+			expect(Plot.refund(b, 10)).toBe(150)
+			expect(Plot.refund(b, 600)).toBe(75)
+		end)
+		it("knows how far the Moon curves away under a plot", function()
+			expect(Plot.drop(0, 0)).toBeNear(0, 1e-9)
+			expect(Plot.drop(84, 0)).toBeNear(84 * 84 / (2 * Config.Moon.Radius), 0.01)
+		end)
+	end)
+end

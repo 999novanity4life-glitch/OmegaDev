@@ -54,6 +54,16 @@ function Hud.isMenuOpen(): boolean
 	return menuOpen
 end
 
+-- Build mode takes the left mouse button and the touch screen for placing.
+local buildMode = false
+function Hud.setBuildMode(on: boolean)
+	buildMode = on
+	if on and State.get().toolOn then
+		toolIntent:FireServer("off")
+		Movement.setBrushing(false)
+	end
+end
+
 ---------------------------------------------------------------------------- toasts and popups
 local toastHolder: Frame
 local function toast(text: string, color: Color3?)
@@ -532,7 +542,9 @@ local function bindInput()
 			return
 		end
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.ButtonR2 then
-			setBrush(true)
+			if not buildMode then
+				setBrush(true)
+			end
 		elseif input.KeyCode == Enum.KeyCode.Q or input.KeyCode == Enum.KeyCode.ButtonX then
 			pack()
 		elseif input.KeyCode.Value >= Enum.KeyCode.One.Value and input.KeyCode.Value <= Enum.KeyCode.Six.Value then

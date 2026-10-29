@@ -7,6 +7,7 @@
 
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -44,6 +45,11 @@ end
 task.spawn(function()
 	while true do
 		local _, _, clock = Factory.sun(Workspace:GetServerTimeNow())
+		-- Studio only: a DebugClock attribute on Workspace pins the time for playtest screenshots
+		local pinned = Workspace:GetAttribute("DebugClock")
+		if RunService:IsStudio() and typeof(pinned) == "number" then
+			clock = pinned
+		end
 		Lighting.ClockTime = clock
 		light = Sky.sunlightAt(Vector3.yAxis)
 		night = light < 0.15
