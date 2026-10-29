@@ -327,6 +327,7 @@ local function build(id: string): Model
 	local v = def(id)
 	local m = Instance.new("Model")
 	m.Name = v.id
+	m.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	local body = Instance.new("Part")
 	body.Name = "Body"
 	body.Size = Vector3.new(v.size.X * 0.7, 1, v.size.Z * 0.7)

@@ -383,6 +383,7 @@ local function build(id: string): Model
 	assert(def, "unknown building " .. id)
 	local m = Instance.new("Model")
 	m.Name = id
+	m.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	local fn = builders[id]
 	if fn then
 		fn(m, def.size)

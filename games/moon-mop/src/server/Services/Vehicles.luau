@@ -67,6 +67,8 @@ local function seatWeld(s: Crew.Session, model: Model): boolean
 	end
 	body.Anchored = false
 	body:SetNetworkOwner(s.player)
+	-- with streaming on, the driver must always have their vehicle
+	model:AddPersistentPlayer(s.player)
 	model:SetAttribute("Driver", s.player.UserId)
 	return true
 end
@@ -82,6 +84,7 @@ local function unseat(s: Crew.Session, model: Model)
 		body.AssemblyLinearVelocity = Vector3.zero
 	end
 	model:SetAttribute("Driver", 0)
+	model:RemovePersistentPlayer(s.player)
 	local char = s.player.Character
 	if char then
 		for _, p in char:GetDescendants() do

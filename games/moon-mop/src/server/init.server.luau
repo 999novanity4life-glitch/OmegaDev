@@ -29,5 +29,6 @@ require(Services.Stations)
 require(Services.Finds)
 require(Services.Base)
 require(Services.Vehicles)
+require(Services.Debug)
 
 print(string.format("[MoonMop] Moon ready: %d sectors, %d patches", Moon.sector.count, Moon.patch.count))
