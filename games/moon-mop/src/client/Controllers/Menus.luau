@@ -695,15 +695,11 @@ function Menus.start()
 	ProximityPromptService.PromptTriggered:Connect(function(prompt)
 		local menu = prompt:GetAttribute("Menu") :: string?
 		if menu then
-			if menu == "map" then
-				State.emit("OpenMenu", "map")
-			else
-				open(menu)
-			end
+			open(menu)
 		end
 	end)
 	State.onFeedback(function(kind: string, data: any)
-		if kind == "OpenMenu" and data ~= "map" then
+		if kind == "OpenMenu" then
 			open(data)
 		end
 	end)

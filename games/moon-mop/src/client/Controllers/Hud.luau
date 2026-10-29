@@ -678,6 +678,12 @@ function Hud.start()
 			toast("ACHIEVEMENT: " .. string.upper(data.name), Theme.YELLOW)
 		elseif kind == "SectorDone" then
 			Juice.shakeCamera(0.15)
+		elseif kind == "Find" then
+			if data.kind == "flag" then
+				toast(string.format("FLAG UNTANGLED  %d / %d", data.count, data.total), Theme.ORANGE)
+			else
+				toast(string.format("PROBE SURVEYED  %d / %d", data.count, data.total), Theme.YELLOW)
+			end
 		elseif kind == "Toast" then
 			toast(data.text, data.color or Theme.WHITE)
 		end
