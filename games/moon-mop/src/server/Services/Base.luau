@@ -143,6 +143,8 @@ for _, info in Places.plots do
 	p.RequiresLineOfSight = false
 	p.Style = Enum.ProximityPromptStyle.Custom
 	p.Parent = board
+	-- the pivot is the plot's own frame, so clients can turn plot coordinates into world ones
+	model.WorldPivot = frame
 	model.Parent = folder
 	table.insert(plots, state)
 	p.Triggered:Connect(function(player)

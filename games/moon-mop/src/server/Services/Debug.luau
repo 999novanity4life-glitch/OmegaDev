@@ -38,6 +38,15 @@ if RunService:IsStudio() then
 			d.money = arg :: number
 			s.dirty = true
 			return d.money
+		elseif cmd == "stats" then
+			return game:GetService("HttpService"):JSONEncode(d.stats)
+		elseif cmd == "tank" then
+			s.tankKg = arg :: number
+			return s.tankKg
+		elseif cmd == "pack" then
+			s.packKg = arg :: number
+			s.dirty = true
+			return s.packKg
 		elseif cmd == "state" then
 			return string.format(
 				"money %.2f plot %d buildings %d vehicle %s tank %.2f pack %.2f pods %d",
