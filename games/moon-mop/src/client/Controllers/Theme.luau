@@ -501,7 +501,15 @@ end
 ---------------------------------------------------------------------------- 3D icons
 -- A ViewportFrame showing a copy of `model` from a three-quarter angle, lit like the store
 -- renders in the reference (white, soft shadows).
-function Theme.icon3d(model: Model, size: UDim2, pos: UDim2?, yaw: number?, pitch: number?): ViewportFrame
+-- roll (degrees) turns the picture, so long thin tools lie diagonally like the original's renders.
+function Theme.icon3d(
+	model: Model,
+	size: UDim2,
+	pos: UDim2?,
+	yaw: number?,
+	pitch: number?,
+	roll: number?
+): ViewportFrame
 	local vp = Instance.new("ViewportFrame")
 	vp.Size = size
 	vp.Position = pos or UDim2.new()
@@ -523,7 +531,7 @@ function Theme.icon3d(model: Model, size: UDim2, pos: UDim2?, yaw: number?, pitc
 	cam.FieldOfView = 30
 	local dir = (CFrame.Angles(0, math.rad(yaw or 35), 0) * CFrame.Angles(math.rad(-(pitch or 25)), 0, 0)).LookVector
 	local dist = radius / math.sin(math.rad(cam.FieldOfView / 2)) * 1.02
-	cam.CFrame = CFrame.lookAt(cf.Position - dir * dist, cf.Position)
+	cam.CFrame = CFrame.lookAt(cf.Position - dir * dist, cf.Position) * CFrame.Angles(0, 0, math.rad(roll or 0))
 	cam.Parent = vp
 	vp.CurrentCamera = cam
 	return vp

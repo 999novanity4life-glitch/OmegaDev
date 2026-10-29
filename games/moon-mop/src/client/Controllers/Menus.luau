@@ -236,7 +236,8 @@ local function supplyWall()
 			local cell = Theme.cell(UDim2.fromOffset(113, 168), Theme.INNER)
 			cell.BackgroundTransparency = 1
 			cell.LayoutOrder = i
-			local icon = Theme.icon3d(Brooms.model(def.id), UDim2.fromOffset(113, 112), UDim2.fromOffset(0, 18), 60, 20)
+			local icon =
+				Theme.icon3d(Brooms.model(def.id), UDim2.fromOffset(113, 112), UDim2.fromOffset(0, 18), 60, 20, -50)
 			icon.Parent = cell
 			local chip = Theme.frame(
 				UDim2.fromOffset(107, 22),
@@ -285,10 +286,10 @@ local function supplyWall()
 		local items = gearItems(s)
 		for i, g in items do
 			local sel = selected == "gear:" .. g.id
-			local row = Theme.cell(UDim2.new(1, 0, 0, 74), Theme.INNER)
+			local row = Theme.cell(UDim2.new(1, 0, 0, 80), Theme.INNER)
 			row.BackgroundTransparency = 1
 			row.LayoutOrder = i
-			local disc = Theme.frame(UDim2.fromOffset(44, 44), UDim2.fromOffset(6, 10), Color3.fromRGB(58, 64, 72))
+			local disc = Theme.frame(UDim2.fromOffset(44, 44), UDim2.fromOffset(6, 16), Color3.fromRGB(58, 64, 72))
 			Theme.corner(disc, 22)
 			Theme.stroke(disc, Color3.fromRGB(90, 98, 108), 2)
 			local gl2 = Theme.label(g.glyph, 22, Theme.WHITE, Theme.F.bold, UDim2.fromScale(1, 1))
@@ -296,11 +297,11 @@ local function supplyWall()
 			gl2.Parent = disc
 			disc.Parent = row
 			local n =
-				Theme.label(g.name, 14, Theme.WHITE, Theme.F.bold, UDim2.fromOffset(150, 18), UDim2.fromOffset(60, 14))
+				Theme.label(g.name, 14, Theme.WHITE, Theme.F.bold, UDim2.fromOffset(150, 18), UDim2.fromOffset(60, 22))
 			n.Parent = row
 			local chip = Theme.frame(
 				UDim2.fromOffset(120, 20),
-				UDim2.fromOffset(60, 38),
+				UDim2.fromOffset(60, 44),
 				if sel then Theme.ORANGE else Theme.ROW
 			)
 			Theme.corner(chip, 3)
@@ -322,8 +323,9 @@ local function supplyWall()
 			if g.price and not g.owned then
 				local price = Economy.price(g.price, fx)
 				local tag = Theme.luggage(Theme.money(price), if money >= price then "Good" else "Bad", -7)
+				-- the tag hangs above the name, clear of it (long names ran under it)
 				tag.AnchorPoint = Vector2.new(1, 0)
-				tag.Position = UDim2.new(1, -4, 0, 0)
+				tag.Position = UDim2.new(1, -4, 0, -4)
 				tag.Parent = row
 			end
 			row.Activated:Connect(function()
@@ -388,7 +390,7 @@ local function supplyWall()
 			category,
 			def.name,
 			def.blurb,
-			Theme.icon3d(Brooms.model(def.id), UDim2.fromScale(1, 1), nil, 60, 20)
+			Theme.icon3d(Brooms.model(def.id), UDim2.fromScale(1, 1), nil, 60, 20, -50)
 		)
 		local function delta(a: number, b: number, unit: (number) -> string): string
 			local d = a - b

@@ -518,7 +518,7 @@ local function rebuildBelt()
 			if active then 0 else 0.35
 		)
 		if id and Loadout.tool(id) then
-			local vp = Theme.icon3d(Brooms.model(id), UDim2.fromOffset(48, 48), UDim2.fromOffset(6, 6), 60, 20)
+			local vp = Theme.icon3d(Brooms.model(id), UDim2.fromOffset(48, 48), UDim2.fromOffset(6, 6), 60, 20, -50)
 			Theme.corner(vp, 24)
 			vp.Parent = b
 		end
