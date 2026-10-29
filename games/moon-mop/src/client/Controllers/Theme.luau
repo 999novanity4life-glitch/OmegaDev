@@ -758,7 +758,7 @@ function Theme.card(gui: ScreenGui, title: string, category: string, size: UDim2
 	local body = Theme.frame(UDim2.new(1, -44, 1, -92), UDim2.fromOffset(22, 74), Theme.PANEL, 1)
 	body.Name = "Body"
 	body.Parent = card
-	Theme.hints(canvas, { { "E", "Esc", "Leave" } })
+	Theme.hints(canvas, { { "E", "Leave" } })
 	return root, body, close
 end
 

@@ -583,7 +583,7 @@ function Build.start()
 	grid.Parent = menu.body
 	Theme.setHints(
 		menu.hints,
-		{ { "LMB", "Choose, again to build" }, { "MMB", "Scroll" }, { "Enter", "Build" }, { "Esc", "Close" } }
+		{ { "LMB", "Choose, again to build" }, { "MMB", "Scroll" }, { "Enter", "Build" }, { "E", "Close" } }
 	)
 	Menus.register("build", menu.root, refreshMenu, function()
 		select(menuPick)

@@ -121,7 +121,7 @@ function Garage.start()
 			{ "LMB", "Choose" },
 			{ "Enter", if tab == "Vehicles" then "Buy or take out" else "Install" },
 			{ "X", "Store" },
-			{ "E", "Esc", "Leave" },
+			{ "E", "Leave" },
 		})
 		Theme.clear(grid)
 		Theme.clear(upList)

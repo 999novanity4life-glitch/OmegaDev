@@ -210,7 +210,7 @@ local function supplyWall()
 		{ "1", "2", "Belt slot" },
 		{ "Enter", "Buy or take" },
 		{ "LMB", "Choose" },
-		{ "E", "Esc", "Leave" },
+		{ "E", "Leave" },
 	})
 	local selected = "Toothbrush"
 	local action: (() -> ())? = nil
@@ -525,7 +525,7 @@ local function upgradeBoard()
 		{ "W", "S", "Choose" },
 		{ "A", "D", "Branches" },
 		{ "Enter", "Install" },
-		{ "E", "Esc", "Leave" },
+		{ "E", "Leave" },
 	})
 	local list = Theme.list(m.body, UDim2.new(1, -16, 1, -16), UDim2.fromOffset(8, 8), 7)
 	local tab = Config.UpgradeTabs[1]
@@ -1013,7 +1013,7 @@ local function fieldManual()
 		t.Parent = book
 		table.insert(tabs, t)
 	end
-	Theme.hints(canvas, { { "A", "D", "Flip pages" }, { "LMB", "Pick a chapter" }, { "H", "Esc", "Close" } })
+	Theme.hints(canvas, { { "A", "D", "Flip pages" }, { "LMB", "Pick a chapter" }, { "H", "Close" } })
 	local closeButton = Theme.button("×", UDim2.fromOffset(44, 44), "Dark")
 	closeButton.Name = "Close"
 	closeButton.Position = UDim2.fromOffset(1000, 70)

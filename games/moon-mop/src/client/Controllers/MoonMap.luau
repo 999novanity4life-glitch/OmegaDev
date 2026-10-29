@@ -270,7 +270,7 @@ function MoonMap.start()
 		{ "RMB", "Place waypoint" },
 		{ "MMB", "Zoom" },
 		{ "F", "Find me" },
-		{ "M", "Esc", "Leave" },
+		{ "M", "Leave" },
 	})
 
 	-- camera orbit

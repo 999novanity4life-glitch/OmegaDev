@@ -104,7 +104,7 @@ function Suit.start()
 			{ "1", "2", "Tabs" },
 			{ "LMB", "Choose" },
 			{ "Enter", if tab == "Suit" then "Done" else "Switch on or off" },
-			{ "C", "Esc", "Leave" },
+			{ "C", "Leave" },
 		})
 		local colour = G.SuitColours[suit.colour] or G.SuitColours[1]
 		local suitColour = Color3.fromRGB(colour[1], colour[2], colour[3])
