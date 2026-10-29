@@ -582,6 +582,19 @@ local function upgradeBoard()
 			)
 			glyph.TextXAlignment = Enum.TextXAlignment.Center
 			glyph.Parent = row
+			if visible and def.tab == "Cleaning" then
+				-- cleaning upgrades show a little brush render instead of a symbol
+				glyph.Text = ""
+				local ic = Theme.icon3d(
+					Brooms.model("Toothbrush"),
+					UDim2.fromOffset(28, 28),
+					UDim2.fromOffset(8, 2),
+					60,
+					20,
+					-50
+				)
+				ic.Parent = row
+			end
 			local name = Theme.label(
 				if visible then def.name else "?",
 				13,
@@ -643,8 +656,14 @@ local function upgradeBoard()
 		local def = Upgrades.get(selected) :: Config.UpgradeDef
 		local level = owned[def.id] or 0
 		local visible = Upgrades.visible(owned, def.id) or level > 0
-		local icon = Theme.label(TAB_GLYPH[def.tab] or "•", 46, Theme.WHITE, Theme.F.bold, UDim2.fromScale(1, 1))
-		icon.TextXAlignment = Enum.TextXAlignment.Center
+		local icon: GuiObject
+		if def.tab == "Cleaning" then
+			icon = Theme.icon3d(Brooms.model("Toothbrush"), UDim2.fromScale(1, 1), nil, 60, 20, -50)
+		else
+			local l = Theme.label(TAB_GLYPH[def.tab] or "•", 46, Theme.WHITE, Theme.F.bold, UDim2.fromScale(1, 1))
+			l.TextXAlignment = Enum.TextXAlignment.Center
+			icon = l
+		end
 		Theme.detailHead(
 			m.detail,
 			def.tab .. (if def.capstone then "  ·  capstone" else ""),

@@ -51,6 +51,11 @@ end
 local frame = CFrame.identity -- orientation only; UpVector is the local up
 local yaw, pitch = 0, math.rad(-10)
 local brushing = false
+-- Lane snap while brushing: strokes run dead straight along the heading you started with, and
+-- when you stop strafing you settle onto the nearest lane one tool-width over, so lanes sit
+-- side by side. Turning the view well away from the lane starts a new one.
+local laneAxis: Vector3? = nil
+local laneOrigin = Vector3.zero
 -- Reasons the cursor is free (menu, map, intro...). Empty = mouse look.
 local freeReasons: { [string]: boolean } = {}
 
@@ -325,6 +330,38 @@ local function setup(character: Model)
 					move = move.Unit
 				end
 			end
+		end
+		if brushing and Config.Moon.LaneSnap and mv.Magnitude > 0.01 then
+			local view = flatten((frame * CFrame.Angles(0, yaw, 0)).LookVector, up)
+			local axis = laneAxis and flatten(laneAxis, up)
+			if view.Magnitude > 1e-3 then
+				view = view.Unit
+				if not axis or axis.Magnitude < 1e-3 or math.abs(axis.Unit:Dot(view)) < math.cos(math.rad(35)) then
+					laneAxis, laneOrigin = view, root.Position
+					axis = view
+				end
+			end
+			if axis and axis.Magnitude > 1e-3 then
+				axis = axis.Unit
+				local side = axis:Cross(up).Unit
+				-- forward/back keys walk exactly along the lane, whatever small way the mouse drifts
+				local along = -mv.Z * (if view:Dot(axis) >= 0 then 1 else -1)
+				local strafe = mv.X
+				local width = math.max((character:GetAttribute("ToolWidth") :: number?) or 2, 0.5)
+				local offset = (root.Position - laneOrigin):Dot(side)
+				local pullTo = 0
+				if math.abs(strafe) < 0.1 then
+					local target = math.round(offset / width) * width
+					pullTo = math.clamp((target - offset) * 2.5, -1, 1)
+				end
+				local sideSign = if view:Cross(up):Dot(side) >= 0 then 1 else -1
+				move = axis * along + side * (strafe * sideSign + pullTo)
+				if move.Magnitude > 1 then
+					move = move.Unit
+				end
+			end
+		elseif not brushing then
+			laneAxis = nil
 		end
 		cm.MovingDirection = move
 		-- first person: the body (and the tool) always face where you look; you strafe

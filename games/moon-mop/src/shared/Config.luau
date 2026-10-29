@@ -15,6 +15,7 @@ Config.Moon = {
 	JumpSpeed = 28,
 	WalkSpeed = 16,
 	BrushSpeedFactor = 0.85, -- walk speed while the tool is on
+	LaneSnap = true, -- brushing keeps you on straight lanes one tool-width apart (Movement.luau)
 }
 
 -- Three nested geodesic grids (see MoonGrid). Each frequency divides the next one up.
@@ -1273,7 +1274,7 @@ Config.Look = {
 	NightOutdoor = { 26, 34, 62 },
 	Latitude = 20,
 	Saturation = -0.05,
-	CleanColour = { 128, 131, 152 },
+	CleanColour = { 104, 106, 116 },
 	EdgeColour = { 226, 240, 246 },
 	Gold = { 255, 196, 40 },
 	Mint = { 120, 255, 205 },

@@ -1,9 +1,11 @@
 --!strict
--- What cleaning looks like. Keeps a copy of the Moon's dust (snapshot on join, deltas after)
--- and draws, around the camera only:
--- * finished sectors as one flat cleaned hex with thin light edge lines (reference p1_1320),
--- * clean patches inside unfinished sectors as small hex tiles,
--- * fresh lanes right behind every brush, the tool's exact width (reference p1_128, p1_140),
+-- What cleaning looks like. Keeps a copy of the Moon's dust (snapshot on join, deltas after).
+-- The dust is the Moon's own surface (terrain Ground with the regolith look); cleaning takes it
+-- off and shows the darker bare ground underneath (reference p1_0140, d_0032: the brush cuts a
+-- dark trail into pale dust, nothing is raised). So, around the camera only:
+-- * clean patches repaint the terrain under them from Ground to bare Basalt, same height,
+-- * finished sectors are fully repainted and get thin light edge lines (reference p1_1320),
+-- * fresh lanes right behind every brush, the tool's exact width, lie flush on the ground,
 -- * a gold outline round the sector you stand in, and a mint flash and ripple when one finishes.
 -- Everything here is cosmetic; the server decides what is clean.
 
@@ -50,6 +52,12 @@ local ready = false
 local folder = Instance.new("Folder")
 folder.Name = "MoonView"
 folder.Parent = Workspace
+
+local Terrain = Workspace.Terrain
+local DUSTY = Enum.Material.Ground
+local BARE = Enum.Material.Basalt
+-- local only: the bare ground colour under the dust
+Terrain:SetMaterialColor(BARE, CLEAN)
 
 local terrainOnly = RaycastParams.new()
 terrainOnly.FilterType = Enum.RaycastFilterType.Include
@@ -226,7 +234,7 @@ function MoonView.touchedSet(): { [number]: boolean }
 end
 
 -- Rendering state.
-type SectorVis = { tile: Instance?, edges: { Instance }, patches: { [number]: Instance }, kind: number }
+type SectorVis = { edges: { Instance }, kind: number }
 local shown: { [number]: SectorVis } = {}
 local lanes: { { part: Part, sector: number } } = {}
 
@@ -235,14 +243,8 @@ local function clearVis(s: number)
 	if not v then
 		return
 	end
-	if v.tile then
-		v.tile:Destroy()
-	end
 	for _, e in v.edges do
 		e:Destroy()
-	end
-	for _, p in v.patches do
-		p:Destroy()
 	end
 	shown[s] = nil
 end
@@ -271,6 +273,28 @@ local function edgeLines(cf: CFrame, flat: number, parent: Instance): { Instance
 	return out
 end
 
+-- Terrain repaint for one patch: a small grid-aligned box round the ground point. Only the
+-- material changes, never the height. Paint stays when the sector scrolls out of view.
+local painted: { [number]: boolean } = {}
+local function paint(id: number, bare: boolean)
+	if (painted[id] == true) == bare then
+		return
+	end
+	local hit = ground(patch:position(id))
+	if not hit then
+		return
+	end
+	local h = PATCH_SPACING * 0.42
+	local region = Region3.new(hit.Position - Vector3.one * h, hit.Position + Vector3.one * h):ExpandToGrid(4)
+	if bare then
+		Terrain:ReplaceMaterial(region, 4, DUSTY, BARE)
+		painted[id] = true
+	else
+		Terrain:ReplaceMaterial(region, 4, BARE, DUSTY)
+		painted[id] = nil
+	end
+end
+
 local function showDone(s: number)
 	local v = shown[s]
 	if v and v.kind == 2 then
@@ -283,8 +307,10 @@ local function showDone(s: number)
 	if not cf then
 		return
 	end
-	local tile = hexTile("Sector", cf, flat * 1.01, 0.5, CLEAN, folder)
-	shown[s] = { tile = tile, edges = edgeLines(cf, flat, folder), patches = {}, kind = 2 }
+	for _, id in patchesOf(s) do
+		paint(id, true)
+	end
+	shown[s] = { edges = edgeLines(cf, flat, folder), kind = 2 }
 	-- lanes inside a finished sector are no longer needed
 	for i = #lanes, 1, -1 do
 		if lanes[i].sector == s then
@@ -296,26 +322,12 @@ end
 
 local function showPartial(s: number)
 	local existing = shown[s]
-	local vis: SectorVis
-	if existing and existing.kind == 1 then
-		vis = existing
-	else
+	if not (existing and existing.kind == 1) then
 		clearVis(s)
-		vis = { tile = nil, edges = {}, patches = {}, kind = 1 }
-		shown[s] = vis
+		shown[s] = { edges = {}, kind = 1 }
 	end
 	for _, id in patchesOf(s) do
-		local clean = buffer.readu8(dust, id) == 0
-		local have = vis.patches[id]
-		if clean and not have then
-			local cf = cellFrame(patch:position(id), patch:tangent(id), 0)
-			if cf then
-				vis.patches[id] = hexTile("Patch", cf, PATCH_SPACING * 1.04, 0.3, CLEAN, folder)
-			end
-		elseif not clean and have then
-			have:Destroy()
-			vis.patches[id] = nil
-		end
+		paint(id, buffer.readu8(dust, id) == 0)
 	end
 end
 
@@ -325,6 +337,10 @@ local function refreshSector(s: number)
 	elseif touched[s] then
 		showPartial(s)
 	else
+		-- dust came back everywhere (a meteor shower): cover the bare ground again
+		for _, id in patchesOf(s) do
+			paint(id, false)
+		end
 		clearVis(s)
 	end
 end
@@ -533,9 +549,10 @@ local function laneTick()
 		lane.CastShadow = false
 		lane.Material = Enum.Material.SmoothPlastic
 		lane.Color = CLEAN
-		lane.Size = Vector3.new(width, 0.12, len + width * 0.3)
+		-- paper-thin and flush, so it reads as dust taken away rather than something laid on top
+		lane.Size = Vector3.new(width, 0.03, len + width * 0.3)
 		local n = hit.Normal:Lerp(up, 0.5).Unit
-		lane.CFrame = CFrame.lookAlong((last + p) / 2 + n * 0.04, seg.Unit, n)
+		lane.CFrame = CFrame.lookAlong((last + p) / 2 + n * 0.005, seg.Unit, n)
 		lane.Parent = folder
 		table.insert(lanes, { part = lane, sector = s })
 		if #lanes > MAX_LANES then

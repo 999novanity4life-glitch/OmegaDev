@@ -46,7 +46,7 @@ end
 local GREEN = rgb(Config.Look.MapGreen)
 local BLUE = rgb(Config.Look.MapBlue)
 -- the original's hologram (P1 f_182): an orange globe with brighter grid lines
-local HOLO = Color3.fromRGB(255, 150, 28)
+local HOLO = Color3.fromRGB(255, 132, 20)
 local HOLO_LINE = Color3.fromRGB(255, 214, 120)
 
 -- sector -> region, and sectors per region (computed once, about 41k cheap lookups)
@@ -106,7 +106,8 @@ function MoonMap.start()
 	viewport.Size = UDim2.fromOffset(600, 600)
 	viewport.Position = UDim2.fromOffset(340, 40)
 	viewport.BackgroundTransparency = 1
-	viewport.Ambient = Color3.fromRGB(255, 200, 150)
+	-- SmoothPlastic under a soft white light: Neon in a ViewportFrame washes out to flat yellow
+	viewport.Ambient = Color3.fromRGB(185, 180, 175)
 	viewport.LightColor = Color3.fromRGB(255, 240, 220)
 	viewport.LightDirection = Vector3.new(-0.4, -0.8, -0.6)
 	viewport.Parent = canvas
@@ -117,9 +118,10 @@ function MoonMap.start()
 	local world = Instance.new("WorldModel")
 	world.Parent = viewport
 
-	local ball = bit(world, Vector3.one * GLOBE * 2, CFrame.new(), HOLO, Enum.Material.Neon, Enum.PartType.Ball)
+	local ball =
+		bit(world, Vector3.one * GLOBE * 2, CFrame.new(), HOLO, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 	ball.Name = "Moon"
-	ball.Transparency = 0.08
+	ball.Transparency = 0.12
 	-- holographic latitude rings and meridians
 	local grid = Instance.new("Folder")
 	grid.Name = "Grid"
@@ -134,7 +136,7 @@ function MoonMap.start()
 				Vector3.new(0.05, 0.05, radius * math.pi * 2 / n + 0.02),
 				cf * CFrame.lookAt(p, p + Vector3.new(-math.sin(a), 0, math.cos(a))),
 				HOLO_LINE,
-				Enum.Material.Neon
+				Enum.Material.SmoothPlastic
 			)
 			seg.Transparency = 0.15
 		end
@@ -162,7 +164,7 @@ function MoonMap.start()
 			Vector3.new(0.06, discSize, discSize),
 			surfaceCF(region:position(r), 0.01) * CFrame.Angles(0, 0, math.rad(90)),
 			HOLO,
-			Enum.Material.Neon,
+			Enum.Material.SmoothPlastic,
 			Enum.PartType.Cylinder
 		)
 		d.Transparency = 1
@@ -182,8 +184,7 @@ function MoonMap.start()
 	local pct = Theme.label("0.00", 36, Theme.WHITE, Theme.F.heavy, UDim2.fromOffset(170, 44), UDim2.fromOffset(18, 20))
 	pct.AutomaticSize = Enum.AutomaticSize.X
 	pct.Parent = stats
-	local pctSign = Theme.label("%", 16, Theme.MUTED, Theme.F.bold, UDim2.fromOffset(30, 20), UDim2.fromOffset(110, 38))
-	pctSign.Parent = stats
+	pct.RichText = true
 	local of = Theme.label(
 		"of the Moon cleaned",
 		11,
@@ -208,9 +209,9 @@ function MoonMap.start()
 		{ key = "Partly", text = "Partly cleaned", color = BLUE },
 		{ key = "Cleaned", text = "Cleaned", color = GREEN },
 		{ key = "Stations", text = "Stations", color = Theme.WHITE },
-		{ key = "Regions", text = "Regions finished", glyph = "⬡" },
-		{ key = "Flags", text = "Flags untangled", glyph = "⚑" },
-		{ key = "Probes", text = "Sites surveyed", glyph = "⌖" },
+		{ key = "Regions", text = "Regions finished", glyph = "region" },
+		{ key = "Flags", text = "Flags untangled", glyph = "flag" },
+		{ key = "Probes", text = "Sites surveyed", glyph = "probe" },
 	}
 	for i, row in legendRows do
 		local r = Theme.frame(UDim2.fromOffset(226, 26), UDim2.fromOffset(18, 120 + (i - 1) * 27), Theme.INNER)
@@ -220,15 +221,26 @@ function MoonMap.start()
 			Theme.corner(dot, 5)
 			dot.Parent = r
 		else
-			local g = Theme.label(
-				row.glyph or "",
-				12,
-				Theme.WHITE,
-				Theme.F.bold,
-				UDim2.fromOffset(16, 26),
-				UDim2.fromOffset(6, 0)
-			)
-			g.Parent = r
+			-- little drawn icons (the font has no hexagon, flag or target glyphs)
+			local icon = Theme.frame(UDim2.fromOffset(12, 12), UDim2.fromOffset(8, 7), Theme.WHITE, 1)
+			if row.glyph == "region" then
+				local d = Theme.frame(UDim2.fromOffset(8, 8), UDim2.fromOffset(2, 2), Theme.WHITE, 1)
+				d.Rotation = 45
+				Theme.stroke(d, Theme.WHITE, 1.5)
+				d.Parent = icon
+			elseif row.glyph == "flag" then
+				Theme.frame(UDim2.fromOffset(2, 12), UDim2.fromOffset(1, 0), Theme.WHITE).Parent = icon
+				Theme.frame(UDim2.fromOffset(8, 6), UDim2.fromOffset(3, 0), Theme.WHITE).Parent = icon
+			else
+				local ring = Theme.frame(UDim2.fromOffset(10, 10), UDim2.fromOffset(1, 1), Theme.WHITE, 1)
+				Theme.corner(ring, 5)
+				Theme.stroke(ring, Theme.WHITE, 1.5)
+				ring.Parent = icon
+				local dot = Theme.frame(UDim2.fromOffset(3, 3), UDim2.fromOffset(4.5, 4.5), Theme.WHITE)
+				Theme.corner(dot, 2)
+				dot.Parent = icon
+			end
+			icon.Parent = r
 		end
 		local l =
 			Theme.label(row.text, 11, Theme.WHITE, Theme.F.bold, UDim2.fromOffset(150, 26), UDim2.fromOffset(26, 0))
@@ -249,7 +261,7 @@ function MoonMap.start()
 	wpCount.TextXAlignment = Enum.TextXAlignment.Right
 	wpCount.Parent = wp
 	local wpList = Theme.list(wp, UDim2.fromOffset(228, 112), UDim2.fromOffset(18, 52), 4)
-	local pinButton = Theme.button("+  PIN A WAYPOINT", UDim2.fromOffset(110, 34), "Dark")
+	local pinButton = Theme.button("+  PIN", UDim2.fromOffset(110, 34), "Dark")
 	pinButton.Position = UDim2.fromOffset(18, 172)
 	pinButton.Parent = wp
 	local tpButton = Theme.button("TELEPORT", UDim2.fromOffset(110, 34), "Orange")
@@ -303,7 +315,13 @@ function MoonMap.start()
 			local cf = surfaceCF(st.dir, 0)
 			-- stations: a white mast with an orange cap, so they read apart from the yellow probes
 			bit(pinLayer, Vector3.new(0.16, 1.2, 0.16), cf * CFrame.new(0, 0.6, 0), Theme.WHITE)
-			bit(pinLayer, Vector3.new(0.7, 0.4, 0.7), cf * CFrame.new(0, 1.3, 0), Theme.WHITE, Enum.Material.Neon)
+			bit(
+				pinLayer,
+				Vector3.new(0.7, 0.4, 0.7),
+				cf * CFrame.new(0, 1.3, 0),
+				Theme.WHITE,
+				Enum.Material.SmoothPlastic
+			)
 		end
 		local seeFlags = s.fx and (s.fx.flagPct or 0) > 0
 		for i, dir in Places.flags do
@@ -314,7 +332,7 @@ function MoonMap.start()
 					Vector3.one * 0.22,
 					surfaceCF(dir, 0.12),
 					if found then GREEN else Theme.WHITE,
-					Enum.Material.Neon,
+					Enum.Material.SmoothPlastic,
 					Enum.PartType.Ball
 				)
 			end
@@ -326,19 +344,25 @@ function MoonMap.start()
 				Vector3.new(0.3, 0.3, 0.3),
 				surfaceCF(dir, 0.15) * CFrame.Angles(0, math.rad(45), 0),
 				if found then GREEN else Theme.YELLOW,
-				Enum.Material.Neon
+				Enum.Material.SmoothPlastic
 			)
 		end
 		for _, w in s.waypoints or {} do
 			local dir = Vector3.new(w[1], w[2], w[3])
 			local cf = surfaceCF(dir, 0)
-			bit(pinLayer, Vector3.new(0.12, 0.9, 0.12), cf * CFrame.new(0, 0.45, 0), Theme.RED, Enum.Material.Neon)
+			bit(
+				pinLayer,
+				Vector3.new(0.12, 0.9, 0.12),
+				cf * CFrame.new(0, 0.45, 0),
+				Theme.RED,
+				Enum.Material.SmoothPlastic
+			)
 			bit(
 				pinLayer,
 				Vector3.one * 0.36,
 				cf * CFrame.new(0, 0.95, 0),
 				Theme.RED,
-				Enum.Material.Neon,
+				Enum.Material.SmoothPlastic,
 				Enum.PartType.Ball
 			)
 		end
@@ -347,7 +371,7 @@ function MoonMap.start()
 			Vector3.one * 0.55,
 			surfaceCF(myDir(), 0.2),
 			Theme.WHITE,
-			Enum.Material.Neon,
+			Enum.Material.SmoothPlastic,
 			Enum.PartType.Ball
 		)
 		me.Name = "Me"
@@ -406,8 +430,8 @@ function MoonMap.start()
 			end
 		end
 		local cleanPct = math.max(0, MoonView.cleanPct())
-		pct.Text = string.format("%.2f", cleanPct)
-		pctSign.Position = UDim2.fromOffset(18 + pct.TextBounds.X + 4, 38)
+		-- the % rides in the same label so it never overlaps the number
+		pct.Text = string.format('%.2f<font size="16" color="#8C949E"> %%</font>', cleanPct)
 		fill.Size = UDim2.fromScale(math.clamp(cleanPct / 100, 0.01, 1), 1)
 		sectorsLine.Text = string.format("%s of %s sectors", commas(done), commas(sector.count))
 		counters.NotClean.Text = commas(sector.count - done - partly)
@@ -473,7 +497,7 @@ function MoonMap.start()
 		pinMode = on
 		pinButton.BackgroundColor3 = if on then Theme.TEAL else Theme.ROW
 		pinButton.TextColor3 = if on then Theme.BLACK else Theme.WHITE
-		pinButton.Text = if on then "TAP THE GLOBE" else "+  PIN A WAYPOINT"
+		pinButton.Text = if on then "TAP GLOBE" else "+  PIN"
 	end
 
 	-- the ray under a point of the viewport, hit against the globe
