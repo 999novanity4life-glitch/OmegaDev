@@ -1013,7 +1013,7 @@ local function fieldManual()
 		t.Parent = book
 		table.insert(tabs, t)
 	end
-	Theme.hints(canvas, { { "A", "D", "Turn the page" }, { "LMB", "Pick a chapter" }, { "H", "Esc", "Close" } })
+	Theme.hints(canvas, { { "A", "D", "Flip pages" }, { "LMB", "Pick a chapter" }, { "H", "Esc", "Close" } })
 	local closeButton = Theme.button("×", UDim2.fromOffset(44, 44), "Dark")
 	closeButton.Name = "Close"
 	closeButton.Position = UDim2.fromOffset(1000, 70)

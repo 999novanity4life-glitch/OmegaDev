@@ -3,8 +3,8 @@
 --   1. Black starfield, three short story cards fade in and out. SKIP INTRO in the corner.
 --   2. The employment contract on a clipboard: four pages (A / D or the arrows to turn), your
 --      name and avatar photo on page one, numbered clauses, and on the last page a signature
---      line you sign with the mouse or a finger. SIGN & BEGIN SHIFT, Clear, DECLINE & BEGIN
---      SHIFT (declining also hires you).
+--      line you sign with the mouse or a finger. SIGN & CLOCK IN, Clear, REFUSE & CLOCK IN
+--      (refusing also hires you). Our own wording throughout; only the flow follows the original.
 --   3. A HIRED stamp slams down, the screen fades, and you start the shift in first person in
 --      front of the North Station supply wall with the Field Manual open.
 -- Only new players see it (save flag `hired`). All text is our own; the layout follows the
@@ -182,7 +182,7 @@ local function pageOne(page: Frame)
 	img.ScaleType = Enum.ScaleType.Crop
 	img.Image = string.format("rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150", player.UserId)
 	img.Parent = photo
-	hand(photo, "First day. Still smiling.", 9, UDim2.fromOffset(100, 16), UDim2.fromOffset(4, 72), INK)
+	hand(photo, "First day. Still smiling.", 12, UDim2.fromOffset(104, 16), UDim2.fromOffset(4, 72), INK)
 	local tape = Theme.frame(UDim2.fromOffset(34, 10), UDim2.fromOffset(36, -5), Color3.fromRGB(240, 226, 170), 0.3)
 	tape.Rotation = -4
 	tape.Parent = photo
@@ -273,24 +273,24 @@ local function pageFour(page: Frame): Signature
 	end
 	gap(page, 11, 6)
 	small(page, 12, "Employee signature")
-	local pad = Theme.frame(UDim2.new(1, 0, 0, 52), nil, PAPER, 1)
+	local pad = Theme.frame(UDim2.new(1, 0, 0, 70), nil, PAPER, 1)
 	pad.Name = "SignaturePad"
 	pad.LayoutOrder = 13
 	pad.Active = true
 	pad.ClipsDescendants = true
 	local line = Theme.frame(UDim2.new(1, -60, 0, 1), UDim2.new(0, 0, 1, -6), GREY)
 	line.Parent = pad
-	local typed = hand(pad, "", 30, UDim2.new(1, -60, 1, -6), UDim2.fromOffset(16, 0))
+	local typed = hand(pad, "", 36, UDim2.new(1, -60, 1, -6), UDim2.fromOffset(16, 0))
 	pad.Parent = page
 	local foot = Theme.frame(UDim2.new(1, 0, 0, 40), nil, PAPER, 1)
 	foot.LayoutOrder = 14
 	local d1 = Theme.label("DATE", 8, GREY, Theme.F.bold, UDim2.fromOffset(150, 12), UDim2.fromOffset(0, 4))
 	d1.Parent = foot
-	hand(foot, "Day one of the rest of your shift", 11, UDim2.fromOffset(170, 18), UDim2.fromOffset(0, 18))
+	hand(foot, "Day one of the rest of your shift", 15, UDim2.fromOffset(176, 22), UDim2.fromOffset(0, 18))
 	local d2 =
 		Theme.label("COMPANY SIGNATURE", 8, GREY, Theme.F.bold, UDim2.fromOffset(150, 12), UDim2.fromOffset(176, 4))
 	d2.Parent = foot
-	hand(foot, "Not needed. We agree with us.", 11, UDim2.fromOffset(170, 18), UDim2.fromOffset(176, 18))
+	hand(foot, "Not needed. We agree with us.", 15, UDim2.fromOffset(170, 22), UDim2.fromOffset(176, 18))
 	-- faint company stamp
 	local seal = Theme.frame(UDim2.fromOffset(46, 46), UDim2.new(1, -46, 0, -6), PAPER, 1)
 	seal.Rotation = -12
@@ -305,9 +305,9 @@ local function pageFour(page: Frame): Signature
 	gap(page, 15, 6)
 	local note = hand(
 		page,
-		"Your wellbeing is important to our statistics.\n          - Management",
-		11,
-		UDim2.new(1, 0, 0, 34),
+		"Your wellbeing is important to our statistics.\n                    - Management",
+		16,
+		UDim2.new(1, 0, 0, 46),
 		UDim2.new(),
 		INK
 	)
@@ -352,19 +352,31 @@ function Intro.play()
 
 	-- 1. story cards
 	local skipped = false
-	local skip = Theme.button("SKIP INTRO  ›", UDim2.fromOffset(110, 30), "Dark")
-	skip.Position = UDim2.fromOffset(1150, 24)
+	-- pinned to the real screen corner, not the 16:9 canvas, so it stays put on tall windows
+	local skip = Theme.button("SKIP INTRO  ›", UDim2.fromOffset(124, 32), "Dark")
+	skip.AnchorPoint = Vector2.new(1, 0)
+	skip.Position = UDim2.new(1, -24, 0, 24)
 	skip.BackgroundTransparency = 0.3
-	skip.Parent = canvas
+	skip.TextScaled = false
+	skip.TextSize = 12
+	skip.FontFace = Theme.F.bold
+	Theme.stroke(skip, Color3.fromRGB(150, 156, 166), 1, 0.2)
+	skip.Parent = holder
 	skip.Activated:Connect(function()
 		skipped = true
 	end)
-	local line1 = Theme.label("", 15, Theme.WHITE, Theme.F.semi, UDim2.fromOffset(1000, 22), UDim2.fromOffset(140, 318))
+	local line1 = Theme.label("", 21, Theme.WHITE, Theme.F.bold, UDim2.fromOffset(1000, 30), UDim2.fromOffset(140, 326))
 	line1.TextXAlignment = Enum.TextXAlignment.Center
 	line1.TextTransparency = 1
 	line1.Parent = canvas
-	local line2 =
-		Theme.label("", 15, Theme.MUTED, Theme.F.regular, UDim2.fromOffset(1000, 22), UDim2.fromOffset(140, 344))
+	local line2 = Theme.label(
+		"",
+		19,
+		Color3.fromRGB(176, 172, 164),
+		Theme.F.semi,
+		UDim2.fromOffset(1000, 28),
+		UDim2.fromOffset(140, 364)
+	)
 	line2.TextXAlignment = Enum.TextXAlignment.Center
 	line2.TextTransparency = 1
 	line2.Parent = canvas
@@ -517,20 +529,20 @@ function Intro.play()
 	-- buttons and page hint to the right (P1 d_0010)
 	local side = Theme.frame(UDim2.fromOffset(184, 220), UDim2.fromOffset(898, 340), Theme.PANEL, 1)
 	side.Parent = canvas
-	Theme.hints(side, { { "A", "D", "Turn the page" } }, 18, 92)
+	Theme.hints(side, { { "A", "D", "Flip pages" }, { "Enter", "Sign" } }, 18, 92)
 	local nextPage = Theme.button("NEXT PAGE  ›", UDim2.fromOffset(184, 42), "Dark")
 	nextPage.Position = UDim2.fromOffset(0, 51)
 	nextPage.Parent = side
 	local prevPage = Theme.button("‹  BACK", UDim2.fromOffset(184, 42), "Dark")
 	prevPage.Position = UDim2.fromOffset(0, 103)
 	prevPage.Parent = side
-	local signBtn = Theme.button("SIGN & BEGIN SHIFT", UDim2.fromOffset(184, 42), "Orange")
+	local signBtn = Theme.button("SIGN & CLOCK IN", UDim2.fromOffset(184, 42), "Orange")
 	signBtn.Position = UDim2.fromOffset(0, 51)
 	signBtn.Parent = side
 	local clearBtn = Theme.button("Clear", UDim2.fromOffset(184, 42), "Dark")
 	clearBtn.Position = UDim2.fromOffset(0, 103)
 	clearBtn.Parent = side
-	local declineBtn = Theme.button("DECLINE & BEGIN SHIFT", UDim2.fromOffset(184, 42), "Dark")
+	local declineBtn = Theme.button("REFUSE & CLOCK IN", UDim2.fromOffset(184, 42), "Dark")
 	declineBtn.Position = UDim2.fromOffset(0, 155)
 	declineBtn.Parent = side
 	for _, b in { nextPage, prevPage, signBtn, clearBtn, declineBtn } do
@@ -541,7 +553,7 @@ function Intro.play()
 		end
 		local limit = b:FindFirstChildOfClass("UITextSizeConstraint")
 		if limit then
-			limit.MaxTextSize = 14
+			limit.MaxTextSize = 13
 		end
 	end
 
@@ -585,11 +597,11 @@ function Intro.play()
 	local drawing = false
 	local last: Vector2? = nil
 	local inkLength = 0
-	-- input positions leave out the top bar; this ScreenGui ignores the inset, so add it back
+	-- InputObject.Position and AbsolutePosition share the same space (both below the top bar,
+	-- checked in a playtest), so no inset correction
 	local function toPad(screen: Vector2): Vector2
-		local inset = GuiService:GetGuiInset()
 		local k = board.AbsoluteSize.X / 446
-		return (screen + Vector2.new(0, inset.Y) - sig.pad.AbsolutePosition) / math.max(k, 0.01)
+		return (screen - sig.pad.AbsolutePosition) / math.max(k, 0.01)
 	end
 	local function ink(a: Vector2, b: Vector2)
 		local d = b - a
@@ -728,6 +740,9 @@ function Intro.play()
 			or input.KeyCode == Enum.KeyCode.DPadLeft
 		then
 			showPage(current - 1)
+		elseif current == 4 and (input.KeyCode == Enum.KeyCode.Return or input.KeyCode == Enum.KeyCode.ButtonA) then
+			-- Enter / gamepad A signs (the pen signs your name if you drew nothing)
+			task.spawn(finish, false)
 		end
 	end)
 	gui.Destroying:Once(function()

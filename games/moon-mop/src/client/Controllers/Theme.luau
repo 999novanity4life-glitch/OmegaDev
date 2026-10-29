@@ -385,8 +385,11 @@ function Theme.button(text: string, size: UDim2, style: ButtonStyle?): TextButto
 	Theme.corner(b, 6)
 	Theme.pad(b, 7)
 	if style == nil or style == "Orange" then
+		-- a UIGradient tints the label too, so shade with near-white keys over the lighter orange
+		-- (orange text on an orange button otherwise)
+		b.BackgroundColor3 = Theme.ORANGE_HI
 		local g = Instance.new("UIGradient")
-		g.Color = ColorSequence.new(Theme.ORANGE_HI, Theme.ORANGE)
+		g.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(226, 226, 226))
 		g.Rotation = 90
 		g.Parent = b
 	end
