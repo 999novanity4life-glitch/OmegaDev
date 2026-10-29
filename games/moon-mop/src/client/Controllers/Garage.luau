@@ -88,7 +88,7 @@ function Garage.start()
 			name.Parent = row
 			local sub = Theme.text(
 				if v.cleans
-					then string.format("%d st brush · %s kg tank", v.width, Theme.kg(v.tank))
+					then string.format("%d st brush · %s tank", v.width, Theme.mass(v.tank))
 					else string.format("%d seats · fast travel", v.seats),
 				UDim2.new(0.6, 0, 0, 18),
 				if v.id == selected then Theme.SLATE else Theme.MUTED,
@@ -117,7 +117,7 @@ function Garage.start()
 		local title = Theme.text(string.upper(v.name), UDim2.new(1, 0, 0, 34), Theme.WHITE, Enum.Font.GothamBlack, 32)
 		title.Parent = detail
 		bar(detail, "TOP SPEED", st.speed, maxSpeed * 1.5, string.format("%d km/h", st.speed * 0.28 * 3.6), 44)
-		bar(detail, "TANK", st.tank, maxTank, Theme.kg(st.tank) .. " kg", 70)
+		bar(detail, "TANK", st.tank, maxTank, Theme.mass(st.tank), 70)
 		bar(detail, "BRUSH", st.width, maxWidth, string.format("%d st", st.width), 96)
 		-- actions
 		local actions = Theme.frame(UDim2.new(1, 0, 0, 50), UDim2.fromOffset(0, 126), Theme.SLATE, 1)

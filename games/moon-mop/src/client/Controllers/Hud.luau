@@ -433,10 +433,10 @@ local function onState(s: { [string]: any })
 		local v = Loadout.vehicle(s.vehicle)
 		local tank = s.tank or 0
 		vehicleStatus.Text = string.format(
-			"%s  ·  TANK %s / %s KG%s",
+			"%s  ·  TANK %s / %s%s",
 			string.upper(if v then v.name else ""),
-			Theme.kg(tank),
-			Theme.kg(s.tankMax or 0),
+			string.upper(Theme.mass(tank)),
+			string.upper(Theme.mass(s.tankMax or 0)),
 			if (s.dial or 0) > 0 then string.format("  ·  SUCTION %d", s.dial) else ""
 		)
 	end

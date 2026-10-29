@@ -210,10 +210,12 @@ function refreshItems()
 		t.TextWrapped = true
 		t.Position = UDim2.fromOffset(8, 30)
 		t.Parent = b
-		local tag = Theme.tag(
-			if def.id == "Belt" then Theme.money(price) .. "/tile" else Theme.money(price),
-			if money >= price then "Good" else "Bad"
-		)
+		local tag = if Plot.atLimit(s.buildings or {}, def.id)
+			then Theme.tag("BUILT", "Owned")
+			else Theme.tag(
+				if def.id == "Belt" then Theme.money(price) .. "/tile" else Theme.money(price),
+				if money >= price then "Good" else "Bad"
+			)
 		tag.Position = UDim2.new(0, 8, 1, -30)
 		tag.Parent = b
 		b.Activated:Connect(function()

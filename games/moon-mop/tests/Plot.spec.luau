@@ -23,6 +23,12 @@ return function(t, load)
 			expect((Plot.canPlace(list, "SolarPost", 40, 40, 0))).toBe(true)
 			expect((Plot.canPlace(list, "Garage", -60, -50, 0))).toBe(false) -- one per plot
 		end)
+		it("marks one-per-plot buildings once one is built", function()
+			local list = { { uid = 1, id = "Garage", x = 0, z = 0, r = 0, paid = 200, t = 0 } }
+			expect(Plot.atLimit(list, "Garage")).toBe(true)
+			expect(Plot.atLimit({}, "Garage")).toBe(false)
+			expect(Plot.atLimit(list, "SolarPost")).toBe(false)
+		end)
 		it("lets belt tiles sit edge to edge", function()
 			local list = { { uid = 1, id = "Belt", x = 0, z = 0, r = 1, paid = 1, t = 0 } }
 			expect((Plot.canPlace(list, "Belt", 4, 0, 1))).toBe(true)

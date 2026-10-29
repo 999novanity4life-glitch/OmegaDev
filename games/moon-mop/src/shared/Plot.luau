@@ -61,6 +61,12 @@ end
 Plot.overlaps = overlaps
 
 -- Can this building go here? Returns ok and a reason the player can read.
+-- Buildings a plot may only have one of, with the reason shown when you try a second.
+Plot.ONE_PER_PLOT = {
+	Garage = "One Garage per plot",
+	PodCatcher = "One Pod Catcher per plot",
+} :: { [string]: string }
+
 function Plot.canPlace(existing: { Building }, id: string, x: number, z: number, r: number): (boolean, string?)
 	local def = defs[id]
 	if not def then
@@ -89,13 +95,23 @@ function Plot.canPlace(existing: { Building }, id: string, x: number, z: number,
 			count += 1
 		end
 	end
-	if id == "Garage" and count >= 1 then
-		return false, "One Garage per plot"
-	end
-	if id == "PodCatcher" and count >= 1 then
-		return false, "One Pod Catcher per plot"
+	if Plot.ONE_PER_PLOT[id] and count >= 1 then
+		return false, Plot.ONE_PER_PLOT[id]
 	end
 	return true, nil
+end
+
+-- True when the plot already has the one building of this kind it is allowed.
+function Plot.atLimit(existing: { Building }, id: string): boolean
+	if not Plot.ONE_PER_PLOT[id] then
+		return false
+	end
+	for _, b in existing do
+		if b.id == id then
+			return true
+		end
+	end
+	return false
 end
 
 -- Price of a building given what the plot already has (Cosmic Octos get dearer).

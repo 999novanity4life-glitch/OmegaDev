@@ -210,6 +210,14 @@ function Theme.kg(n: number): string
 	return string.format("%.2f", n)
 end
 
+-- A mass with its unit, switching to tonnes from 1000 kg ("40.0 kg", "1.20 t").
+function Theme.mass(n: number): string
+	if n >= 1000 then
+		return string.format("%.2f t", n / 1000)
+	end
+	return Theme.kg(n) .. " kg"
+end
+
 -- A scrolling list body with a vertical layout.
 function Theme.list(parent: Instance, size: UDim2, pos: UDim2?): ScrollingFrame
 	local s = Instance.new("ScrollingFrame")
