@@ -74,24 +74,35 @@ local function podPart(kind: string): Part
 	return p
 end
 
+local readouts: { [Instance]: BillboardGui } = {}
+
+-- A small label floating over a building part. Kept in PlayerGui with an Adornee (billboards
+-- under PlayerGui are what the HUD uses elsewhere) and dropped when the part goes away.
 local function readout(parent: BasePart, name: string): TextLabel
-	local existing = parent:FindFirstChild(name)
-	if existing then
-		return (existing :: BillboardGui):FindFirstChildOfClass("TextLabel") :: TextLabel
+	local existing = readouts[parent]
+	if existing and existing.Name == name then
+		return existing:FindFirstChildOfClass("TextLabel") :: TextLabel
 	end
 	local bb = Instance.new("BillboardGui")
 	bb.Name = name
+	bb.Adornee = parent
 	bb.Size = UDim2.fromOffset(170, 34)
 	bb.StudsOffsetWorldSpace = Vector3.new(0, 4, 0)
 	bb.MaxDistance = 90
 	bb.AlwaysOnTop = true
+	bb.ResetOnSpawn = false
 	local label = Theme.text("", UDim2.fromScale(1, 1), Theme.WHITE, Enum.Font.GothamBold, 16)
 	label.BackgroundTransparency = 0.25
 	label.BackgroundColor3 = Theme.SLATE
 	label.TextXAlignment = Enum.TextXAlignment.Center
 	Theme.corner(label, 6)
 	label.Parent = bb
-	bb.Parent = parent
+	bb.Parent = player:WaitForChild("PlayerGui")
+	readouts[parent] = bb
+	parent.Destroying:Once(function()
+		bb:Destroy()
+		readouts[parent] = nil
+	end)
 	return label
 end
 

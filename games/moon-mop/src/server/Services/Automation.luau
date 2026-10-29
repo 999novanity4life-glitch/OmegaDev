@@ -299,7 +299,6 @@ function unloadPack(player: Player, uid: number)
 	s.pods = {}
 	s.packKg, s.packStar = 0, 0
 	s.dirty = true
-	Crew.stat(s, "kg", dust + star)
 	Crew.feedback(player, "Toast", { text = string.format("Unloaded %.1f kg onto the belts", dust + star) })
 end
 
