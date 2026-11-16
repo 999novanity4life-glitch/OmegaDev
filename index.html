@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wildly Animated | Animation samples</title>
+<meta name="description" content="Custom animated stream transitions, alerts, icons and short videos, made to order. Watch the samples.">
+<meta property="og:title" content="Wildly Animated | Animation samples">
+<meta property="og:description" content="Custom animated stream graphics and short videos, made to order.">
+<meta property="og:image" content="stream-transition.jpg">
+<meta name="theme-color" content="#060914">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#060914;--panel:#0a1024;--cy:#22e8ff;--mg:#ff3df2;--vi:#7a5cff;--ink:#eafcff;--dim:#8fa3c2;--line:rgba(34,232,255,.22)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:"Chakra Petch",Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-2;background:
+ radial-gradient(900px 500px at 15% -5%,rgba(34,232,255,.14),transparent 60%),
+ radial-gradient(800px 500px at 95% 10%,rgba(255,61,242,.12),transparent 60%),
+ linear-gradient(rgba(34,232,255,.045) 1px,transparent 1px) 0 0/100% 44px,
+ linear-gradient(90deg,rgba(34,232,255,.045) 1px,transparent 1px) 0 0/44px 100%}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 1px,transparent 1px 4px)}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;font-size:12px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:22px 0;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:.22em;font-size:15px}
+.brand i{width:12px;height:12px;background:var(--cy);box-shadow:0 0 14px var(--cy);transform:rotate(45deg);display:block}
+.status{color:var(--cy);display:flex;align-items:center;gap:8px}
+.status b{width:8px;height:8px;border-radius:50%;background:var(--cy);box-shadow:0 0 10px var(--cy);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.hero{padding:56px 0 30px}
+.hero .mono{color:var(--mg)}
+h1{font-size:clamp(38px,7.4vw,84px);line-height:.98;font-weight:700;letter-spacing:-.01em;margin:14px 0 18px;text-wrap:balance}
+h1 em{font-style:normal;color:var(--cy);text-shadow:0 0 28px rgba(34,232,255,.55)}
+.lede{max-width:620px;color:#c6d6ee;font-size:clamp(16px,2.1vw,19px)}
+.frame{position:relative;background:var(--panel);border:1px solid var(--line);padding:10px}
+.frame::before,.frame::after{content:"";position:absolute;width:26px;height:26px;border:2px solid var(--c,var(--cy));filter:drop-shadow(0 0 6px var(--c,var(--cy)))}
+.frame::before{top:-2px;left:-2px;border-right:0;border-bottom:0}
+.frame::after{bottom:-2px;right:-2px;border-left:0;border-top:0}
+.frame video{display:block;width:100%;aspect-ratio:16/9;background:#000;object-fit:cover}
+.big{margin-top:34px;box-shadow:0 0 80px rgba(34,232,255,.13)}
+.meta{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;padding:14px 6px 6px}
+.meta h2{font-size:clamp(20px,3vw,28px);font-weight:700;line-height:1.15}
+.meta p{color:var(--dim);font-size:15px;max-width:520px;margin-top:4px}
+.num{color:var(--c,var(--cy))}
+.price{white-space:nowrap;color:var(--ink);border:1px solid var(--c,var(--cy));padding:7px 12px;box-shadow:inset 0 0 14px rgba(34,232,255,.12)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:26px;margin:44px 0 10px}
+.grid .meta{display:block}
+.grid .price{display:inline-block;margin-top:12px}
+.c-mg{--c:var(--mg)}.c-vi{--c:var(--vi)}
+section.info{margin:64px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+.step{background:var(--bg);padding:26px 22px}
+.step .mono{color:var(--cy)}
+.step h3{font-size:20px;margin:10px 0 6px}
+.step p{color:var(--dim);font-size:15px}
+.cta{margin:64px 0 0;text-align:center;padding:54px 20px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(34,232,255,.06),rgba(255,61,242,.05))}
+.cta h2{font-size:clamp(28px,5vw,48px);line-height:1.05;font-weight:700;text-wrap:balance}
+.cta p{color:#c6d6ee;max-width:560px;margin:14px auto 26px}
+.btn{display:inline-block;color:#03131a;background:var(--cy);font-weight:700;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;padding:15px 26px;box-shadow:0 0 30px rgba(34,232,255,.5);transition:transform .15s,box-shadow .15s}
+.btn:hover,.btn:focus-visible{transform:translateY(-2px);box-shadow:0 0 44px rgba(34,232,255,.8)}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+footer{padding:34px 0 60px;color:var(--dim);font-size:14px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media (max-width:760px){.grid{grid-template-columns:1fr}section.info{grid-template-columns:1fr}.hero{padding-top:36px}.status span{display:none}}
+@media (prefers-reduced-motion:reduce){.status b{animation:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><i></i>WILDLY ANIMATED</div>
+    <div class="mono status"><b></b><span>Taking orders</span></div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="mono">// Sample reel 2026</div>
+      <h1>Motion that makes your stream look <em>custom built.</em></h1>
+      <p class="lede">Stream transitions, alerts, animated icons and short videos, made to order around your name, your colours or a cartoon version of you. Every clip below is playing live.</p>
+
+      <div class="frame big">
+        <video src="stream-transition.mp4" poster="stream-transition.jpg" muted loop playsinline preload="metadata" aria-label="Stream stinger transition sample"></video>
+        <div class="meta">
+          <div>
+            <div class="mono num">01 / Stream transition</div>
+            <h2>Stinger transition for Twitch and Kick</h2>
+            <p>Covers the screen while you switch scenes. Delivered as a transparent WebM, ready to drop into OBS.</p>
+          </div>
+          <div class="mono price">$15 &nbsp;/&nbsp; full pack $60</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="frame c-mg">
+        <video src="discord-icon.mp4" poster="discord-icon.jpg" muted loop playsinline preload="none" aria-label="Animated Discord icon sample"></video>
+        <div class="meta">
+          <div class="mono num">02 / Animated icon</div>
+          <h2>Animated Discord server icon</h2>
+          <p>A smooth loop built from your logo or initials, sized for Discord.</p>
+          <div class="mono price">$10</div>
+        </div>
+      </div>
+      <div class="frame c-vi">
+        <video src="app-launch.mp4" poster="app-launch.jpg" muted loop playsinline preload="none" aria-label="App launch video sample"></video>
+        <div class="meta">
+          <div class="mono num">03 / Launch video</div>
+          <h2>Launch video for an app or product</h2>
+          <p>A short promo that shows what your app does, for socials or a store page.</p>
+          <div class="mono price">$60</div>
+        </div>
+      </div>
+      <div class="frame">
+        <video src="custom-animation.mp4" poster="custom-animation.jpg" muted loop playsinline preload="none" aria-label="Custom animation sample"></video>
+        <div class="meta">
+          <div class="mono num">04 / Custom animation</div>
+          <h2>Any short animation, made to order</h2>
+          <p>Logo reveals, moving text, charts and interface motion. Tell me the idea.</p>
+          <div class="mono price">from $15</div>
+        </div>
+      </div>
+      <div class="frame c-mg">
+        <video src="audiogram.mp4" poster="audiogram.jpg" muted loop playsinline preload="none" aria-label="Podcast audiogram sample"></video>
+        <div class="meta">
+          <div class="mono num">05 / Audiogram</div>
+          <h2>Podcast clip with animated captions</h2>
+          <p>Your audio turned into a captioned clip that is ready to post.</p>
+          <div class="mono price">$10</div>
+        </div>
+      </div>
+    </div>
+
+    <section class="info" aria-label="How it works">
+      <div class="step"><div class="mono">Step 01</div><h3>Tell me the idea</h3><p>Your name, colours, and anything you want in it. A photo or mascot works for a cartoon version of you.</p></div>
+      <div class="step"><div class="mono">Step 02</div><h3>First version in 24 hours</h3><p>You get a preview to react to, with one free revision included.</p></div>
+      <div class="step"><div class="mono">Step 03</div><h3>Files ready to use</h3><p>Transparent WebM for OBS, or MP4 and GIF for everything else.</p></div>
+    </section>
+
+    <section class="cta">
+      <div class="mono" style="color:var(--mg)">// Ready when you are</div>
+      <h2>Want one built around you?</h2>
+      <p>If I emailed you, just reply with what you have in mind. You can also order directly below, with payment through PayPal.</p>
+      <a class="btn" href="https://ko-fi.com/omegaserpent/commissions">Order on Ko-fi</a>
+    </section>
+  </main>
+
+  <footer>
+    <div>Wildly Animated. Custom motion, made to order.</div>
+    <div>These are concept samples, built in code with an AI-assisted workflow.</div>
+  </footer>
+</div>
+<script>
+(function(){
+  var vids=[].slice.call(document.querySelectorAll('video'));
+  var still=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(still||!('IntersectionObserver' in window)){vids.forEach(function(v){v.controls=true;v.preload='metadata'});return}
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){
+    var v=e.target;
+    if(e.isIntersecting){var p=v.play();if(p&&p.catch)p.catch(function(){v.controls=true})}
+    else v.pause();
+  })},{threshold:.35});
+  vids.forEach(function(v){io.observe(v)});
+})();
+</script>
+</body>
+</html>
