@@ -217,8 +217,9 @@ function Shots.heroOrbit(duration: number, degrees: number?): Shot
 	return {
 		name = "HeroOrbit",
 		duration = duration,
-		from = { offset = { 0, 0.5, 9 }, look = { 0, 2.5, 0 }, fov = 55 },
-		to = { offset = { 0, 0.8, 8 }, look = { 0, 2.8, 0 }, fov = 50 },
+		-- starts in front and to the left (faces read), low (hero angle)
+		from = { offset = { -3, 0.6, -8.5 }, look = { 0, 2.5, 0 }, fov = 55 },
+		to = { offset = { -2.6, 0.9, -7.5 }, look = { 0, 2.8, 0 }, fov = 50 },
 		orbit = degrees or 120,
 		ease = "CubicInOut",
 	}

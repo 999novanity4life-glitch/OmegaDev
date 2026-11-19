@@ -26,6 +26,7 @@ return function(t, load)
 		end)
 		it("orbit sweeps the camera around the subject at constant distance", function()
 			local shot = Shots.heroOrbit(3, 90)
+			shot.from = { offset = { 0, 0.5, 9 }, look = { 0, 2.5, 0 }, fov = 55 }
 			shot.to = shot.from
 			local a = CameraRig.sample(shot, 0)
 			local b = CameraRig.sample(shot, 1)

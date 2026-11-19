@@ -250,6 +250,11 @@ local function run(
 			finish(options.blendBack ~= false)
 			return
 		end
+		-- The default camera scripts can flip CameraType back (seen in a Studio
+		-- playtest 2026-11-19), so hold Scriptable every frame we own the camera.
+		if camera.CameraType ~= Enum.CameraType.Scriptable then
+			camera.CameraType = Enum.CameraType.Scriptable
+		end
 		camera.CFrame = cf
 		camera.Focus = cf * CFrame.new(0, 0, -10)
 		if fov then
