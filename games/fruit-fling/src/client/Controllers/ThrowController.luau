@@ -354,7 +354,8 @@ function ThrowController.start()
 		local f = fruit
 		if f then
 			local info = landedInfo
-			splash(Vector3.new(f.Position.X, 0.2, f.Position.Z), info ~= nil and info.masterwork == true)
+			local waterY = if Config.Dock.Enabled then Config.Dock.WaterY else 0
+			splash(Vector3.new(f.Position.X, waterY + 0.2, f.Position.Z), info ~= nil and info.masterwork == true)
 			f:Destroy()
 		end
 		fruit = nil

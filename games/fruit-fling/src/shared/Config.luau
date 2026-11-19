@@ -101,4 +101,35 @@ Config.Lane = {
 	MarkerEvery = 25,
 }
 
+-- Dock map (DockLayout plan -> DockBuilder). Studs and degrees. Rules cited
+-- are docs/rulebooks/MAP_RULEBOOK.md; plan in games/fruit-fling/MAP_PLAN.md.
+Config.Dock = {
+	Enabled = true, -- false = old greybox lane (Lane.luau)
+	Seed = 7,
+	DeckHeight = 8, -- M20: nothing at y = 0, lift by a multiple of 4
+	WaterY = 4,
+	SeabedY = -24,
+	PierHalfWidth = 12,
+	ThrowEdgeZ = -12, -- throws go along -Z from here
+	ShoreZ = 100,
+	PilingSpacing = 8, -- M34 rhythm
+	PilingDiameter = 1.6,
+	PilingAboveDeck = 3.5,
+	LanternEvery = 2, -- a lantern on every 2nd piling (M41)
+	RopeSlack = 0.08, -- sag as a fraction of span (M40)
+	LaneKeepClearHalfWidth = 5, -- props never inside |x| < this on the pier (M10, M38)
+	GroupSpacing = 13, -- min distance between story groups
+	GroupSize = { 3, 8 }, -- M38
+	BuntingEvery = 24,
+	BuntingPoleHeight = 13,
+	LaneLength = 800,
+	BuoyEvery = 50, -- a landmark at least every ~50 studs along the lane
+	SeaStackEvery = 160,
+	LighthouseHeight = 64,
+	LighthouseSpinSeconds = 8,
+	CoveRadius = 150,
+	CoveTerraces = 3,
+	TerraceStep = 22,
+}
+
 return table.freeze(Config)
