@@ -25,3 +25,4 @@ Unclear / not shown:
 | # | Note | Creator | Lesson |
 |---|---|---|---|
 | 01 | [Roblox map generation skill (Claude/Blender)](01-lihfolk-map-builder-skill.md) | @lihfolk | Script maps in Blender via MCP, export meshes; many critique passes |
+| 01b | [Detail teardown of video 01's showcase maps](01b-detail-teardown.md) | (our analysis) | How the warehouse/studio/lake reach that detail: rhythm, trim, overhead layer, hero accent |

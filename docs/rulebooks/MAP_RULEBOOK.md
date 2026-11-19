@@ -72,3 +72,21 @@ One line per lesson, with the video note it came from (`docs/research/videos-map
 - **M30** Quality comes from passes: after each build pass, list the flaws from fixed-station screenshots, fix them, repeat. Never one-shot a map. [video 01]
 - **M31** Judge in Roblox, not in Blender. A Blender render is not the game; only a Studio `screen_capture` counts for review. [video 01, inferred]
 - **M32** Per shot: one hero composition, dense meso props along the edges, open floor where the player moves, warm vs cool light contrast. [video 01 gallery, inferred]
+
+## 11. Detail density (reverse-engineered from video 01's showcase maps)
+Teardown with frames: `../research/videos-map-building/01b-detail-teardown.md`. Each rule says how we do it in Roblox.
+- **M33** Neutral base, one saturated hero accent per shot (his red container). Roblox: palette of 3-5 tones per material + one accent colour with Neon/Bloom.
+- **M34** Rhythm: columns, pilings, lamps, doors repeat at a fixed interval and run to a vanishing point. Roblox: place by script at an exact spacing; vary only the props between them.
+- **M35** Trim every edge: base sleeves, frames, seams, kick plates, cove strips. Roblox: kit meshes come with trim pieces; a wall with no trim is unfinished.
+- **M36** Overhead layer in every shot: beams, ropes, cables, lamps, flags, rigging. Never leave everything above head height empty.
+- **M37** Floor is a canvas: markings, wear, decals, material bands at transitions (sand band between grass and water). Roblox: Decals/Textures + terrain material bands + SurfaceAppearance wear.
+- **M38** Props in story groups of 3-8 with height variation; pack edges and walls, keep the play floor open; at least one "caught mid-task" object (cart mid-load, crate half open).
+- **M39** Pile micro detail onto one hero object per area (his console: 100+ knobs), keep the rest calm.
+- **M40** Curves and sags break CG straightness: ropes, cables and bunting hang in catenaries (Beam with CurveSize or a rope mesh), never straight lines.
+- **M41** Emissive lines lead the eye: LED cove, lantern rows, glowing rope lights pointing to the goal.
+- **M42** Material contrast pairs in every shot: warm wood vs cool metal, matte vs gloss, rough vs smooth. At least 4 materials in a hero shot, each with a job.
+- **M43** Depth and grounding: Atmosphere haze for distance, Bloom on light sources, dark contact decals/AO under every grounded prop. Bevel hero edges (Blender), no razor-edge boxes.
+- **M44** Outdoor maps: a terraced bowl (cliffs, rock strata) encloses the space; the weenie sits on the far wall; buildings cluster on ledges.
+
+### Applied to fruit-fling (dock + sea lane), as a goal for the next build (needs Sharman's reference OK first)
+Pilings every ~8 studs with rope sagging between them and lanterns on top (M34, M40, M41); plank deck with wear, rope coils, nets and painted distance boards on buoys (M37); crate and barrel story groups along the dock edges, open throw lane (M38); one hero accent such as a big ship with a saturated sail moored beside the lane (M33); rigging and bunting overhead (M36); a terraced cliff cove around the harbour (M44) with a glowing lighthouse at the lane end as the weenie (M8); haze hiding the horizon edge (M43).
