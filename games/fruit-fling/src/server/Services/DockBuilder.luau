@@ -577,9 +577,16 @@ function DockBuilder.build(): CFrame
 		if existing then
 			return existing
 		end
-		local areaFolder = root:FindFirstChild(area) or Instance.new("Folder")
-		areaFolder.Name = area
-		areaFolder.Parent = root
+		local found = root:FindFirstChild(area)
+		local areaFolder: Instance
+		if found then
+			areaFolder = found
+		else
+			local made = Instance.new("Folder")
+			made.Name = area
+			made.Parent = root
+			areaFolder = made
+		end
 		local f = Instance.new("Folder")
 		f.Name = tier
 		f.Parent = areaFolder
