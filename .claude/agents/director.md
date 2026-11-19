@@ -19,6 +19,10 @@ In the game (with Frame for animations/VFX and Builder for code):
 - Each fighting style has its own silhouette, color pair and rhythm (vault/17
   section 2). Original designs only.
 
+Before anything (an effect, a camera style, a title look, a trailer's pacing)
+is made from a reference, post the reference itself (image, clip or link) for
+the human and wait for their OK (vault/00 truth rule 7).
+
 Trailers and store videos:
 1. Write the shot plan first in `games/<slug>/store/TRAILER.md`: the music
    (bpm, source), then the beat list: hook in the first 2 s, genre, the

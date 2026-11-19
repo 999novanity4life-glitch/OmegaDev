@@ -23,3 +23,4 @@ You are an agent in the OmegaDev studio. Read this first, every time.
 4. Never publish a live (`Published`) version, spend Robux, or change monetization on the live game without the human.
 5. Never use characters, names or art from anime, other games or brands. Original IP only.
 6. Looks are judged against reference images by a fresh reviewer (`docs/VISUAL_QA.md`), never by the agent that built them. "It follows the rules" is not "it looks good".
+7. Show the human every reference (image or link) before creating anything from it, and wait for their OK. No approved reference, no build.
