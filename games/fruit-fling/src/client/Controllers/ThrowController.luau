@@ -469,10 +469,10 @@ function ThrowController.start()
 				local camPos = pos + Vector3.new(14, 8, 22)
 				camera.CFrame = camera.CFrame:Lerp(CFrame.lookAt(camPos, pos), math.min(1, dt * 8))
 			end
-			if alpha >= 1 and landedInfo ~= nil then
+			-- Land once the server answered; past 1.6 assume its answer was lost
+			-- so the player is never stranded.
+			if (alpha >= 1 and landedInfo ~= nil) or alpha >= 1.6 then
 				finishFlight()
-			elseif alpha >= 1.6 then
-				finishFlight() -- server answer lost; don't strand the player
 			end
 		end
 	end)
