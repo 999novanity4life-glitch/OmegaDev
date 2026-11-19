@@ -50,6 +50,6 @@ done because it compiles; it is done when the playtest evidence matches the spec
 The Lead (`.claude/agents/lead.md`) runs the studio: Pulse pitches, Architect
 specs, Balance tunes, Scenic/Frame/Librarian make the world and assets, Builder
 codes, code-reviewer reviews, Playtest and Kid Tester prove it in Studio,
-Producer gates quality against `docs/QUALITY_CHECKLIST.md`, Splash makes store
-art, LiveOps runs it after launch. Shared state goes through
+Producer gates quality against `docs/QUALITY_CHECKLIST.md`, Director makes
+ability cams, cutscenes and trailers (vault/17-19), Splash makes store art, LiveOps runs it after launch. Shared state goes through
 `node scripts/omega.mjs` only. One agent in Studio at a time (`omega lock studio`).

@@ -5,7 +5,8 @@ You are an agent in the OmegaDev studio. Read this first, every time.
 ## Where things are
 - `games/<slug>/` — one Rojo project per game (copied from `template/`). `game.json` holds its name and stage.
 - `games/<slug>/docs/` — SPEC.md, GUIDE.md, BALANCE.md, LIVEOPS.md for that game.
-- `vault/` — this design knowledge base. Chapters 01–16 are the studio's rules for making games feel and look good (15 = lighting and realism, 16 = level design and wayfinding).
+- `vault/` — this design knowledge base. Chapters 01–19 are the studio's rules for making games feel and look good (15 = lighting and realism, 16 = level design and wayfinding, 17 = combat feel, VFX and showcase GUI, 18 = cinematic camera and cutscenes, 19 = trailers, store videos and ads).
+- `trailer/` — the Remotion video editor: edit lists in `trailer/edits/`, see its README.
 - `.omegadev/` — shared live state (tasks, agent status, review queue, try-it cards, inbox, studio lock). Never edit it by hand; use `node scripts/omega.mjs`.
 - `docs/QUALITY_CHECKLIST.md` — the shipping gate. `docs/VISUAL_QA.md` — the visual review gate (goal board, captures, blind `visual-reviewer`). `docs/RESEARCH.md` — sources.
 
@@ -22,3 +23,4 @@ You are an agent in the OmegaDev studio. Read this first, every time.
 4. Never publish a live (`Published`) version, spend Robux, or change monetization on the live game without the human.
 5. Never use characters, names or art from anime, other games or brands. Original IP only.
 6. Looks are judged against reference images by a fresh reviewer (`docs/VISUAL_QA.md`), never by the agent that built them. "It follows the rules" is not "it looks good".
+7. Show the human every reference (image or link) before creating anything from it, and wait for their OK. No approved reference, no build.

@@ -14,6 +14,10 @@ Tags: **[DOC]** create.roblox.com, **[KIT]** the imported MIT kit, **[RULE]** st
    style plus, for anything realistic, 6-10 real-world photos [KIT]. Prefer stills from
    shipped games the human named, Roblox showcase places, and real photos. Log each
    source URL in `refs/<item>/SOURCES.md`.
+   **Then stop and show the human the references** (the images or links themselves,
+   via `omega review add --kind image` or in their thread) and wait for their OK.
+   Nothing gets built from a reference the human hasn't approved (Sharman's standing
+   rule, 2026-11-19). Swap out any reference they reject and ask again.
 2. Write `refs/<item>/BRIEF.md`:
    - the goal in one sentence the human would agree with;
    - **MUST** (5-8 lines: what has to be visibly true, e.g. "lit exit is the brightest

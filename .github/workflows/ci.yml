@@ -33,5 +33,12 @@ jobs:
           done
           exit $status
 
+      - name: Trailer editor tests (edit lists, store-video rules, take splitting)
+        working-directory: trailer
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+          npx tsc
+
       - name: Control room smoke test
         run: node scripts/test-room.mjs

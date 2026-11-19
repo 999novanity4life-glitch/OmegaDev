@@ -67,3 +67,11 @@ Sources are linked so nobody has to trust this list on faith.
 - [ ] Materials come from a small shared set (trim sheets, MaterialVariants, packaged SurfaceAppearances), not dozens of one-offs; no duplicate texture IDs for the same asset. ([Duvall Drive materials](https://create.roblox.com/docs/resources/the-mystery-of-duvall-drive/materialize-the-world), [optimize](https://create.roblox.com/docs/tutorials/curriculums/environmental-art/optimize-your-experience))
 - [ ] Every imported or generated mesh passed mesh QA: no see-through faces from any game angle, below included (Roblox culls back faces). ([imported kit](imported/claude-roblox-gamedev-kit/skills/mesh-qa.md))
 - [ ] UI colours, outline widths, corner radii, font and spacing were measured from reference stills and match within the BRIEF's targets at phone and desktop sizes.
+
+## 9. Showcase: combat feel, cameras, trailers (added 2026-11-19, vault/17-19)
+- [ ] Every hit goes through `ImpactFX.hit` with a tier; `CombatFeel.validateConfig` and `validateMove` pass for every move (spec in `tests/`).
+- [ ] Each fighting style has its own silhouette, color pair and rhythm, checked in a side-by-side frame strip.
+- [ ] Every ultimate/transformation has an ability cam (≤ 3 s, frame-locked to the animation) and its shot list passes `CameraRig.validate`.
+- [ ] Story cutscenes are skippable, letterboxed, and always hand the camera back (test: skip at every shot, then move).
+- [ ] Reduced Motion on: no shake, FOV kicks, impact frames or slow-mo; cutscenes hard-cut.
+- [ ] Store video passes the `store` edit-list lint (real gameplay, catalog music without lyrics, no claims) and is 6-60 s; a `social` cut exists in 16:9 and 9:16; trailer stills feed the thumbnails.

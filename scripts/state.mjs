@@ -13,7 +13,7 @@ export const PITCH_DIRS = [path.join(ROOT, "pitches"), path.join(STATE, "pitches
 
 export const AGENTS = [
 	"lead", "pulse", "architect", "builder", "scenic", "frame", "librarian",
-	"balance", "splash", "playtest", "kid-tester", "producer", "liveops", "code-reviewer",
+	"balance", "director", "splash", "playtest", "kid-tester", "producer", "liveops", "code-reviewer",
 ];
 
 export const readJson = (file, fallback) => {

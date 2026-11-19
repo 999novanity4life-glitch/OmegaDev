@@ -1,0 +1,85 @@
+{
+  "title": "Demo store video (Roblox detail page rules)",
+  "profile": "store",
+  "format": "landscape",
+  "fps": 30,
+  "music": {
+    "src": "demo/click120.wav",
+    "bpm": 120,
+    "offset": 0,
+    "volume": 0.6,
+    "source": "roblox-catalog"
+  },
+  "theme": {
+    "accent": "#ff8a1f",
+    "glow": "#ffb15c"
+  },
+  "events": [
+    {
+      "type": "clip",
+      "src": "demo/arena.mp4",
+      "in": 0,
+      "beats": 4,
+      "label": "establish the arena with real gameplay"
+    },
+    {
+      "type": "clip",
+      "src": "demo/combo.mp4",
+      "in": 0.5,
+      "beats": 4,
+      "zoom": 1.1,
+      "label": "the core verb in the first 2 s"
+    },
+    {
+      "type": "clip",
+      "src": "demo/dash.mp4",
+      "in": 0,
+      "beats": 2,
+      "transition": "whip"
+    },
+    {
+      "type": "title",
+      "text": "Chain the combo",
+      "beats": 2,
+      "transition": "flash"
+    },
+    {
+      "type": "clip",
+      "src": "demo/combo.mp4",
+      "in": 2,
+      "beats": 2,
+      "zoom": 1.15,
+      "shake": 8
+    },
+    {
+      "type": "clip",
+      "src": "demo/boss.mp4",
+      "in": 1,
+      "beats": 2,
+      "transition": "impact",
+      "zoom": 1.2
+    },
+    {
+      "type": "clip",
+      "src": "demo/ult.mp4",
+      "in": 0,
+      "beats": 4,
+      "transition": "impact",
+      "zoom": 1.25,
+      "label": "ultimate in slow-mo"
+    },
+    {
+      "type": "clip",
+      "src": "demo/arena.mp4",
+      "in": 0,
+      "beats": 2,
+      "transition": "whip"
+    },
+    {
+      "type": "logo",
+      "name": "Omega Fighters",
+      "beats": 4,
+      "transition": "flash"
+    }
+  ]
+}

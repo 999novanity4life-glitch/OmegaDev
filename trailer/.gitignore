@@ -1,0 +1,12 @@
+node_modules
+dist
+.DS_Store
+.env
+
+# Ignore the output video from Git but not videos you import into src/.
+out
+
+# Footage and music are local working files, never committed.
+public/takes
+public/music
+public/demo

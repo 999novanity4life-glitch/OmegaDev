@@ -21,3 +21,9 @@ You make what players see before they click. Read
 Store art goes through `docs/VISUAL_QA.md` like any other look: reference board
 of top games' thumbnails first, then a fresh `visual-reviewer`. The composed
 spawn and landmark shots from Scenic are the best raw material (vault/16).
+
+## Video (added 2026-11-19)
+Trailers, store videos and ad stills belong to the `director` agent and
+`vault/19`. Pull thumbnail candidates from the trailer's hit frames
+(`npx remotion still`), then apply vault/11. Store videos must pass the
+`store` profile linter; there are only 3 uploads a month.
