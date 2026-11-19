@@ -31,25 +31,28 @@ def rubber():
 
 def quake():
     """Quake fruit (canon): pale blue pear, white swirls, crack lines."""
-    body_m = F.material("Body", "#9cc0ea", rough=0.42, sss=0.06, coat=0.25)
+    body_m = F.material("Body", "#9cc0ea", rough=0.42, sss=0.06, coat=0.25, grad=("#4f7fc4", "#eef4ff"))
     swirl_m = F.material("Swirl", "#eef4ff", rough=0.35)
     crack_m = F.material("Crack", "#1d2c52", rough=0.6)
     stem_m = F.material("Stem", "#5f9e2f", rough=0.5)
 
-    def prof(z):  # pear: fat bulb at the bottom, narrowing neck up to the stem
-        bulb = math.sqrt(max(0.0, 1 - ((z + 0.15) / 0.95) ** 2)) * 1.0
+    def prof(z):  # pear: fat bulb at the bottom, smooth taper into the neck
+        bulb = math.sqrt(max(0.0, 1 - ((z + 0.15) / 0.95) ** 2))
         neck = 0.42 * math.sqrt(max(0.0, 1 - ((z - 0.75) / 0.5) ** 2))
-        return max(bulb, neck, 0.0)
+        k = 9.0  # smooth max, so there is no crease where neck meets bulb
+        if bulb <= 0 and neck <= 0:
+            return 0.0
+        return math.log(math.exp(k * bulb) + math.exp(k * neck)) / k - math.log(2) / k
     shape = F.lathe_radial(prof, -1.1, 1.25)
 
-    centres = [c for c in F.fib_points(30, cap_skip=0.1, seed=7) if c.z < 0.8]
+    centres = [c for c in F.fib_points(34, cap_skip=0.06, seed=7) if c.z < 0.93]
     body = F.make_body(shape, body_m, bumps=centres, bump_h=0.03, bump_w=0.3)
     sw = F.swirl_curls(shape, centres, swirl_m, size=0.22, turns=1.8, tube=0.03, lift=0.006, seed=8)
     # crack lines: random walks over the lower half
     rnd = random.Random(11)
     cracks = []
-    for i in range(16):
-        d = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-1.0, 0.5))).normalized()
+    for i in range(22):
+        d = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-1.0, 0.8))).normalized()
         pts = []
         step = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-1, 1))).normalized()
         for k in range(22):

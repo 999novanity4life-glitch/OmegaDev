@@ -23,11 +23,24 @@ def hexcol(h, a=1.0):
     return (*c, a)
 
 
-def material(name, color, rough=0.45, emit=None, emit_strength=0.0, sss=0.0, coat=0.0):
+def material(name, color, rough=0.45, emit=None, emit_strength=0.0, sss=0.0, coat=0.0, grad=None):
+    """grad=(bottom_hex, top_hex): vertical colour gradient over the object's bounds."""
     m = bpy.data.materials.new(name)
     m.use_nodes = True
-    b = m.node_tree.nodes["Principled BSDF"]
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
     b.inputs["Base Color"].default_value = hexcol(color)
+    if grad:
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+        ramp = nt.nodes.new("ShaderNodeValToRGB")
+        ramp.color_ramp.elements[0].color = hexcol(grad[0])
+        ramp.color_ramp.elements[1].color = hexcol(grad[1])
+        ramp.color_ramp.elements[0].position = 0.15
+        ramp.color_ramp.elements[1].position = 0.8
+        nt.links.new(tc.outputs["Generated"], sep.inputs[0])
+        nt.links.new(sep.outputs["Z"], ramp.inputs["Fac"])
+        nt.links.new(ramp.outputs["Color"], b.inputs["Base Color"])
     b.inputs["Roughness"].default_value = rough
     if sss:
         b.inputs["Subsurface Weight"].default_value = sss
