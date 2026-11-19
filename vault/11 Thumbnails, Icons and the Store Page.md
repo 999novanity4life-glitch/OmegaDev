@@ -8,3 +8,5 @@ Studio rules:
 - Make 3+ variants and A/B them (Roblox supports thumbnail personalization/testing in the Creator Dashboard — check current docs before relying on it).
 - Title: genre word + hook ("Anime" or other IP names you don't own are not allowed).
 - Description: first line = what you do; then updates; then codes/social.
+
+Gold standard (Sharman's picks, 2026-11-19): the full teardown, 14-point checklist, squint test and Forge GUI prompt template are in `docs/rulebooks/THUMBNAIL_RULEBOOK.md`. In short: a player reacting with an extreme face to something huge, no text, warm light on characters vs cool light on the threat, mostly dark image, big faces (18-25% of height), wide low camera, 4+ depth layers.
