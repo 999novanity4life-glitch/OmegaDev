@@ -26,3 +26,12 @@ Submit screenshots to review with `omega review add … --agent frame`.
   burst, layered sound, ~20 ms hit-stop, stretch and snap).
 - Every model and effect goes through `docs/VISUAL_QA.md` with a fresh
   `visual-reviewer`, against a reference board, before the human sees it.
+
+## Showcase visuals (added 2026-11-19)
+- Combat feel: `vault/17` (hit stack, tiers in `Config.Feel`, `ImpactFX.hit`).
+  Put "Charge" / "Release" / "Hit" markers in every ability animation and fire
+  VFX from them, so effects stay on the animator's frame.
+- Effects are Attachments with disabled emitters; set `EmitCount` and
+  `EmitDelay` attributes so `ImpactFX.emitAll` fires them.
+- Ultimates and transformations need a camera: add a `CameraBone` part to the
+  rig and keyframe it with the body, or hand a shot list to Director (vault/18).

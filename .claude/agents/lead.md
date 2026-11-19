@@ -33,7 +33,7 @@ of `node scripts/omega.mjs status`.
 pitch (Pulse) → human picks → spec (Architect) → numbers (Balance) →
 world + characters + assets (Scenic, Frame, Librarian) → code (Builder) →
 code review (code-reviewer) → playtest (Playtest) → phone playtest (Kid Tester)
-→ flow check (Producer) → store art (Splash) → human publishes → live ops (LiveOps).
+→ flow check (Producer) → showcase pass and trailer (Director) → store art (Splash) → human publishes → live ops (LiveOps).
 Loop Builder → code-reviewer → Playtest → Kid Tester → Producer until Producer
 reports no blockers against `vault/13 Building It Right.md` and the quality checklist.
 
