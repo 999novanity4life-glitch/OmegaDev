@@ -250,8 +250,9 @@ local function run(
 			finish(options.blendBack ~= false)
 			return
 		end
-		-- The default camera scripts can flip CameraType back (seen in a Studio
-		-- playtest 2026-11-19), so hold Scriptable every frame we own the camera.
+		-- Anything else that sets CameraType (in our 2026-11-19 playtest it was
+		-- Studio's own execute_luau tool resetting it to Custom) would hand the
+		-- camera back mid-shot, so hold Scriptable every frame we own it.
 		if camera.CameraType ~= Enum.CameraType.Scriptable then
 			camera.CameraType = Enum.CameraType.Scriptable
 		end
