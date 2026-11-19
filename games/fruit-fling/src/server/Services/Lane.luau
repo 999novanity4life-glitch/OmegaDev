@@ -70,11 +70,14 @@ function Lane.build(): CFrame
 		post.CanCollide = false
 		post.Parent = folder
 
+		if d % (cfg.MarkerEvery * 2) ~= 0 then
+			continue -- label every other marker so far labels don't pile up
+		end
 		local billboard = Instance.new("BillboardGui")
 		billboard.Size = UDim2.fromOffset(120, 40)
 		billboard.StudsOffset = Vector3.new(0, 4, 0)
 		billboard.AlwaysOnTop = false
-		billboard.MaxDistance = 600
+		billboard.MaxDistance = 220
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromScale(1, 1)
 		label.BackgroundTransparency = 1

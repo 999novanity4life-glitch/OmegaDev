@@ -170,6 +170,7 @@ function ThrowController.start()
 	local hitstopUntil = 0
 	local pausedTime = 0
 	local origin = CFrame.new()
+	local savedCamera: CFrame? = nil
 
 	local function showGrade(grade: string, big: boolean?)
 		gradeLabel.Text = string.upper(grade) .. "!"
@@ -361,6 +362,9 @@ function ThrowController.start()
 		local camera = workspace.CurrentCamera
 		if camera then
 			camera.CameraType = Enum.CameraType.Custom
+			if savedCamera then
+				camera.CFrame = savedCamera
+			end
 		end
 		task.delay(0.8, function()
 			phase = "Ready"
@@ -392,6 +396,7 @@ function ThrowController.start()
 			end
 			local camera = workspace.CurrentCamera
 			if camera then
+				savedCamera = camera.CFrame
 				camera.CameraType = Enum.CameraType.Scriptable
 			end
 		elseif kind == "Landed" then
