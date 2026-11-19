@@ -22,6 +22,8 @@ Method: GitHub repo search (`gh api search/repositories`, ~27 queries), then REA
 | 12 | [Klingaac/WorldLoader](https://github.com/Klingaac/WorldLoader-Roblox-Plugin) | MIT | OpenStreetMap + elevation → terrain/buildings/roads. | Skip (real-world places only). |
 | 13 | [0CE4NS/claude-roblox-gamedev-kit](https://github.com/0CE4NS/claude-roblox-gamedev-kit) | MIT | Already known (2026-10-28): vault + `mesh-qa` + blind `vfx-review`. Not map-specific. | Already our reference. |
 
+| 14 | [EL4CTEO/blender-skills](https://github.com/EL4CTEO/blender-skills) (★2436, 2026-11-17) | MIT | 28 Blender agent skills: `blender-environment-kits` (terrain, forests, modular level kits), `blender-export-pipelines` (Roblox), `blender-asset-qa` (z-fighting, floating parts, bad normals), `blender-time-of-day`. Needs Blender 5.2+ (Mac has 5.2.3). | **Adopt on the Mac.** Free MIT stand-in for the Discord-gated map skill in video 01. |
+
 Not usable: [jlipstock/roblox-studio-tools](https://github.com/jlipstock/roblox-studio-tools) (22 film-VFX plugins incl. a 22k-line scatter tool, but **source is private**; useful only as proof that clumping + attract/exclude zones + per-region fog/colour grading is what pros use). [S4US/Roqer](https://github.com/S4US/Roqer) (AGPL, Windows/Linux only, a whole agent app; we already have one). Several 2026-11 repos with ~70 stars, no licence and spam-like titles (Cave-Weaver-Engine etc.) were ignored as likely spam.
 
 Free CC0 asset sources (not repos, but the "mesh first" rule needs meshes): Kenney (kenney.nl, CC0), Quaternius (quaternius.com, CC0), Poly Haven (polyhaven.com, CC0 textures/HDRIs). Already available through the Blender MCP on the Mac (memory: art-tool-stack-2026-10-29).

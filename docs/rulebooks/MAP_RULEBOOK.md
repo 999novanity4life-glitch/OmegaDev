@@ -67,4 +67,8 @@ Linear pearls (runs), hub-and-spoke (progression, return trips), vertical stack 
 - **M28** Report honestly: built / verified (how) / unverified.
 
 ## 10. Lessons from Sharman's map videos
-One line per lesson, with the video note it came from (`docs/research/videos-map-building/`). Empty until the first videos arrive.
+One line per lesson, with the video note it came from (`docs/research/videos-map-building/`).
+- **M29** Build hero areas and kits **in Blender by script** (Blender MCP on the Mac), export as meshes; Roblox assembles, lights and scripts them. Studio parts alone are for greybox. [video 01]
+- **M30** Quality comes from passes: after each build pass, list the flaws from fixed-station screenshots, fix them, repeat. Never one-shot a map. [video 01]
+- **M31** Judge in Roblox, not in Blender. A Blender render is not the game; only a Studio `screen_capture` counts for review. [video 01, inferred]
+- **M32** Per shot: one hero composition, dense meso props along the edges, open floor where the player moves, warm vs cool light contrast. [video 01 gallery, inferred]

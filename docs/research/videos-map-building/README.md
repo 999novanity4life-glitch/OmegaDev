@@ -24,4 +24,4 @@ Unclear / not shown:
 ## Index
 | # | Note | Creator | Lesson |
 |---|---|---|---|
-| | (waiting for videos) | | |
+| 01 | [Roblox map generation skill (Claude/Blender)](01-lihfolk-map-builder-skill.md) | @lihfolk | Script maps in Blender via MCP, export meshes; many critique passes |
