@@ -14,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local SplashShape = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("SplashShape"))
+local FruitMesh = require(script.Parent.FruitMesh)
 local Juice = require(script.Parent.Juice)
 
 local ThrowFX = {}
@@ -272,32 +273,32 @@ function ThrowFX.releaseBurst(at: Vector3, rarityColor: Color3, forward: Vector3
 	end
 end
 
--- The thrown fruit: a clone of ReplicatedStorage.FruitModels/<key> when it
--- exists (Studio import of assets/fruits), else a glowing stand-in ball.
--- Always gets a rarity trail, a glow light and a white core streak (TFFA).
-function ThrowFX.makeFruit(key: string, glow: Color3, rarityColor: Color3): BasePart
-	local models = ReplicatedStorage:FindFirstChild("FruitModels")
-	local template = models and models:FindFirstChild(key)
+-- The thrown fruit: the real fruit model (FruitMesh, built on this client),
+-- else a glowing stand-in ball. Ref P3 (Genshin wish meteor): the trail is a
+-- meteor in the rarity colour, wider and longer the rarer the fruit, so the
+-- whole server can tell a Mythical from far away.
+local FLIGHT_SIZE = 2.6 -- studs across the fruit in flight
+
+function ThrowFX.makeFruit(key: string, glow: Color3, rarityColor: Color3, rank: number?): BasePart
+	local tier = rank or 1
 	local part: BasePart
-	-- Only meshes with an uploaded MeshId: a MeshPart built from an
-	-- EditableMesh in Studio does not replicate its geometry to clients.
-	if template and template:IsA("MeshPart") and template.MeshId ~= "" then
-		part = template:Clone()
-		-- child parts (the glow shell) ride along on welds; the body is moved
-		-- by CFrame each frame
-		for _, child in part:GetDescendants() do
-			if child:IsA("BasePart") then
-				child.Anchored = false
-				child.CanCollide = false
-				child.CanQuery = false
-				child.CanTouch = false
-				child.Massless = true
-				local weld = Instance.new("WeldConstraint")
-				weld.Part0 = part
-				weld.Part1 = child
-				weld.Parent = child
+	local model = FruitMesh.get(key)
+	local body = model and model.PrimaryPart
+	if model and body then
+		local e = model:GetExtentsSize()
+		local widest = math.max(e.X, e.Y, e.Z)
+		if widest > 0 then
+			model:ScaleTo(model:GetScale() * FLIGHT_SIZE / widest)
+		end
+		-- keep only the body; the glow shell rides on its weld
+		for _, child in model:GetChildren() do
+			if child ~= body and child:IsA("BasePart") then
+				child.Parent = body
 			end
 		end
+		body.Parent = nil
+		model:Destroy()
+		part = body
 	else
 		local ball = Instance.new("Part")
 		ball.Shape = Enum.PartType.Ball
@@ -328,34 +329,57 @@ function ThrowFX.makeFruit(key: string, glow: Color3, rarityColor: Color3): Base
 	part.CanCollide = false
 	part.CanQuery = false
 	part.CanTouch = false
-	local a0 = Instance.new("Attachment")
-	a0.Position = Vector3.new(0, 0.9, 0)
-	a0.Parent = part
-	local a1 = Instance.new("Attachment")
-	a1.Position = Vector3.new(0, -0.9, 0)
-	a1.Parent = part
-	local trail = Instance.new("Trail")
-	trail.Attachment0 = a0
-	trail.Attachment1 = a1
-	trail.Lifetime = 0.45
-	trail.LightEmission = 1
-	trail.WidthScale = NumberSequence.new(1, 0)
-	trail.Color = ColorSequence.new(Color3.new(1, 1, 1), rarityColor)
-	trail.Transparency = NumberSequence.new(0, 1)
-	trail.Parent = part
+	-- Meteor: a wide rarity trail plus a white-hot core trail inside it.
+	local width = 0.9 + 0.35 * tier
+	local function trail(half: number, life: number, color: ColorSequence, alpha: NumberSequence)
+		local a0 = Instance.new("Attachment")
+		a0.Position = Vector3.new(0, half, 0)
+		a0.Parent = part
+		local a1 = Instance.new("Attachment")
+		a1.Position = Vector3.new(0, -half, 0)
+		a1.Parent = part
+		local t = Instance.new("Trail")
+		t.Attachment0 = a0
+		t.Attachment1 = a1
+		t.Lifetime = life
+		t.LightEmission = 1
+		t.LightInfluence = 0
+		t.FaceCamera = true
+		t.WidthScale = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.3, 0.7),
+			NumberSequenceKeypoint.new(1, 0),
+		})
+		t.Color = color
+		t.Transparency = alpha
+		t.Parent = part
+	end
+	trail(
+		width,
+		0.35 + 0.15 * tier,
+		ColorSequence.new({
+			ColorSequenceKeypoint.new(0, rarityColor:Lerp(Color3.new(1, 1, 1), 0.5)),
+			ColorSequenceKeypoint.new(0.25, rarityColor),
+			ColorSequenceKeypoint.new(1, rarityColor:Lerp(Color3.new(0, 0, 0), 0.3)),
+		}),
+		NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(1, 1) })
+	)
+	trail(width * 0.35, 0.22, ColorSequence.new(Color3.new(1, 1, 1)), NumberSequence.new(0, 1))
 	local light = Instance.new("PointLight")
-	light.Color = glow
-	light.Range = 14
-	light.Brightness = 2.5
+	light.Color = rarityColor
+	light.Range = 14 + 3 * tier
+	light.Brightness = 3
 	light.Parent = part
 	local aura = Instance.new("ParticleEmitter")
-	aura.Color = ColorSequence.new(rarityColor)
+	aura.Color = ColorSequence.new(Color3.new(1, 1, 1), rarityColor)
 	aura.LightEmission = 1
-	aura.Rate = if reduced() then 10 else 40
-	aura.Lifetime = NumberRange.new(0.2, 0.4)
-	aura.Speed = NumberRange.new(0, 1)
-	aura.Size = NumberSequence.new(0.5, 0)
-	aura.Transparency = NumberSequence.new(0.2, 1)
+	aura.LightInfluence = 0
+	aura.Rate = (if reduced() then 10 else 40) * tier
+	aura.Lifetime = NumberRange.new(0.25, 0.6)
+	aura.Speed = NumberRange.new(0.5, 2.5)
+	aura.SpreadAngle = Vector2.new(180, 180)
+	aura.Size = NumberSequence.new(0.35 + 0.1 * tier, 0)
+	aura.Transparency = NumberSequence.new(0, 1)
 	aura.Parent = part
 	part.Parent = workspace
 	return part

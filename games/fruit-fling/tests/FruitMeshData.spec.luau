@@ -1,0 +1,42 @@
+--!nocheck
+return function(t, load)
+	local D = load("src/shared/FruitMeshData")
+	local describe, it, expect = t.describe, t.it, t.expect
+
+	describe("FruitMeshData", function()
+		it("parses milli-studs, hex colours, glow and 1-based triangles", function()
+			local m = D.parse("1000,-500,0,ff8000,ff;0,0,0,000000,00;0,1000,0,ffffff,80", "0,1,2")
+			expect(#m.verts).toBe(3)
+			expect(m.verts[1].x).toBe(1)
+			expect(m.verts[1].y).toBe(-0.5)
+			expect(m.verts[1].r).toBe(1)
+			expect(m.verts[1].g).toBeNear(128 / 255, 1e-9)
+			expect(m.verts[1].glow).toBe(1)
+			expect(m.tris[1][1]).toBe(1)
+			expect(m.tris[1][3]).toBe(3)
+		end)
+		it("skips malformed vertices and out-of-range triangles", function()
+			local m = D.parse("1,2,3,zzzzzz,00;0,0,0,000000,00;bad", "0,0,0;0,0,9;x")
+			expect(#m.verts).toBe(1)
+			expect(#m.tris).toBe(1)
+		end)
+		it("picks glow triangles by average mask", function()
+			local m = D.parse("0,0,0,000000,ff;0,0,0,000000,ff;0,0,0,000000,00", "0,1,2;0,1,1")
+			-- averages: 2/3 and 1
+			expect(#D.glowTris(m, 0.5)).toBe(2)
+			expect(#D.glowTris(m, 0.7)).toBe(1)
+			expect(#D.glowTris(m, 1.01)).toBe(0)
+		end)
+		it("every shipped fruit parses whole and is about 2.4 studs across", function()
+			for _, key in { "azure_dragon", "black_dragon", "darkness", "magma", "quake", "rubber", "soul" } do
+				local data = load("src/shared/FruitMeshes/" .. key)
+				local m = D.parse(data.v, data.t)
+				expect(#m.verts > 1000).toBeTruthy()
+				expect(#m.tris > 2900).toBeTruthy()
+				local s = D.size(m)
+				expect(s > 1.8 and s < 3).toBeTruthy()
+				expect(#D.glowTris(m, 0.25) > 0).toBeTruthy()
+			end
+		end)
+	end)
+end

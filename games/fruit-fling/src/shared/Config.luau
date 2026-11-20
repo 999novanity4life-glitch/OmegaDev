@@ -215,4 +215,84 @@ Config.Dock = {
 	TerraceStep = 22,
 }
 
+-- Premium HUD + throw animation (2026-11-20 UI pass; mockups in project files
+-- fruit-throw/ui-mockups-2026-11-20). Pure numbers; PremiumHUD, ThrowAnimator,
+-- Motion, RarityStyle and ThrowPose read them.
+Config.UI = {
+	-- 3D buttons: a face over a darker base; pressing sinks the face this
+	-- fraction of the button height (Brawl Stars style).
+	ButtonDepth = 0.06,
+	ButtonPressSeconds = 0.05,
+	-- Extruded grade text: stacked copies, each this many px lower, darkest last.
+	ExtrudeLayers = 3,
+	ExtrudeStepPx = 4,
+	RgbSplitPx = 5, -- red/cyan ghost copies on PERFECT and MASTERWORK
+	RgbSplitSeconds = 0.25, -- the split closes to 0 over this long
+	GradeHoldSeconds = 0.9,
+	-- Distance plate: digits roll toward the real value.
+	DigitRollRate = 14, -- 1/s exponential approach
+	DigitMinStep = 0.4, -- m/s floor so it never crawls at the end
+	-- Mythical rainbow: hue cycles per second.
+	RainbowSpeed = 0.35,
+	-- Fruit reveal after landing: climb the rarity ladder, then the card.
+	RevealClimbStep = 0.16, -- seconds per rung
+	RevealBloomFrom = "Legendary", -- star flare before the card from this tier up
+	RevealBloomSeconds = 0.35,
+	RevealHoldSeconds = 1.2,
+	-- In-world 3D showcase (replaces the card, Sharman 2026-11-20): the real
+	-- fruit model bursts out of the water and the aura climbs tier by tier.
+	Showcase = {
+		RiseSeconds = 0.6, -- out of the water up to the showcase spot
+		StepSeconds = 0.55, -- per tier on the climb
+		SlamSeconds = 0.4, -- final tier slam
+		Hold = { Rare = 1.6, Epic = 2, Legendary = 2.5, Mythical = 3.2 },
+		Flare = { Legendary = 0.7, Mythical = 1.1 }, -- ref M4: longer build = rarer
+		ZoomSeconds = 0.55, -- ref M6: Mythical fills the screen, then settles
+		Lift = 5, -- studs above the water the fruit hangs
+		CameraDistance = 9.5,
+		FruitSize = 3.4, -- studs across the model's widest side
+		SpinRate = 1.3, -- rad/s
+		RayLength = 11,
+		DofFar = 0.85, -- DepthOfFieldEffect.FarIntensity: blurs the world, not the fruit (ref T2)
+		TextLayers = 6, -- ref P7: 3D tier word, SurfaceGui slices stacked in depth
+		TextDepth = 0.07, -- studs between slices
+		RgbSplit = 0.18, -- studs the red/cyan ghosts start apart, closing to 0
+	},
+	-- Flight (ref M2): speed vignette + a zone name as the fruit passes it.
+	-- Placeholder names from the dock map's landmarks; the One Piece arc
+	-- names come from Sharman later.
+	Zones = {
+		{ from = 0, name = "THE DOCK" },
+		{ from = 50, name = "BUOY LINE" },
+		{ from = 160, name = "SEA STACKS" },
+		{ from = 320, name = "LIGHTHOUSE" },
+		{ from = 500, name = "OPEN SEA" },
+	} :: { { from: number, name: string } },
+	-- Our own painted VFX textures (assets/vfx, uploaded with Sharman's OK
+	-- 2026-11-20). Empty = fall back to Roblox's default particle.
+	Vfx = {
+		Glow = "rbxassetid://117797148911057",
+		Flare = "rbxassetid://113118035223287",
+		Twinkle = "rbxassetid://91626104663682",
+		Spark = "rbxassetid://72709512847650",
+		Ring = "rbxassetid://70796318613160",
+		Ray = "rbxassetid://131932157700274",
+		Wisp = "rbxassetid://91203479420019",
+	} :: { [string]: string },
+	VignetteAlpha = 0.35, -- edge darkness at full flight speed (0 = black)
+	RevealBlurSize = 18, -- BlurEffect.Size at the peak (world only; UI stays sharp)
+	-- Meter anticipation: the body winds into the "set" pose as the marker
+	-- climbs (front knee up, torso coiled, fruit by the ear). Radians at a full meter.
+	ChargeLayback = 1.9, -- throwing forearm turned up behind the ear
+	ChargeWaistTwist = 0.4, -- chest coils away from the lane
+	ChargeLegLift = 1.5, -- front thigh raised
+	-- Throw VFX on the character (ThrowAnimator).
+	HeldOrbSize = 0.9, -- studs, the glowing fruit in the hand while charging
+	ChargeAuraRate = 40, -- wind particles per second at a full meter
+	TrailSeconds = 0.18, -- hand trail lifetime during the swing
+	ReleaseFovKick = 6, -- degrees of field-of-view punch on release
+	-- Fruit tumble in flight (radians per second at alpha 0, eases out).
+	TumbleSpin = 14,
+}
+
 return table.freeze(Config)
