@@ -223,7 +223,21 @@ function ThrowFX.makeFruit(key: string, glow: Color3, rarityColor: Color3): Base
 	local part: BasePart
 	if template and template:IsA("BasePart") then
 		part = template:Clone()
-		part.Size = part.Size * (2.4 / math.max(part.Size.X, part.Size.Y, part.Size.Z))
+		-- child parts (the glow shell) ride along on welds; the body is moved
+		-- by CFrame each frame
+		for _, child in part:GetDescendants() do
+			if child:IsA("BasePart") then
+				child.Anchored = false
+				child.CanCollide = false
+				child.CanQuery = false
+				child.CanTouch = false
+				child.Massless = true
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = part
+				weld.Part1 = child
+				weld.Parent = child
+			end
+		end
 	else
 		local ball = Instance.new("Part")
 		ball.Shape = Enum.PartType.Ball

@@ -263,7 +263,7 @@ function ThrowController.start()
 	local gradeLabel = UIKit.label("", UDim2.fromScale(0.5, 0.1), UITokens.Text.Display)
 	gradeLabel.Name = "Grade"
 	gradeLabel.AnchorPoint = Vector2.new(0.5, 0)
-	gradeLabel.Position = UDim2.fromScale(0.5, 0.12)
+	gradeLabel.Position = UDim2.fromScale(0.5, 0.3)
 	gradeLabel.Font = Enum.Font.GothamBlack
 	gradeLabel.TextScaled = true
 	gradeLabel.Visible = false
@@ -273,7 +273,7 @@ function ThrowController.start()
 	local infoLabel = UIKit.label("", UDim2.fromScale(0.4, 0.06), UITokens.Text.Title)
 	infoLabel.Name = "Info"
 	infoLabel.AnchorPoint = Vector2.new(0.5, 0)
-	infoLabel.Position = UDim2.fromScale(0.5, 0.23)
+	infoLabel.Position = UDim2.fromScale(0.5, 0.41)
 	infoLabel.Font = Enum.Font.GothamBold
 	infoLabel.TextScaled = true
 	infoLabel.Parent = gui
