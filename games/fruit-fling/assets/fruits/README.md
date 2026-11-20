@@ -15,3 +15,8 @@ v2 builds each body as a height field: swirls are carved coils (deep grooves, ra
 | magma | Magma Fruit | Mythical | Ours |
 
 Glow in Roblox: SurfaceAppearance has no emission map we have verified, so `_glow.png` is the mask for the in-game effect (a slightly larger Neon/ForceField shell textured with it, or a PointLight tinted to the glow colour). Check the SurfaceAppearance reference before relying on any emissive property. Not yet imported or judged in Studio (rule M31).
+
+
+## Studio preview meshes (`<key>_studio_preview.txt`)
+
+~3,000-triangle copies with vertex colours sampled from `_color.png`, so a Studio session can build a preview MeshPart with `AssetService:CreateEditableMesh` + `CreateMeshPartAsync` without uploading an asset. Format: line 1 = `x,y,z,rrggbb` vertices (milli-studs, Y-up, 2.4 studs across) joined by `;`; line 2 = `a,b,c` zero-based triangles. Preview only: the shipped fruit is the FBX + SurfaceAppearance maps.
