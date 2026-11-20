@@ -19,4 +19,4 @@ Glow in Roblox: SurfaceAppearance has no emission map we have verified, so `_glo
 
 ## Studio preview meshes (`<key>_studio_preview.txt`)
 
-~3,000-triangle copies with vertex colours sampled from `_color.png`, so a Studio session can build a preview MeshPart with `AssetService:CreateEditableMesh` + `CreateMeshPartAsync` without uploading an asset. Format: line 1 = `x,y,z,rrggbb` vertices (milli-studs, Y-up, 2.4 studs across) joined by `;`; line 2 = `a,b,c` zero-based triangles. Preview only: the shipped fruit is the FBX + SurfaceAppearance maps.
+~3,000-triangle copies with vertex colours sampled from `_color.png`, so a Studio session can build a preview MeshPart with `AssetService:CreateEditableMesh` + `CreateMeshPartAsync` without uploading an asset. Format: line 1 = `x,y,z,rrggbb,gg` vertices (gg = glow mask 0-255 from `_glow.png`) (milli-studs, Y-up, 2.4 studs across) joined by `;`; line 2 = `a,b,c` zero-based triangles. Preview only: the shipped fruit is the FBX + SurfaceAppearance maps.
