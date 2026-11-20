@@ -649,7 +649,7 @@ local function cove(plan: Plan, cfg: DockConfig, rng: Rng.Rng)
 	end
 	-- huts cluster on the first ledge (M44), in front of the boulder ring
 	for i = 1, 4 do
-		local a = 72 + i * 8 + rng:range(-2, 2)
+		local a = 72 + i * 10 + rng:range(-1, 1)
 		local x, z = arcPoint(centre, cfg.CoveRadius - 4, a)
 		addPlacement(plan, {
 			kind = "Hut",

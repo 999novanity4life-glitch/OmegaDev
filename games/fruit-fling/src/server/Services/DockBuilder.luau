@@ -50,7 +50,7 @@ local PALETTE = {
 	Plaster = Color3.fromRGB(244, 236, 220),
 	TealRoof = Color3.fromRGB(44, 150, 140),
 	Grass = Color3.fromRGB(96, 214, 96),
-	Water = Color3.fromRGB(40, 196, 200),
+	Water = Color3.fromRGB(30, 170, 190),
 }
 
 -- Style A terrain colours. Terrain:SetMaterialColor and Terrain.WaterColor are
