@@ -27,7 +27,7 @@ Config.Juice = {
 -- Look (see docs/VISUAL_QA.md and vault/15). Preset names live in
 -- LightingPresets; zones blend between presets over ZoneBlendSeconds.
 Config.Look = {
-	Preset = "RobloxOutdoorSunset",
+	Preset = "BrightFantasy", -- Sharman's map-style video (2026-11-20)
 	ZoneBlendSeconds = 1.5,
 }
 
