@@ -1,52 +1,118 @@
 --!strict
--- Pure pose curves for the overhand throw (2026-11-20 animation pass).
--- Four joints instead of two (ThrowFX's first swing moved the shoulder and
--- waist only): the right elbow whips straight on release and the left arm
--- points down the lane, then counter-swings - the beats in the M1-M6 motion refs
--- (anticipation, fast release, follow-through hold, settle).
--- Each joint is an {x, y, z} rotation in radians applied on top of the
--- joint's rest C0 (CFrame.Angles order). Sign convention matches ThrowFX:
--- +x on a shoulder raises the arm forward/up, -x swings it back.
+-- Pure pose curves for the full-body overhand throw (2026-11-20 animation pass 2).
+-- A real pitching/throwing chain, not a windmill:
+--   set (meter):  front leg lifts, torso coils away, throwing arm up in an "L"
+--                 with the fruit by the ear, glove arm points down the lane.
+--   stride:       front leg strides out and the body drops, the forearm lays
+--                 back behind the head (max external rotation).
+--   release:      hips and chest fire round, the upper arm internally rotates
+--                 (the whip), the elbow snaps straight, wrist flicks.
+--   follow:       the arm wraps down across the body, the back foot kicks up,
+--                 the chest bends over the front leg. Hold, then settle.
+-- The head counter-rotates so the eyes stay on the target throughout.
+--
+-- Each joint is an {x, y, z} rotation (CFrame.Angles order, applied in the
+-- joint's parent frame on top of the animated Transform). `root` carries a
+-- 4th value: a vertical drop in studs (the body sinks into the stride).
+-- Shoulders: z abducts (raises the arm sideways), y swings it horizontally
+-- (+ forward for the right arm), and x then turns the arm about its own axis
+-- (+ lays the bent forearm up/back, - turns it forward and down).
+-- Hips/knees/elbows/wrists: +x swings the limb forward, -x back.
 -- No `game` access; tests/ThrowPose.spec.luau covers it under Lune.
 
 export type Euler = { number }
-export type Pose = {
-	waist: Euler,
-	rightShoulder: Euler,
-	rightElbow: Euler,
-	leftShoulder: Euler,
-}
+export type Pose = { [string]: Euler }
 export type Ease = "smooth" | "in" | "out"
 export type Key = { time: number, pose: Pose, ease: Ease }
 
 export type SwingConfig = { SwingWindup: number, SwingFollow: number }
-export type ChargeConfig = { ChargeArmPitch: number, ChargeWaistTwist: number }
+export type ChargeConfig = { ChargeLayback: number, ChargeWaistTwist: number, ChargeLegLift: number }
 
 local ThrowPose = {}
 
-ThrowPose.JOINTS = { "waist", "rightShoulder", "rightElbow", "leftShoulder" }
+ThrowPose.JOINTS = {
+	"root",
+	"waist",
+	"neck",
+	"rightShoulder",
+	"rightElbow",
+	"rightWrist",
+	"leftShoulder",
+	"leftElbow",
+	"leftHip",
+	"leftKnee",
+	"rightHip",
+	"rightKnee",
+}
 
--- How long the whip from the top of the wind-up to release lasts.
+-- How long the whip from max layback to release lasts.
 ThrowPose.WHIP_SECONDS = 0.06
--- Extra settle after the follow-through.
-ThrowPose.SETTLE_SECONDS = 0.15
+-- Settle from the follow-through hold back to the plain animation.
+ThrowPose.SETTLE_SECONDS = 0.3
 
-local function pose(w: Euler, rs: Euler, re: Euler, ls: Euler): Pose
-	return { waist = w, rightShoulder = rs, rightElbow = re, leftShoulder = ls }
+local function zero(): Euler
+	return { 0, 0, 0 }
 end
 
-ThrowPose.REST = pose({ 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 })
+-- Builds a full pose; any joint left out is at rest. The neck is derived so
+-- the eyes stay on the lane: it undoes the waist turn and most of its pitch.
+local function pose(p: Pose): Pose
+	local out: Pose = {}
+	for _, j in ThrowPose.JOINTS do
+		out[j] = p[j] or zero()
+	end
+	out.root = { out.root[1], out.root[2], out.root[3], out.root[4] or 0 }
+	if not p.neck then
+		local w = out.waist
+		out.neck = { -0.6 * w[1], -0.85 * w[2], -0.5 * w[3] }
+	end
+	return out
+end
 
--- Meter anticipation: the arm cocks back as the marker climbs (0..1).
+ThrowPose.REST = pose({})
+
+-- The "set" pose at a full meter (fill 1). Coil amounts come from Config.UI.
+local function setPose(cfg: ChargeConfig): Pose
+	return pose({
+		root = { 0, 0, 0, -0.12 },
+		waist = { 0.08, -cfg.ChargeWaistTwist, -0.06 }, -- lean back a touch, coil right
+		rightShoulder = { cfg.ChargeLayback, -0.35, 1.45 }, -- elbow at shoulder height, forearm up
+		rightElbow = { 1.55, 0, 0 },
+		rightWrist = { -0.35, 0, 0 },
+		leftShoulder = { 1.45, 0, -0.15 }, -- glove arm points down the lane
+		leftElbow = { 0.25, 0, 0 },
+		leftHip = { cfg.ChargeLegLift, 0, 0.05 }, -- knee up
+		leftKnee = { -1.45, 0, 0 },
+		rightHip = { 0.15, 0, 0 }, -- weight sits on the back leg
+		rightKnee = { -0.3, 0, 0 },
+	})
+end
+
+local function easeInOut(k: number): number
+	return k * k * (3 - 2 * k)
+end
+
+local function mix(a: Euler, b: Euler, k: number): Euler
+	local out = {}
+	for i = 1, math.max(#a, #b) do
+		local x, y = a[i] or 0, b[i] or 0
+		out[i] = x + (y - x) * k
+	end
+	return out
+end
+
+function ThrowPose.blend(a: Pose, b: Pose, k: number): Pose
+	local out: Pose = {}
+	for _, j in ThrowPose.JOINTS do
+		out[j] = mix(a[j] or zero(), b[j] or zero(), k)
+	end
+	return out
+end
+
+-- Meter anticipation: the body winds into the set pose as the marker climbs (0..1).
 function ThrowPose.charge(fill: number, cfg: ChargeConfig): Pose
-	local k = math.clamp(fill, 0, 1)
-	k = k * k * (3 - 2 * k)
-	return pose(
-		{ -0.08 * k, cfg.ChargeWaistTwist * k, 0 },
-		{ cfg.ChargeArmPitch * k, 0, -0.15 * k },
-		{ 0.6 * k, 0, 0 },
-		{ 0.5 * k, 0, 0.1 * k }
-	)
+	local k = easeInOut(math.clamp(fill, 0, 1))
+	return ThrowPose.blend(ThrowPose.REST, setPose(cfg), k)
 end
 
 function ThrowPose.releaseTime(cfg: SwingConfig): number
@@ -61,47 +127,100 @@ end
 -- so there is no pop between the meter and the swing.
 function ThrowPose.keys(cfg: SwingConfig, from: Pose?): { Key }
 	local w, f = cfg.SwingWindup, cfg.SwingFollow
-	local TAU = 2 * math.pi
-	-- The throwing arm circles BACKWARD: down-behind (charge), up behind the
-	-- head, then whips forward over the top. Shoulder pitch only ever
-	-- decreases (0 -> -2pi) so blending never takes the short way round
-	-- through the front; -2pi at the end is the same angle as rest.
+	local release = w + ThrowPose.WHIP_SECONDS
 	return {
 		{ time = 0, pose = from or ThrowPose.REST, ease = "smooth" },
-		-- cock: arm back and rising, elbow folding, torso turned away, lead arm points
+		-- stride: front foot reaches out, body sinks, forearm starts laying back
 		{
-			time = w * 0.6,
-			pose = pose({ -0.15, 0.55, 0 }, { -2.5, 0, -0.3 }, { 1.4, 0, 0 }, { 1.2, 0, 0.15 }),
+			time = w * 0.55,
+			pose = pose({
+				root = { 0, 0, 0, -0.4 },
+				waist = { 0.05, -0.6, -0.08 },
+				rightShoulder = { 2.15, -0.45, 1.5 },
+				rightElbow = { 1.6, 0, 0 },
+				rightWrist = { -0.5, 0, 0 },
+				leftShoulder = { 1.5, 0, -0.25 },
+				leftElbow = { 0.3, 0, 0 },
+				leftHip = { 0.8, 0, 0.08 },
+				leftKnee = { -0.45, 0, 0 },
+				rightHip = { -0.25, 0, 0 },
+				rightKnee = { -0.45, 0, 0 },
+			}),
 			ease = "out",
 		},
-		-- top of the wind-up: hand behind the head (small hold = readable anticipation)
+		-- foot plant, max layback: hips fire first, the arm lags behind (the coil)
 		{
 			time = w,
-			pose = pose({ -0.2, 0.6, 0 }, { -2.95, 0, -0.35 }, { 1.7, 0, 0 }, { 1.4, 0, 0.2 }),
+			pose = pose({
+				root = { 0, 0, 0, -0.5 },
+				waist = { -0.05, -0.15, -0.1 },
+				rightShoulder = { 2.55, -0.55, 1.6 },
+				rightElbow = { 1.6, 0, 0 },
+				rightWrist = { -0.7, 0, 0 },
+				leftShoulder = { 0.9, 0, -0.5 },
+				leftElbow = { 1.2, 0, 0 },
+				leftHip = { 0.7, 0, 0.08 },
+				leftKnee = { -0.25, 0, 0 },
+				rightHip = { -0.5, 0, 0 },
+				rightKnee = { -0.7, 0, 0 },
+			}),
 			ease = "smooth",
 		},
-		-- whip: over the top, accelerating into release in front, elbow snaps straight
+		-- release: chest whips round, arm fires forward over the top, elbow snaps
 		{
-			time = w + ThrowPose.WHIP_SECONDS,
-			pose = pose({ 0.25, -0.35, 0 }, { 1.5 - TAU, 0, 0.1 }, { 0.15, 0, 0 }, { 0.3, 0, 0 }),
+			time = release,
+			pose = pose({
+				root = { 0, 0, 0, -0.55 },
+				waist = { -0.35, 0.5, 0.05 },
+				rightShoulder = { 0, 0.85, 1.75 },
+				rightElbow = { 0.2, 0, 0 },
+				rightWrist = { 0.55, 0, 0 },
+				leftShoulder = { 0.35, 0, -0.6 }, -- glove tucked to the chest
+				leftElbow = { 1.9, 0, 0 },
+				leftHip = { 0.6, 0, 0.08 },
+				leftKnee = { -0.2, 0, 0 },
+				rightHip = { -0.6, 0, 0 },
+				rightKnee = { -0.9, 0, 0 },
+			}),
 			ease = "in",
 		},
-		-- follow-through down across the body, lead arm swings back (held)
+		-- follow-through: arm wraps across to the left hip, back foot kicks up
 		{
 			time = w + f * 0.6,
-			pose = pose({ 0.35, -0.55, 0 }, { 0.3 - TAU, 0, 0.45 }, { 0.4, 0, 0 }, { -0.4, 0, -0.1 }),
+			pose = pose({
+				root = { 0, 0, 0, -0.55 },
+				waist = { -0.6, 0.65, 0.1 },
+				rightShoulder = { -0.45, 1.3, 0.7 },
+				rightElbow = { 0.55, 0, 0 },
+				rightWrist = { 0.4, 0, 0 },
+				leftShoulder = { 0.15, 0, -0.45 },
+				leftElbow = { 1.6, 0, 0 },
+				leftHip = { 0.65, 0, 0.05 },
+				leftKnee = { -0.35, 0, 0 },
+				rightHip = { -0.9, 0, 0 },
+				rightKnee = { -1.5, 0, 0 },
+			}),
 			ease = "out",
 		},
+		-- held finish (readable silhouette)
 		{
 			time = w + f,
-			pose = pose({ 0.3, -0.5, 0 }, { 0.25 - TAU, 0, 0.4 }, { 0.4, 0, 0 }, { -0.35, 0, -0.1 }),
+			pose = pose({
+				root = { 0, 0, 0, -0.5 },
+				waist = { -0.55, 0.6, 0.1 },
+				rightShoulder = { -0.4, 1.25, 0.65 },
+				rightElbow = { 0.6, 0, 0 },
+				rightWrist = { 0.35, 0, 0 },
+				leftShoulder = { 0.15, 0, -0.4 },
+				leftElbow = { 1.5, 0, 0 },
+				leftHip = { 0.6, 0, 0.05 },
+				leftKnee = { -0.35, 0, 0 },
+				rightHip = { -0.8, 0, 0 },
+				rightKnee = { -1.4, 0, 0 },
+			}),
 			ease = "smooth",
 		},
-		{
-			time = w + f + ThrowPose.SETTLE_SECONDS,
-			pose = pose({ 0, 0, 0 }, { -TAU, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }),
-			ease = "smooth",
-		},
+		{ time = w + f + ThrowPose.SETTLE_SECONDS, pose = ThrowPose.REST, ease = "smooth" },
 	}
 end
 
@@ -111,20 +230,7 @@ local function eased(t: number, ease: Ease): number
 	elseif ease == "out" then
 		return 1 - (1 - t) * (1 - t)
 	end
-	return t * t * (3 - 2 * t)
-end
-
-local function mix(a: Euler, b: Euler, k: number): Euler
-	return { a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k }
-end
-
-function ThrowPose.blend(a: Pose, b: Pose, k: number): Pose
-	return {
-		waist = mix(a.waist, b.waist, k),
-		rightShoulder = mix(a.rightShoulder, b.rightShoulder, k),
-		rightElbow = mix(a.rightElbow, b.rightElbow, k),
-		leftShoulder = mix(a.leftShoulder, b.leftShoulder, k),
-	}
+	return easeInOut(t)
 end
 
 -- Pose at `t` seconds into the swing. Clamps outside the key range.

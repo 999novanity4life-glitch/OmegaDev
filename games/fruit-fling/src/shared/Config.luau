@@ -208,9 +208,16 @@ Config.UI = {
 	RevealBloomSeconds = 0.35,
 	RevealHoldSeconds = 1.2,
 	RevealBlurSize = 18, -- BlurEffect.Size at the peak (world only; UI stays sharp)
-	-- Meter anticipation: the throwing arm cocks back as the marker climbs.
-	ChargeArmPitch = -1.3, -- radians at a full meter (negative = arm swings back)
-	ChargeWaistTwist = 0.35,
+	-- Meter anticipation: the body winds into the "set" pose as the marker
+	-- climbs (front knee up, torso coiled, fruit by the ear). Radians at a full meter.
+	ChargeLayback = 1.6, -- throwing forearm turned up behind the ear
+	ChargeWaistTwist = 0.4, -- chest coils away from the lane
+	ChargeLegLift = 1.15, -- front thigh raised
+	-- Throw VFX on the character (ThrowAnimator).
+	HeldOrbSize = 0.9, -- studs, the glowing fruit in the hand while charging
+	ChargeAuraRate = 40, -- wind particles per second at a full meter
+	TrailSeconds = 0.18, -- hand trail lifetime during the swing
+	ReleaseFovKick = 6, -- degrees of field-of-view punch on release
 	-- Fruit tumble in flight (radians per second at alpha 0, eases out).
 	TumbleSpin = 14,
 }

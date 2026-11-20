@@ -16,6 +16,7 @@ return function(t, load)
 			for i = 1, 3 do
 				m = math.max(m, adiff(a[j][i], b[j][i]))
 			end
+			m = math.max(m, math.abs((a[j][4] or 0) - (b[j][4] or 0)))
 		end
 		return m
 	end
@@ -47,29 +48,40 @@ return function(t, load)
 				tt += step
 			end
 		end)
-		it("the arm circles backward: shoulder pitch never increases during the swing", function()
+		it("whips: the arm turns forward fastest at release and the elbow snaps straight", function()
 			local keys = ThrowPose.keys(cfg, ThrowPose.charge(1, Config.UI))
-			local prev = ThrowPose.sample(keys, 0).rightShoulder[1]
-			for i = 1, 60 do
-				local p = ThrowPose.sample(keys, i * ThrowPose.totalTime(cfg) / 60).rightShoulder[1]
-				expect(p <= prev + 1e-9).toBeTruthy()
-				prev = p
-			end
-		end)
-		it("the whip is the fastest part (release reads as a snap)", function()
-			local keys = ThrowPose.keys(cfg)
 			local r = ThrowPose.releaseTime(cfg)
-			local whip =
-				math.abs(ThrowPose.sample(keys, r).rightShoulder[1] - ThrowPose.sample(keys, r - 0.02).rightShoulder[1])
-			local windup =
-				math.abs(ThrowPose.sample(keys, 0.06).rightShoulder[1] - ThrowPose.sample(keys, 0.04).rightShoulder[1])
-			expect(whip > windup).toBeTruthy()
+			local function rot(tt)
+				return ThrowPose.sample(keys, tt).rightShoulder[1]
+			end
+			local whip = rot(r - 0.02) - rot(r)
+			local windup = math.abs(rot(0.06) - rot(0.04))
+			expect(whip > 0).toBeTruthy()
+			expect(whip > windup * 3).toBeTruthy()
+			expect(ThrowPose.sample(keys, r).rightElbow[1] < 0.3).toBeTruthy()
+			expect(ThrowPose.sample(keys, cfg.SwingWindup).rightElbow[1] > 1.4).toBeTruthy()
+		end)
+		it("full body: stride drops the body and the back foot kicks up in the follow-through", function()
+			local keys = ThrowPose.keys(cfg, ThrowPose.charge(1, Config.UI))
+			local r = ThrowPose.releaseTime(cfg)
+			expect(ThrowPose.sample(keys, r).root[4] < -0.3).toBeTruthy()
+			local follow = ThrowPose.sample(keys, cfg.SwingWindup + cfg.SwingFollow)
+			expect(follow.rightKnee[1] < -1).toBeTruthy()
+			expect(follow.waist[1] < -0.3).toBeTruthy() -- chest over the front leg
+		end)
+		it("the head stays on the lane: neck undoes the waist turn", function()
+			local keys = ThrowPose.keys(cfg, ThrowPose.charge(1, Config.UI))
+			for i = 0, 20 do
+				local p = ThrowPose.sample(keys, i * ThrowPose.totalTime(cfg) / 20)
+				expect(math.abs(p.waist[2] + p.neck[2]) <= math.abs(p.waist[2]) * 0.2 + 1e-9).toBeTruthy()
+			end
 		end)
 		it("charge grows with the meter and is rest when empty", function()
 			expect(maxJump(ThrowPose.charge(0, Config.UI), ThrowPose.REST)).toBe(0)
 			local half = ThrowPose.charge(0.5, Config.UI).rightShoulder[1]
 			local full = ThrowPose.charge(1, Config.UI).rightShoulder[1]
-			expect(full).toBeNear(Config.UI.ChargeArmPitch, 1e-9)
+			expect(full).toBeNear(Config.UI.ChargeLayback, 1e-9)
+			expect(ThrowPose.charge(1, Config.UI).leftHip[1]).toBeNear(Config.UI.ChargeLegLift, 1e-9)
 			expect(math.abs(half) > 0 and math.abs(half) < math.abs(full)).toBeTruthy()
 			expect(maxJump(ThrowPose.charge(5, Config.UI), ThrowPose.charge(1, Config.UI))).toBe(0)
 		end)
