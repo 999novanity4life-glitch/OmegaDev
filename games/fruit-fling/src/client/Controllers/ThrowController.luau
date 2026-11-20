@@ -170,7 +170,7 @@ function ThrowController.start()
 	powerPop.Parent = gui
 	outlined(powerPop, 3)
 
-	local grade = PremiumHUD.gradeText(gui) -- extruded PERFECT / MASTERWORK text
+	local gradeHud = PremiumHUD.gradeText(gui) -- extruded PERFECT / MASTERWORK text
 
 	local infoLabel = UIKit.label("", UDim2.fromScale(0.4, 0.06), UITokens.Text.Title)
 	infoLabel.Name = "Info"
@@ -226,7 +226,7 @@ function ThrowController.start()
 	end
 
 	local function showGrade(text: string, color: Color3, big: boolean?)
-		grade.show(text, color, big)
+		gradeHud.show(text, color, big)
 		if big then
 			Juice.shakeCamera(cfg.MasterworkShake)
 		end
@@ -272,7 +272,7 @@ function ThrowController.start()
 		marker.BackgroundColor3 = Color3.new(1, 1, 1)
 		plusLabel.TextColor3 = Color3.new(1, 1, 1)
 		powerPop.Visible = false
-		grade.root.Visible = false
+		gradeHud.root.Visible = false
 		infoLabel.Text = ""
 		banner.Visible = false
 		button.Visible = true
@@ -345,7 +345,7 @@ function ThrowController.start()
 		button.Visible = false
 		leave.Visible = false
 		banner.Visible = false
-		grade.root.Visible = false
+		gradeHud.root.Visible = false
 		infoLabel.Text = ""
 		stopRing()
 		letterbox(0, 0.3)
