@@ -358,35 +358,74 @@ local prevSwingT: number? = nil
 -- Studio preview scrub
 local previewT: number? = nil
 
+-- What we wrote to each joint last frame, and the animated base under it.
+-- Studio check (2026-11-20): on these rigs the Animator does not rewrite
+-- every joint's Transform every frame (joints no playing track keys keep the
+-- last value), so blindly multiplying compounds the offset frame after frame.
+-- If Transform still holds what we wrote, the base is the one we saved.
+local layered: { [Instance]: { written: CFrame, base: CFrame } } = {}
+
+local function unlayer()
+	for joint, st in layered do
+		if joint:IsA("AnimationConstraint") then
+			if joint.Transform:FuzzyEq(st.written, 1e-4) then
+				joint.Transform = st.base
+			end
+		elseif joint:IsA("Motor6D") then
+			if joint.Transform:FuzzyEq(st.written, 1e-4) then
+				joint.Transform = st.base
+			end
+		end
+	end
+	table.clear(layered)
+end
+
+local function setActive(a: { character: Model, rig: Rig, pose: Pose }?)
+	if a == nil or (active and active.character ~= a.character) then
+		unlayer()
+	end
+	active = a
+end
+
 local function hold(character: Model?, pose: Pose)
 	if not character then
-		active = nil
+		setActive(nil)
 		return
 	end
 	local a = active
 	if a and a.character == character then
 		a.pose = pose
 	else
-		active = { character = character, rig = findRig(character), pose = pose }
+		setActive({ character = character, rig = findRig(character), pose = pose })
+	end
+end
+
+local function layer(joint: Instance, rot: CFrame)
+	local st = layered[joint]
+	local function base(cur: CFrame): CFrame
+		return if st and cur:FuzzyEq(st.written, 1e-4) then st.base else cur
+	end
+	if joint:IsA("AnimationConstraint") then
+		local b = base(joint.Transform)
+		joint.Transform = rot * b
+		layered[joint] = { written = joint.Transform, base = b }
+	elseif joint:IsA("Motor6D") then
+		local b = base(joint.Transform)
+		joint.Transform = rot * b
+		layered[joint] = { written = joint.Transform, base = b }
 	end
 end
 
 local function applyPose(a: { character: Model, rig: Rig, pose: Pose })
 	local animator = animatorOf(a.character)
-	-- Skip throttled frames as the docs advise (the Animator didn't write
-	-- Transform, so layering again would compound the offset).
+	-- Skip throttled frames as the docs advise.
 	if animator and animator.EvaluationThrottled then
 		return
 	end
 	for slot, joint in a.rig do
 		local e = a.pose[slot]
 		if e then
-			local rot = CFrame.new(0, e[4] or 0, 0) * CFrame.Angles(e[1], e[2], e[3])
-			if joint:IsA("AnimationConstraint") then
-				joint.Transform = rot * joint.Transform
-			elseif joint:IsA("Motor6D") then
-				joint.Transform = rot * joint.Transform
-			end
+			layer(joint, CFrame.new(0, e[4] or 0, 0) * CFrame.Angles(e[1], e[2], e[3]))
 		end
 	end
 end
@@ -400,7 +439,7 @@ local function preview(dt: number): boolean
 	if type(target) ~= "number" or not character then
 		if previewT then
 			previewT = nil
-			active = nil
+			setActive(nil)
 			clearFx()
 		end
 		return false
@@ -474,7 +513,7 @@ function ThrowAnimator.reset(_character: Model?)
 	swingStart = nil
 	swingKeys = nil
 	prevSwingT = nil
-	active = nil
+	setActive(nil)
 	clearFx()
 end
 
@@ -518,7 +557,7 @@ function ThrowAnimator.swing(character: Model?, onRelease: (Vector3) -> ()): num
 			prevSwingT = nil
 			lastCharge = ThrowPose.REST
 			lastFill = 0
-			active = nil
+			setActive(nil)
 			clearFx()
 		end
 	end)
