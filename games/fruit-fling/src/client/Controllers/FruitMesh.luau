@@ -56,7 +56,12 @@ local function meshPart(mesh: FruitMeshData.Mesh, tris: { { number } }, scale: n
 				em:SetFaceColors(face, { colors[tri[1]], colors[tri[2]], colors[tri[3]] })
 			end
 		end
-		return AssetService:CreateMeshPartAsync(Content.fromObject(em))
+		local part = AssetService:CreateMeshPartAsync(Content.fromObject(em))
+		-- The part keeps its own copy; free the EditableMesh so the client's
+		-- EditableMesh memory budget isn't spent (Studio: the 9th live mesh
+		-- failed with "reaching memory budget limits").
+		em:Destroy()
+		return part
 	end)
 	if ok and result and result:IsA("MeshPart") then
 		return result
