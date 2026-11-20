@@ -115,6 +115,126 @@ local CHROME = {
 	{ 1, 92, 96, 107 },
 }
 
+-- Detail layers (2026-11-20 pass 2: "add detail everywhere") -------------------
+
+-- Light rays fanning from the centre of `parent`: each ray is a bar inside a
+-- full-size holder rotated about the centre (GuiObject rotation pivots on its
+-- own centre). Returns the container so callers can spin or scale it.
+local function rays(parent: Instance, count: number, color: Color3, width: number, alpha: number): Frame
+	local box = frame("Rays", parent, Color3.new(0, 0, 0), UDim2.fromScale(1, 1))
+	box.BackgroundTransparency = 1
+	box.ZIndex = 0
+	for i = 1, count do
+		local holder = frame("Ray", box, Color3.new(0, 0, 0), UDim2.fromScale(1, 1))
+		holder.BackgroundTransparency = 1
+		holder.Rotation = (i - 1) * 360 / count
+		holder.ZIndex = 0
+		local bar = frame(
+			"Bar",
+			holder,
+			color,
+			UDim2.fromScale(if i % 2 == 0 then width * 0.6 else width, 0.5),
+			UDim2.fromScale(0.5, 0.5),
+			Vector2.new(0.5, 1)
+		)
+		bar.ZIndex = 0
+		bar.BackgroundTransparency = alpha
+		local g = Instance.new("UIGradient")
+		g.Rotation = 90
+		g.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.55, 0.2),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		g.Parent = bar
+	end
+	return box
+end
+
+-- Four-point twinkles (two crossed diamonds). Returns them for animation.
+local function twinkles(parent: Instance, spots: { { number } }, color: Color3): { Frame }
+	local out = {}
+	for _, s in spots do
+		local t = frame("Twinkle", parent, color, UDim2.fromScale(s[3], s[3]), UDim2.fromScale(s[1], s[2]))
+		t.SizeConstraint = Enum.SizeConstraint.RelativeYY
+		t.BackgroundTransparency = 1
+		for _, r in { 0, 90 } do
+			local spike = frame("Spike", t, color, UDim2.fromScale(0.16, 1))
+			spike.Rotation = r
+			corner(spike, 0.5)
+			local g = Instance.new("UIGradient")
+			g.Rotation = 90
+			g.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.5, 0),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			g.Parent = spike
+		end
+		local core = frame("Core", t, Color3.new(1, 1, 1), UDim2.fromScale(0.22, 0.22))
+		core.Rotation = 45
+		table.insert(out, t)
+	end
+	return out
+end
+
+-- Chrome screw heads in the corners of a panel.
+local function bolts(parent: Instance, inset: number, size: number, constraint: Enum.SizeConstraint)
+	for _, p in { { inset, inset }, { 1 - inset, inset }, { inset, 1 - inset }, { 1 - inset, 1 - inset } } do
+		local b = frame("Bolt", parent, Color3.new(1, 1, 1), UDim2.fromScale(size, size), UDim2.fromScale(p[1], p[2]))
+		b.SizeConstraint = constraint
+		b.ZIndex = 4
+		corner(b, 0.5)
+		gradient(b, CHROME, 45)
+		local slot = frame("Slot", b, Color3.fromRGB(30, 32, 38), UDim2.fromScale(0.7, 0.16))
+		slot.Rotation = 35
+		slot.ZIndex = 4
+	end
+end
+
+-- Carbon-fibre weave: alternating diagonal strands under a soft top sheen.
+local function carbon(parent: Instance)
+	local clip = frame("Carbon", parent, Color3.fromRGB(16, 17, 21), UDim2.fromScale(1, 1))
+	clip.ClipsDescendants = true
+	local c = parent:FindFirstChildOfClass("UICorner")
+	if c then
+		c:Clone().Parent = clip
+	end
+	for i = -10, 60 do
+		local strand = frame(
+			"Strand",
+			clip,
+			if i % 2 == 0 then Color3.fromRGB(38, 40, 47) else Color3.fromRGB(22, 23, 28),
+			UDim2.new(0, 7, 3, 0),
+			UDim2.new(0, i * 10, 0.5, 0)
+		)
+		strand.Rotation = 45
+		strand.BackgroundTransparency = 0.15
+	end
+	local sheen =
+		frame("Sheen", clip, Color3.new(1, 1, 1), UDim2.fromScale(1, 0.5), UDim2.fromScale(0.5, 0), Vector2.new(0.5, 0))
+	fade(sheen, 0.82, 1, 90)
+	return clip
+end
+
+-- Notches round a circular bezel (like a watch or a dial).
+local function notches(parent: Instance, count: number, color: Color3)
+	for i = 1, count do
+		local holder = frame("Notch", parent, Color3.new(0, 0, 0), UDim2.fromScale(1, 1))
+		holder.BackgroundTransparency = 1
+		holder.Rotation = (i - 1) * 360 / count
+		local mark = frame(
+			"Mark",
+			holder,
+			color,
+			UDim2.fromScale(if i % 4 == 1 then 0.025 else 0.014, if i % 4 == 1 then 0.05 else 0.03),
+			UDim2.fromScale(0.5, 0.012),
+			Vector2.new(0.5, 0)
+		)
+		mark.BackgroundTransparency = 0.25
+	end
+end
+
 -- Throw button ---------------------------------------------------------------
 
 export type Button = {
@@ -157,6 +277,15 @@ function PremiumHUD.button(parent: Instance, label: string, size: number): Butto
 	aspect.AspectRatio = 1
 	aspect.Parent = root
 
+	-- Slow-turning light rays and twinkles behind the button.
+	local buttonRays = rays(root, 14, Color3.fromRGB(255, 190, 90), 0.05, 0.35)
+	buttonRays.Size = UDim2.fromScale(1.7, 1.7)
+	local buttonTwinkles = twinkles(root, {
+		{ 0.08, 0.12, 0.16 },
+		{ 0.95, 0.2, 0.11 },
+		{ 0.02, 0.85, 0.1 },
+		{ 0.88, 0.95, 0.14 },
+	}, Color3.fromRGB(255, 226, 150))
 	-- Halo: a soft orange glow ring just outside the bezel.
 	local halo = ring("Halo", root, Color3.fromRGB(255, 138, 31), 6)
 	halo.Size = UDim2.fromScale(1.06, 1.06)
@@ -164,6 +293,7 @@ function PremiumHUD.button(parent: Instance, label: string, size: number): Butto
 	haloStroke.Transparency = 0.35
 	local bezel = circle("Bezel", root, Color3.new(1, 1, 1), 1)
 	local chrome = gradient(bezel, CHROME, 35)
+	notches(bezel, 32, Color3.fromRGB(40, 42, 50))
 	local gap = circle("Gap", bezel, Color3.fromRGB(12, 13, 17), 0.9)
 	local depth = ui.ButtonDepth
 	local _base = circle("Base", gap, Color3.fromRGB(196, 82, 0), 0.86, UDim2.fromScale(0.5, 0.5 + depth))
@@ -184,9 +314,34 @@ function PremiumHUD.button(parent: Instance, label: string, size: number): Butto
 	)
 	corner(gloss, 0.5)
 	fade(gloss, 0.25, 1, 90)
+	-- Etched inner ring + a lower rim shadow: the face reads as a domed cap.
+	local etch = circle("Etch", face, Color3.new(1, 1, 1), 0.8)
+	etch.BackgroundTransparency = 1
+	local etchStroke = Instance.new("UIStroke")
+	etchStroke.Color = Color3.fromRGB(255, 226, 170)
+	etchStroke.Transparency = 0.45
+	etchStroke.Thickness = 2
+	etchStroke.Parent = etch
+	local lowRim = circle("LowRim", face, Color3.fromRGB(150, 50, 0), 1)
+	lowRim.BackgroundTransparency = 0
+	local lowGrad = Instance.new("UIGradient")
+	lowGrad.Rotation = 90
+	lowGrad.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.7, 1),
+		NumberSequenceKeypoint.new(1, 0.25),
+	})
+	lowGrad.Parent = lowRim
+	-- A small fruit glyph above the word.
+	local glyph = circle("Glyph", face, Color3.fromRGB(255, 244, 220), 0.17, UDim2.fromScale(0.5, 0.27))
+	gradient(glyph, { { 0, 255, 255, 255 }, { 1, 255, 196, 120 } }, 90)
+	local leaf =
+		frame("Leaf", glyph, Color3.fromRGB(120, 210, 90), UDim2.fromScale(0.5, 0.28), UDim2.fromScale(0.72, -0.02))
+	leaf.Rotation = -30
+	corner(leaf, 0.5)
 	local t = text("Label", face, label, Color3.new(1, 1, 1))
-	t.Size = UDim2.fromScale(0.68, 0.4)
-	t.Position = UDim2.fromScale(0.5, 0.54)
+	t.Size = UDim2.fromScale(0.68, 0.34)
+	t.Position = UDim2.fromScale(0.5, 0.6)
 	outline(t, Color3.fromRGB(106, 36, 0), 2.5)
 
 	-- Timing rings (same names/roles as the first HUD).
@@ -234,6 +389,12 @@ function PremiumHUD.button(parent: Instance, label: string, size: number): Butto
 		local now = os.clock()
 		chrome.Rotation = 35 + math.sin(now * 1.3) * 25
 		haloStroke.Transparency = 0.35 + math.sin(now * 3) * 0.2
+		buttonRays.Rotation = (now * 12) % 360
+		for i, tw in buttonTwinkles do
+			local k = 0.5 + 0.5 * math.sin(now * 2.6 + i * 1.7)
+			tw.Size = UDim2.fromScale(0.06 + 0.1 * k, 0.06 + 0.1 * k)
+			tw.Rotation = now * 40 + i * 20
+		end
 		if shrinking.Visible then
 			local g = sweep and sweep:FindFirstChildOfClass("UIGradient")
 			if g then
@@ -270,6 +431,25 @@ function PremiumHUD.meter(parent: Instance): Meter
 	aspect.AspectRatio = 0.17
 	aspect.Parent = root
 
+	-- Carbon backplate with chrome rim and screws, wider than the tube.
+	local plate = frame("Backplate", root, Color3.new(1, 1, 1), UDim2.fromScale(2.6, 1.08))
+	plate.ZIndex = 0
+	corner(plate, 0.18)
+	carbon(plate)
+	local plateRim = Instance.new("UIStroke")
+	plateRim.Thickness = 3
+	plateRim.Color = Color3.new(1, 1, 1)
+	plateRim.Parent = plate
+	gradient(plateRim, CHROME, 90)
+	bolts(plate, 0.1, 0.11, Enum.SizeConstraint.RelativeXX)
+	-- Power scale numbers down the left of the plate.
+	for i = 0, 4 do
+		local v = 20 - i * 5
+		local n = text("Scale" .. v, plate, tostring(v), Color3.fromRGB(200, 204, 216), BODY_FONT)
+		n.Size = UDim2.fromScale(0.28, 0.04)
+		n.Position = UDim2.fromScale(0.16, 0.08 + i * 0.21)
+		n.TextXAlignment = Enum.TextXAlignment.Center
+	end
 	local bezel = frame("Bezel", root, Color3.new(1, 1, 1), UDim2.fromScale(1, 1))
 	corner(bezel, 0.5)
 	gradient(bezel, CHROME, 0)
@@ -304,6 +484,16 @@ function PremiumHUD.meter(parent: Instance): Meter
 		local tick = frame("Tick", glass, Color3.new(0, 0, 0), UDim2.new(0.62, 0, 0, 2), UDim2.fromScale(0.5, i / 8))
 		tick.BackgroundTransparency = 0.65
 	end
+	-- Energy shimmer that runs up the fill.
+	local scan = frame("Scan", glass, Color3.new(1, 1, 1), UDim2.fromScale(1, 0.18), UDim2.fromScale(0.5, 1))
+	local scanGrad = Instance.new("UIGradient")
+	scanGrad.Rotation = 90
+	scanGrad.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.5, 0.55),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	scanGrad.Parent = scan
 	local shine = frame("Shine", glass, Color3.new(1, 1, 1), UDim2.fromScale(0.16, 0.9), UDim2.fromScale(0.22, 0.5))
 	corner(shine, 0.5)
 	fade(shine, 0.35, 0.9, 90)
@@ -322,6 +512,14 @@ function PremiumHUD.meter(parent: Instance): Meter
 	markerGlow.Thickness = 3
 	markerGlow.Transparency = 0.4
 	markerGlow.Parent = marker
+	-- Chevron pointing in at the tube from the left.
+	local chevron =
+		frame("Chevron", marker, Color3.new(1, 1, 1), UDim2.fromScale(0.3, 1.6), UDim2.fromScale(-0.08, 0.5))
+	chevron.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	chevron.Size = UDim2.fromScale(1.5, 1.5)
+	chevron.Rotation = 45
+	chevron.ZIndex = 3
+	gradient(chevron, { { 0, 255, 255, 255 }, { 1, 255, 179, 71 } }, 0)
 	-- "+N" bubble riding the marker.
 	local bubble = frame(
 		"Bubble",
@@ -340,6 +538,15 @@ function PremiumHUD.meter(parent: Instance): Meter
 	plus.ZIndex = 4
 	plus.Size = UDim2.fromScale(0.86, 0.86)
 	outline(plus, Color3.fromRGB(122, 44, 0), 1.5)
+
+	RunService.RenderStepped:Connect(function()
+		if not root.Visible or reduced() then
+			return
+		end
+		local now = os.clock()
+		scan.Position = UDim2.fromScale(0.5, 1.1 - ((now * 0.6) % 1.3))
+		bandGlow.Transparency = 0.1 + 0.35 * (0.5 + 0.5 * math.sin(now * 6))
+	end)
 
 	return {
 		root = root,
@@ -381,6 +588,32 @@ function PremiumHUD.gradeText(parent: Instance): GradeText
 	root.BackgroundTransparency = 1
 	root.Visible = false
 
+	-- Burst behind the word: rays that punch out and spin, plus twinkles.
+	local burst = rays(root, 18, Color3.fromRGB(255, 236, 160), 0.035, 0.15)
+	burst.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	burst.Size = UDim2.fromScale(3.2, 3.2)
+	local burstScale = Instance.new("UIScale")
+	burstScale.Parent = burst
+	local gradeTwinkles = twinkles(root, {
+		{ 0.12, 0.1, 0.5 },
+		{ 0.9, 0.05, 0.42 },
+		{ 0.05, 0.9, 0.36 },
+		{ 0.94, 0.88, 0.5 },
+		{ 0.5, -0.15, 0.3 },
+	}, Color3.fromRGB(255, 240, 190))
+	-- Swoosh underline.
+	local swoosh =
+		frame("Swoosh", root, Color3.fromRGB(255, 179, 71), UDim2.fromScale(0.7, 0.07), UDim2.fromScale(0.5, 1.02))
+	swoosh.Rotation = -2
+	corner(swoosh, 0.5)
+	local swooshGrad = Instance.new("UIGradient")
+	swooshGrad.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.5, 0),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	swooshGrad.Parent = swoosh
+
 	local layers: { TextLabel } = {}
 	for _, l in Motion.extrude(ui.ExtrudeLayers, ui.ExtrudeStepPx) do
 		local t = text("Extrude", root, "", Color3.new(l.shade * 0.4, l.shade * 0.2, 0))
@@ -403,9 +636,17 @@ function PremiumHUD.gradeText(parent: Instance): GradeText
 		if not root.Visible then
 			return
 		end
-		local w = Motion.splitWidth(os.clock() - shownAt, split, ui.RgbSplitSeconds)
+		local age = os.clock() - shownAt
+		local w = Motion.splitWidth(age, split, ui.RgbSplitSeconds)
 		red.Position = UDim2.new(0.5, -w, 0.5, 0)
 		cyan.Position = UDim2.new(0.5, w, 0.5, 0)
+		-- burst punches out fast then drifts; twinkles flicker
+		burstScale.Scale = if reduced() then 1 else 0.4 + 0.6 * Motion.backOut(math.min(1, age / 0.25))
+		burst.Rotation = age * 25
+		for i, tw in gradeTwinkles do
+			local k = 0.5 + 0.5 * math.sin(age * 9 + i * 1.3)
+			tw.Size = UDim2.fromScale(0.15 + 0.35 * k, 0.15 + 0.35 * k)
+		end
 	end)
 
 	local function keys(list: { { number } }): ColorSequence
@@ -438,6 +679,17 @@ function PremiumHUD.gradeText(parent: Instance): GradeText
 					ColorSequenceKeypoint.new(1, color:Lerp(Color3.new(0, 0, 0), 0.15)),
 				})
 			end
+			local glow = if isMaster
+				then Color3.fromRGB(220, 235, 255)
+				elseif isPerfect then Color3.fromRGB(255, 226, 120)
+				else color:Lerp(Color3.new(1, 1, 1), 0.4)
+			for _, ray in burst:GetDescendants() do
+				if ray:IsA("Frame") and ray.Name == "Bar" then
+					ray.BackgroundColor3 = glow
+				end
+			end
+			burst.Visible = isPerfect or isMaster or big == true
+			swoosh.BackgroundColor3 = color
 			split = if (isPerfect or isMaster) and not reduced() then ui.RgbSplitPx * (if big then 1.6 else 1) else 0
 			red.Visible, cyan.Visible = split > 0, split > 0
 			shownAt = os.clock()
@@ -469,6 +721,36 @@ function PremiumHUD.distancePlate(parent: Instance): Plate
 	aspect.Parent = root
 	corner(root, 0.18)
 	gradient(root, { { 0, 58, 61, 70 }, { 0.48, 22, 24, 30 }, { 0.52, 11, 12, 16 }, { 1, 34, 37, 45 } }, 90)
+	carbon(root)
+	bolts(root, 0.05, 0.12, Enum.SizeConstraint.RelativeYY)
+	-- "DISTANCE" tab on top of the plate.
+	local tab = frame(
+		"Tab",
+		root,
+		Color3.fromRGB(255, 138, 31),
+		UDim2.fromScale(0.34, 0.24),
+		UDim2.fromScale(0.5, 0),
+		Vector2.new(0.5, 0.75)
+	)
+	corner(tab, 0.4)
+	gradient(tab, { { 0, 255, 196, 120 }, { 1, 230, 100, 10 } }, 90)
+	local tabText = text("TabText", tab, "DISTANCE", Color3.new(1, 1, 1), BODY_FONT)
+	tabText.Size = UDim2.fromScale(0.86, 0.7)
+	outline(tabText, Color3.fromRGB(110, 40, 0), 1)
+	-- LED segments along the bottom edge that chase while the fruit flies.
+	local leds: { Frame } = {}
+	for i = 1, 10 do
+		local led = frame(
+			"Led",
+			root,
+			Color3.fromRGB(255, 138, 31),
+			UDim2.fromScale(0.06, 0.05),
+			UDim2.fromScale(0.14 + (i - 1) * 0.08, 0.95)
+		)
+		corner(led, 0.5)
+		led.BackgroundTransparency = 0.7
+		table.insert(leds, led)
+	end
 	local rim = Instance.new("UIStroke")
 	rim.Thickness = 3
 	rim.Color = Color3.new(1, 1, 1)
@@ -517,6 +799,11 @@ function PremiumHUD.distancePlate(parent: Instance): Plate
 		whole.Text, tenths.Text = a, b
 		if rainbow then
 			sub.TextColor3 = rgb(Motion.rainbow(os.clock(), ui.RainbowSpeed))
+		end
+		local head = if reduced() then -1 else math.floor(os.clock() * 14) % (#leds + 4)
+		for i, led in leds do
+			local d = head - i
+			led.BackgroundTransparency = if d >= 0 and d < 3 then 0.05 + d * 0.25 else 0.75
 		end
 	end)
 
@@ -582,6 +869,13 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 		rungs[name] = r
 	end
 
+	-- God rays behind the card in the tier colour.
+	local cardRays = rays(root, 20, Color3.new(1, 1, 1), 0.03, 0.2)
+	cardRays.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	cardRays.Size = UDim2.fromScale(1.15, 1.15)
+	cardRays.Position = UDim2.fromScale(0.5, 0.48)
+	cardRays.Visible = false
+
 	-- The card.
 	local card = frame("Card", root, Color3.new(1, 1, 1), UDim2.fromScale(0.26, 0.62), UDim2.fromScale(0.5, 0.48))
 	card.Rotation = -3 -- the SurfaceGui version tilts in real 3D (Studio follow-up)
@@ -621,6 +915,30 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 	name.Size = UDim2.fromScale(0.9, 0.08)
 	name.Position = UDim2.fromScale(0.5, 0.79)
 	outline(name, Color3.new(0, 0, 0), 2)
+	-- Gem in the top corner + chrome corner caps.
+	local gem = frame("Gem", body, Color3.new(1, 1, 1), UDim2.fromScale(0.12, 0.12), UDim2.fromScale(0.88, 0.07))
+	gem.SizeConstraint = Enum.SizeConstraint.RelativeXX
+	gem.Rotation = 45
+	gem.ZIndex = 3
+	local gemGrad = gradient(gem, { { 0, 255, 255, 255 }, { 1, 255, 255, 255 } }, 0)
+	local gemStroke = Instance.new("UIStroke")
+	gemStroke.Thickness = 2
+	gemStroke.Color = Color3.new(1, 1, 1)
+	gemStroke.Parent = gem
+	for _, p in { { 0, 0, 0 }, { 1, 0, 90 }, { 0, 1, -90 }, { 1, 1, 180 } } do
+		local cap = frame("Cap", card, Color3.new(1, 1, 1), UDim2.fromScale(0.16, 0.16), UDim2.fromScale(p[1], p[2]))
+		cap.SizeConstraint = Enum.SizeConstraint.RelativeXX
+		cap.Rotation = p[3] + 45
+		cap.ZIndex = 3
+		gradient(cap, CHROME, 0)
+		corner(cap, 0.2)
+	end
+	local divider = frame("Divider", body, Color3.new(1, 1, 1), UDim2.fromScale(0.7, 0.006), UDim2.fromScale(0.5, 0.86))
+	fade(divider, 0, 0, 0).Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.5, 0.2),
+		NumberSequenceKeypoint.new(1, 1),
+	})
 	local odds = text("Odds", body, "", Color3.fromRGB(230, 232, 240), BODY_FONT)
 	odds.Size = UDim2.fromScale(0.5, 0.06)
 	odds.Position = UDim2.fromScale(0.5, 0.9)
@@ -644,6 +962,11 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 			f:PivotTo(CFrame.new(pivot.Position) * turn * pivot.Rotation)
 		elseif f:IsA("BasePart") then
 			f.CFrame = CFrame.new(f.Position) * turn * f.CFrame.Rotation
+		end
+	end)
+	RunService.RenderStepped:Connect(function()
+		if root.Visible and not reduced() then
+			cardRays.Rotation = (os.clock() * 15) % 360
 		end
 	end)
 	RunService.RenderStepped:Connect(function()
@@ -685,6 +1008,13 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 			artGradient.Color = ColorSequence.new(color:Lerp(Color3.new(1, 1, 1), 0.5), Color3.fromRGB(18, 11, 34))
 			tier.Text = string.upper(rarity)
 			tier.TextColor3 = color
+			gemGrad.Color = ColorSequence.new(color:Lerp(Color3.new(1, 1, 1), 0.6), color)
+			for _, bar in cardRays:GetDescendants() do
+				if bar:IsA("Frame") and bar.Name == "Bar" then
+					bar.BackgroundColor3 = color:Lerp(Color3.new(1, 1, 1), 0.3)
+				end
+			end
+			cardRays.Visible = false
 			name.Text = string.upper(fruitName)
 			odds.Text = RarityStyle.oddsText(RarityStyle.chance(rarity, Config.Rarity))
 			for _, r in rungs do
@@ -749,6 +1079,7 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 			end
 			local cardAt = step * #beats.climb + (if beats.bloom then ui.RevealBloomSeconds else 0)
 			task.delay(cardAt, function()
+				cardRays.Visible = true
 				Juice.popIn(card)
 				if beats.bloom then
 					Juice.shakeCamera(Config.Throw.PerfectShake)
