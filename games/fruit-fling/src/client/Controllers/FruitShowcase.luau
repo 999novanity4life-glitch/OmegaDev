@@ -42,6 +42,31 @@ local BODY_FONT = Enum.Font.GothamBlack
 
 local FruitShowcase = {}
 
+-- Painted texture id from Config.UI.Vfx, or nil when it is not uploaded yet.
+local function tex(name: string): string?
+	local id = Config.UI.Vfx[name]
+	return if id and id ~= "" then id else nil
+end
+
+-- A camera-facing sprite (BillboardGui + ImageLabel) sized in studs.
+local function sprite(parent: Instance, adornee: BasePart, image: string, z: number): (BillboardGui, ImageLabel)
+	local bb = Instance.new("BillboardGui")
+	bb.Adornee = adornee
+	bb.Size = UDim2.fromScale(0, 0)
+	bb.LightInfluence = 0
+	bb.Brightness = 2
+	bb.AlwaysOnTop = false
+	bb.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	bb.Parent = parent
+	local img = Instance.new("ImageLabel")
+	img.BackgroundTransparency = 1
+	img.Size = UDim2.fromScale(1, 1)
+	img.Image = image
+	img.ZIndex = z
+	img.Parent = bb
+	return bb, img
+end
+
 export type Showcase = {
 	play: (key: string, fruitName: string, rarity: string, at: Vector3, fallback: Instance?) -> number,
 	playing: () -> boolean,
@@ -94,7 +119,12 @@ local function beam(a0: Attachment, a1: Attachment, w0: number, w1: number, alph
 	b.LightInfluence = 0
 	b.Segments = 1
 	b.Transparency = alpha
-	b.Brightness = 3
+	b.Brightness = 1.5
+	local ray = tex("Ray")
+	if ray then
+		b.Texture = ray
+		b.TextureMode = Enum.TextureMode.Stretch
+	end
 	b.Parent = a0
 	return b
 end
@@ -443,9 +473,9 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 		bloom.Threshold = 0.9
 		bloom.Parent = Lighting
 		local postIn = TweenInfo.new(0.35)
-		TweenService:Create(cc, postIn, { Brightness = -0.12, Contrast = 0.18, Saturation = -0.25 }):Play()
+		TweenService:Create(cc, postIn, { Brightness = -0.22, Contrast = 0.25, Saturation = -0.45 }):Play()
 		TweenService:Create(dof, postIn, { FarIntensity = cfg.DofFar }):Play()
-		TweenService:Create(bloom, postIn, { Intensity = 0.9 }):Play()
+		TweenService:Create(bloom, postIn, { Intensity = 0.45 }):Play()
 
 		-- The fruit: the real model, scaled to FruitSize.
 		local fruit: Model? = FruitMesh.get(key)
@@ -486,7 +516,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 		-- Core: carries the light, the aura and the step bursts.
 		local core = part("Core", stage, Vector3.one, CFrame.new(spot))
 		local light = Instance.new("PointLight")
-		light.Range = 18
+		light.Range = 12
 		light.Brightness = 0
 		light.Parent = core
 		local aura = emitter(core, {
@@ -498,7 +528,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 				NumberSequenceKeypoint.new(0.3, 2.2),
 				NumberSequenceKeypoint.new(1, 0),
 			}),
-			Transparency = NumberSequence.new(0.35, 1),
+			Transparency = NumberSequence.new(0.6, 1),
 			Lifetime = NumberRange.new(0.5, 0.9),
 			Speed = NumberRange.new(1.5, 3),
 			Drag = 3,
@@ -532,6 +562,70 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 			RotSpeed = NumberRange.new(-200, 200),
 		})
 
+		-- Painted textures on the particles when uploaded.
+		aura.Texture = tex("Glow") or aura.Texture
+		stars.Texture = tex("Flare") or stars.Texture
+		local sparkTex = tex("Spark")
+		if sparkTex then
+			sparks.Texture = sparkTex
+			sparks.Orientation = Enum.ParticleOrientation.VelocityParallel
+			sparks.Squash = NumberSequence.new(0)
+			sparks.Size = NumberSequence.new(1.6, 0)
+		end
+		local wisp = emitter(core, {
+			Shape = Enum.ParticleEmitterShape.Sphere,
+			Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1.5),
+				NumberSequenceKeypoint.new(1, 4),
+			}),
+			Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.3, 0.7),
+				NumberSequenceKeypoint.new(1, 1),
+			}),
+			Lifetime = NumberRange.new(0.8, 1.3),
+			Speed = NumberRange.new(0.5, 1.5),
+			RotSpeed = NumberRange.new(-60, 60),
+			Rotation = NumberRange.new(0, 360),
+			ZOffset = -2,
+		})
+		wisp.Texture = tex("Wisp") or wisp.Texture
+		local twinkles = emitter(core, {
+			Shape = Enum.ParticleEmitterShape.Sphere,
+			ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume,
+			Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0),
+				NumberSequenceKeypoint.new(0.5, 0.7),
+				NumberSequenceKeypoint.new(1, 0),
+			}),
+			Transparency = NumberSequence.new(0),
+			Lifetime = NumberRange.new(0.4, 0.9),
+			Speed = NumberRange.new(0, 0.5),
+		})
+		twinkles.Texture = tex("Twinkle") or twinkles.Texture
+		core.Size = Vector3.one * fruitSize * 2.2
+
+		-- Big soft glow behind the fruit in the tier colour (sprite).
+		local glowTex = tex("Glow")
+		local glowImg: ImageLabel? = nil
+		local glowBB: BillboardGui? = nil
+		if glowTex then
+			local bb, img = sprite(stage, core, glowTex, 1)
+			bb.StudsOffsetWorldSpace = -toCam * 1.5
+			bb.Size = UDim2.fromScale(fruitSize * 3.2, fruitSize * 3.2)
+			img.ImageTransparency = 0.25
+			glowImg = img
+			glowBB = bb
+		end
+
+		-- Dark backdrop far behind the fruit (the refs all reveal on a dark
+		-- field so the colour reads): a big translucent black plane.
+		local backdrop = part("Backdrop", stage, Vector3.new(90, 60, 0.2), CFrame.lookAt(spot - toCam * 14, camPos))
+		backdrop.Color = Color3.new(0, 0, 0)
+		backdrop.Material = Enum.Material.SmoothPlastic
+		backdrop.Transparency = 1
+		TweenService:Create(backdrop, TweenInfo.new(0.4), { Transparency = 0.3 }):Play()
+
 		-- God rays: beams fanning out behind the fruit, the whole fan turning.
 		local fanPart = part("Rays", stage, Vector3.one, CFrame.lookAt(behind, behind - toCam))
 		local rayBeams: { Beam } = {}
@@ -546,13 +640,13 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 				0.1,
 				if i % 2 == 0 then 1.4 else 2.4,
 				NumberSequence.new({
-					NumberSequenceKeypoint.new(0, 0.25),
-					NumberSequenceKeypoint.new(0.6, 0.7),
+					NumberSequenceKeypoint.new(0, 0.5),
+					NumberSequenceKeypoint.new(0.6, 0.82),
 					NumberSequenceKeypoint.new(1, 1),
 				})
 			)
 			b.FaceCamera = false
-			b.Brightness = 2
+			b.Brightness = 1
 			table.insert(rayBeams, b)
 		end
 		for _, b in rayBeams do
@@ -585,11 +679,11 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 			local pb = beam(
 				a0,
 				a1,
-				4,
-				7,
+				1.6,
+				3,
 				NumberSequence.new({
-					NumberSequenceKeypoint.new(0, 0.1),
-					NumberSequenceKeypoint.new(0.5, 0.35),
+					NumberSequenceKeypoint.new(0, 0.35),
+					NumberSequenceKeypoint.new(0.5, 0.6),
 					NumberSequenceKeypoint.new(1, 1),
 				})
 			)
@@ -673,11 +767,41 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 			local t0 = os.clock()
 			local seconds = if big then 0.6 else 0.45
 			local r1 = if big then 13 else 8
+			-- painted ring + a star pop on top of the beam ring
+			local ringImg: ImageLabel? = nil
+			local ringBB: BillboardGui? = nil
+			local popImg: ImageLabel? = nil
+			local popBB: BillboardGui? = nil
+			local ringTex, flareTex = tex("Ring"), tex("Flare")
+			if ringTex then
+				ringBB, ringImg = sprite(holder, holder, ringTex, 3)
+				if ringImg then
+					ringImg.ImageColor3 = c:Lerp(WHITE, 0.3)
+				end
+			end
+			if flareTex then
+				popBB, popImg = sprite(holder, holder, flareTex, 4)
+				if popImg then
+					popImg.ImageColor3 = c:Lerp(WHITE, 0.6)
+					popImg.Rotation = math.random(0, 45)
+				end
+			end
 			run(function(now)
 				local k = (now - t0) / seconds
 				if k >= 1 then
 					holder:Destroy()
 					return false
+				end
+				local r = ShowcaseBeats.ring(now - t0, seconds, fruitSize * 0.5, r1)
+				if ringBB and ringImg then
+					ringBB.Size = UDim2.fromScale(r * 2.3, r * 2.3)
+					ringImg.ImageTransparency = k * k
+				end
+				if popBB and popImg then
+					local pk = math.clamp(k * 2.5, 0, 1)
+					local sz = (if big then 16 else 10) * math.sin(pk * math.pi)
+					popBB.Size = UDim2.fromScale(sz, sz)
+					popImg.ImageTransparency = pk * 0.6
 				end
 				setR(ShowcaseBeats.ring(now - t0, seconds, fruitSize * 0.5, r1))
 				local alpha = NumberSequence.new(k * k)
@@ -696,6 +820,11 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 			aura.Color = ColorSequence.new(c:Lerp(WHITE, 0.3), c)
 			sparks.Color = ColorSequence.new(WHITE, c)
 			stars.Color = ColorSequence.new(WHITE, c:Lerp(WHITE, 0.4))
+			wisp.Color = ColorSequence.new(c)
+			twinkles.Color = ColorSequence.new(WHITE, c:Lerp(WHITE, 0.5))
+			if glowImg then
+				glowImg.ImageColor3 = c
+			end
 			local rayColor = ColorSequence.new(c:Lerp(WHITE, 0.6), c)
 			for _, b in rayBeams do
 				b.Color = rayColor
@@ -772,15 +901,21 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 					NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 0.6) })
 				)
 				b.FaceCamera = false
-				b.Brightness = 6
+				b.Brightness = 3
 				table.insert(flareBeams, { beam = b, tip = tip, dir = dir, len = if long then 9 else 4.5 })
 			end
 			flarePart = fp
 		end
+		local flareBB: BillboardGui? = nil
+		local flareImg: ImageLabel? = nil
+		local flareTex = tex("Flare")
+		if flarePart and flareTex then
+			flareBB, flareImg = sprite(flarePart, flarePart, flareTex, 5)
+		end
 
 		-- 1) Rise: white-out (ref P3) and the fruit bursts up out of the splash.
 		recolor(color)
-		light.Brightness = 4
+		light.Brightness = 1.5
 		sparks:Emit(math.floor(30 * fx))
 		screenFlash(0.8, 0.45)
 		local spin = 0
@@ -826,7 +961,13 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 					end
 					fp.CFrame = CFrame.lookAt(spot + toCam * 0.6, camPos)
 						* CFrame.Angles(0, 0, if calm then 0 else t * 0.8)
-					light.Brightness = 4 + 10 * grow
+					light.Brightness = 1.5 + 4 * grow
+					if flareBB and flareImg then
+						local sz = 22 * grow * pulse
+						flareBB.Size = UDim2.fromScale(sz, sz)
+						flareImg.Rotation = if calm then 0 else t * 35
+						flareImg.ImageColor3 = color:Lerp(WHITE, 0.55)
+					end
 				elseif fk >= 1.15 then
 					fp:Destroy()
 					flarePart = nil
@@ -873,7 +1014,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 				showWordAt(textAim)
 			end
 			if not flarePart then
-				light.Brightness = 4 + 2 * math.sin(t * 6)
+				light.Brightness = 1.5 + 0.5 * math.sin(t * 6)
 			end
 			-- camera: slow push in + decaying shake
 			shake = math.max(0, shake - dt * 2.5)

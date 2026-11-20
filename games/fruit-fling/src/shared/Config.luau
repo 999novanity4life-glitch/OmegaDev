@@ -236,6 +236,17 @@ Config.UI = {
 		{ from = 320, name = "LIGHTHOUSE" },
 		{ from = 500, name = "OPEN SEA" },
 	} :: { { from: number, name: string } },
+	-- Our own painted VFX textures (assets/vfx, uploaded with Sharman's OK
+	-- 2026-11-20). Empty = fall back to Roblox's default particle.
+	Vfx = {
+		Glow = "rbxassetid://117797148911057",
+		Flare = "rbxassetid://113118035223287",
+		Twinkle = "rbxassetid://91626104663682",
+		Spark = "rbxassetid://72709512847650",
+		Ring = "rbxassetid://70796318613160",
+		Ray = "rbxassetid://131932157700274",
+		Wisp = "rbxassetid://91203479420019",
+	} :: { [string]: string },
 	VignetteAlpha = 0.35, -- edge darkness at full flight speed (0 = black)
 	RevealBlurSize = 18, -- BlurEffect.Size at the peak (world only; UI stays sharp)
 	-- Meter anticipation: the body winds into the "set" pose as the marker
