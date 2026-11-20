@@ -73,29 +73,36 @@ local function sparks(at: Vector3, color: Color3, count: number, speed: number)
 	end)
 end
 
--- Motor6D helpers for R15 (RightShoulder in RightUpperArm, Waist in
--- UpperTorso) with an R6 fallback (Torso."Right Shoulder").
-type Joint = { motor: Motor6D, base: CFrame }
+-- Joints. Classic R15 rigs use Motor6D; rigs with the avatar joint upgrade
+-- use AnimationConstraint (RightUpperArm.RightShoulder, UpperTorso.Waist). Both
+-- expose Transform, which the Animator rewrites every frame, so the swing
+-- writes it in RunService.PreSimulation (after animations, before physics).
+-- Verified in Studio 2026-11-20: writing C0 or the rig attachment had no
+-- effect on an AnimationConstraint rig; Transform in PreSimulation did.
+type Joint = (CFrame) -> ()
 
-local function findJoints(character: Model): (Joint?, Joint?)
-	local arm: Joint? = nil
-	local waist: Joint? = nil
-	local upperArm = character:FindFirstChild("RightUpperArm")
-	local shoulder = upperArm and upperArm:FindFirstChild("RightShoulder")
-	if shoulder and shoulder:IsA("Motor6D") then
-		arm = { motor = shoulder, base = shoulder.C0 }
-	else
-		local torso = character:FindFirstChild("Torso")
-		local r6 = torso and torso:FindFirstChild("Right Shoulder")
-		if r6 and r6:IsA("Motor6D") then
-			arm = { motor = r6, base = r6.C0 }
+local function jointSetter(joint: Instance?): Joint?
+	if joint and joint:IsA("Motor6D") then
+		return function(cf: CFrame)
+			joint.Transform = cf
+		end
+	elseif joint and joint:IsA("AnimationConstraint") then
+		return function(cf: CFrame)
+			joint.Transform = cf
 		end
 	end
-	local upperTorso = character:FindFirstChild("UpperTorso")
-	local w = upperTorso and upperTorso:FindFirstChild("Waist")
-	if w and w:IsA("Motor6D") then
-		waist = { motor = w, base = w.C0 }
+	return nil
+end
+
+local function findJoints(character: Model): (Joint?, Joint?)
+	local upperArm = character:FindFirstChild("RightUpperArm")
+	local arm = jointSetter(upperArm and upperArm:FindFirstChild("RightShoulder"))
+	if not arm then
+		local torso = character:FindFirstChild("Torso") -- R6
+		arm = jointSetter(torso and torso:FindFirstChild("Right Shoulder"))
 	end
+	local upperTorso = character:FindFirstChild("UpperTorso")
+	local waist = jointSetter(upperTorso and upperTorso:FindFirstChild("Waist"))
 	return arm, waist
 end
 
@@ -132,7 +139,7 @@ function ThrowFX.swing(character: Model?, onRelease: (Vector3) -> ()): number
 	local start = os.clock()
 	local released = false
 	local connection: RBXScriptConnection
-	connection = RunService.RenderStepped:Connect(function()
+	connection = RunService.PreSimulation:Connect(function()
 		local t = os.clock() - start
 		local pitch, twist = 0, 0
 		for i = 2, #keys do
@@ -147,10 +154,10 @@ function ThrowFX.swing(character: Model?, onRelease: (Vector3) -> ()): number
 			end
 		end
 		if arm then
-			arm.motor.C0 = arm.base * CFrame.Angles(pitch, 0, 0)
+			arm(CFrame.Angles(pitch, 0, 0))
 		end
 		if waist then
-			waist.motor.C0 = waist.base * CFrame.Angles(0, twist, 0)
+			waist(CFrame.Angles(0, twist, 0))
 		end
 		if not released and t >= releaseAt then
 			released = true
@@ -164,12 +171,6 @@ function ThrowFX.swing(character: Model?, onRelease: (Vector3) -> ()): number
 		end
 		if t >= total then
 			connection:Disconnect()
-			if arm then
-				arm.motor.C0 = arm.base
-			end
-			if waist then
-				waist.motor.C0 = waist.base
-			end
 		end
 	end)
 	return total
