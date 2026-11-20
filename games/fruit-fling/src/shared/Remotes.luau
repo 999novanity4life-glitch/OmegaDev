@@ -9,6 +9,8 @@ local NAMES = {
 	"StateChanged", -- server -> client: authoritative state updates
 	"Throw", -- client -> server: locked meter power + release ring offset
 	"AirTap", -- client -> server: air ring offset during the flight
+	"ShopIntent", -- client -> server: (action, itemId?) Buy / Dismiss / Mute / Unmute
+	"ShopEvent", -- server -> client: smart offer, owned list, purchase result
 }
 
 local FOLDER_NAME = "Remotes"
