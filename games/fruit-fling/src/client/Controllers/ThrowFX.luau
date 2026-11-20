@@ -179,6 +179,31 @@ function ThrowFX.swing(character: Model?, onRelease: (Vector3) -> ()): number
 	return total
 end
 
+-- A painted VFX texture from Config.UI.Vfx, or nil while it is not there.
+-- Config.UI ships on the stacked UI branch (PR #31); read it loosely so this
+-- file works with or without it. `any`: the field is absent on this branch.
+local function vfxTexture(name: string): string?
+	local ui = (Config :: any).UI
+	local id = ui and ui.Vfx and ui.Vfx[name]
+	return if type(id) == "string" and id ~= "" then id else nil
+end
+
+-- Runs `step(t)` every frame until it returns false; t = seconds since start.
+local function animate(step: (number) -> boolean)
+	local start = os.clock()
+	local connection: RBXScriptConnection
+	connection = RunService.Heartbeat:Connect(function()
+		if not step(os.clock() - start) then
+			connection:Disconnect()
+		end
+	end)
+end
+
+local function easeOut(k: number): number
+	local c = math.clamp(k, 0, 1)
+	return 1 - (1 - c) * (1 - c)
+end
+
 -- The release burst: white starburst (TFFA) + rarity shockwave ring + sparks.
 function ThrowFX.releaseBurst(at: Vector3, rarityColor: Color3, forward: Vector3, power: number)
 	local big = 0.6 + power -- power in 0..1
@@ -200,6 +225,36 @@ function ThrowFX.releaseBurst(at: Vector3, rarityColor: Color3, forward: Vector3
 	ring.Transparency = 0.35
 	fadeOut(ring, 0.3, { Size = Vector3.new(0.05, 5, 5) * big })
 	sparks(at, rarityColor, math.floor(24 * big), 30)
+	-- anime impact rays: thin spikes bursting out around the hand, in the
+	-- plane facing the throw, the longest at full power
+	local face = CFrame.lookAt(at, at + forward)
+	local rays = if reduced() then 4 else 10
+	for i = 1, rays do
+		local a = (i - 1) / rays * 2 * math.pi + math.random() * 0.3
+		local dir = (face.RightVector * math.cos(a) + face.UpVector * math.sin(a)).Unit
+		local length = (1.5 + math.random() * 1.5) * big
+		local spike = fxPart(
+			"ReleaseRay",
+			Enum.PartType.Block,
+			if i % 2 == 0 then Color3.new(1, 1, 1) else rarityColor,
+			Vector3.new(0.12, 0.12, 0.1),
+			CFrame.new(at)
+		)
+		spike.Transparency = 0.05
+		animate(function(t: number): boolean
+			local k = t / 0.18
+			if k >= 1 then
+				spike:Destroy()
+				return false
+			end
+			local len = length * easeOut(k)
+			local mid = at + dir * (0.6 + len / 2)
+			spike.Size = Vector3.new(0.12 * (1 - k * 0.7), 0.12 * (1 - k * 0.7), math.max(len, 0.1))
+			spike.CFrame = CFrame.lookAt(mid, mid + dir)
+			spike.Transparency = 0.05 + 0.95 * k * k
+			return true
+		end)
+	end
 	-- speed streaks shooting forward
 	if not reduced() then
 		for _ = 1, 6 do
@@ -331,22 +386,6 @@ function ThrowFX.makeFruit(key: string, glow: Color3, rarityColor: Color3, rank:
 end
 
 -- Landing splash: water ring, spray sparks, and a rarity pillar for rare finds.
--- Runs `step(t)` every frame until it returns false; t = seconds since start.
-local function animate(step: (number) -> boolean)
-	local start = os.clock()
-	local connection: RBXScriptConnection
-	connection = RunService.Heartbeat:Connect(function()
-		if not step(os.clock() - start) then
-			connection:Disconnect()
-		end
-	end)
-end
-
-local function easeOut(k: number): number
-	local c = math.clamp(k, 0, 1)
-	return 1 - (1 - c) * (1 - c)
-end
-
 -- A ring on the water made of short Neon dashes (Roblox has no torus part).
 -- Grows from 0 to `radius` over `seconds`, fading out. Starts after `delay`.
 local function dashRing(at: Vector3, color: Color3, radius: number, seconds: number, delay: number, thick: number)
@@ -407,43 +446,70 @@ function ThrowFX.splash(at: Vector3, rarityColor: Color3, rarityRank: number, ma
 		anchor:Destroy()
 	end)
 
-	-- water column: a glassy cylinder with a white glowing core
-	local width = 2 + tier.column * 0.18
-	local column = fxPart("SplashColumn", Enum.PartType.Cylinder, water, Vector3.new(0.1, width, width), CFrame.new(at))
-	column.Material = Enum.Material.Glass
-	column.Transparency = 0.25
+	-- water column: a spray of soft particles shot straight up under gravity,
+	-- around a thin white-hot core that spikes up and collapses
+	local upSpeed = math.sqrt(2 * cfg.Gravity * tier.column)
+	local life = SplashShape.airTime(upSpeed, cfg.Gravity) -- until it falls back
+	local sprayAnchor = fxPart("SplashSpray", Enum.PartType.Ball, water, Vector3.new(0.2, 0.2, 0.2), CFrame.new(at))
+	sprayAnchor.Transparency = 1
+	local function spray(spread: number, count: number, speedLo: number, sizeFrom: number, sizeTo: number)
+		local e = Instance.new("ParticleEmitter")
+		e.Enabled = false
+		local tex = vfxTexture("Wisp") or vfxTexture("Glow")
+		if tex then
+			e.Texture = tex
+		end
+		e.Color = ColorSequence.new(Color3.new(1, 1, 1), water)
+		e.LightEmission = 0
+		e.LightInfluence = 1
+		e.Lifetime = NumberRange.new(life * 0.8, life)
+		e.Speed = NumberRange.new(upSpeed * speedLo, upSpeed)
+		e.Acceleration = Vector3.new(0, -cfg.Gravity, 0)
+		e.SpreadAngle = Vector2.new(spread, spread)
+		e.Rotation = NumberRange.new(0, 360)
+		e.RotSpeed = NumberRange.new(-90, 90)
+		e.Size = NumberSequence.new(sizeFrom, sizeTo)
+		e.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.25),
+			NumberSequenceKeypoint.new(0.7, 0.45),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		e.Parent = sprayAnchor
+		e:Emit(if calm then math.ceil(count / 3) else count)
+	end
+	spray(5, 30 + 12 * rarityRank, 0.55, 0.8, 1.6 + tier.column / 12) -- the column
+	spray(30, 18 + 8 * rarityRank, 0.3, 0.6, 1.4) -- the sheet flaring out
+	task.delay(1.4, function()
+		sprayAnchor:Destroy()
+	end)
+	local width = 0.8 + tier.column * 0.06
 	local core = fxPart(
 		"SplashCore",
 		Enum.PartType.Cylinder,
 		Color3.new(1, 1, 1),
-		Vector3.new(0.1, width * 0.45, width * 0.45),
+		Vector3.new(0.1, width, width),
 		CFrame.new(at)
 	)
-	core.Transparency = 0.2
+	core.Transparency = 0.1
 	local upright = CFrame.Angles(0, 0, math.rad(90))
 	animate(function(t: number): boolean
 		local h: number, fade: number
 		if t < cfg.ColumnRise then
-			h = tier.column * easeOut(t / cfg.ColumnRise)
+			h = tier.column * 0.8 * easeOut(t / cfg.ColumnRise)
 			fade = 0
 		else
 			local k = (t - cfg.ColumnRise) / cfg.ColumnFall
 			if k >= 1 then
-				column:Destroy()
 				core:Destroy()
 				return false
 			end
-			h = tier.column * (1 - k * k)
+			h = tier.column * 0.8 * (1 - k * k)
 			fade = k
 		end
 		h = math.max(h, 0.1)
-		local mid = CFrame.new(at + Vector3.new(0, h / 2, 0)) * upright
-		column.Size = Vector3.new(h, width * (1 + fade * 0.5), width * (1 + fade * 0.5))
-		column.CFrame = mid
-		column.Transparency = 0.25 + 0.75 * fade
-		core.Size = Vector3.new(h * 0.9, width * 0.45, width * 0.45)
-		core.CFrame = mid
-		core.Transparency = 0.2 + 0.8 * fade
+		core.Size = Vector3.new(h, width * (1 - fade * 0.7), width * (1 - fade * 0.7))
+		core.CFrame = CFrame.new(at + Vector3.new(0, h / 2, 0)) * upright
+		core.Transparency = 0.1 + 0.9 * fade
 		return true
 	end)
 
@@ -451,7 +517,7 @@ function ThrowFX.splash(at: Vector3, rarityColor: Color3, rarityRank: number, ma
 	local n = if calm then math.ceil(tier.crown / 3) else tier.crown
 	for i = 1, n do
 		local vx, vy, vz = SplashShape.crownVelocity(i, n, tier.column, cfg.Gravity, cfg.CrownUp, cfg.CrownOut)
-		local size = if i % 2 == 0 then 0.9 else 0.6
+		local size = if i % 2 == 0 then 1.4 else 1
 		local drop = fxPart(
 			"Droplet",
 			Enum.PartType.Ball,
