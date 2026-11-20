@@ -77,6 +77,22 @@ local function new(
 	return part
 end
 
+-- A Part with Shape = Cylinder (round axis = local X, rule M19). Every piece
+-- placed with upright() goes through this, else it renders as a square post.
+local function newCyl(
+	parent: Instance,
+	name: string,
+	size: Vector3,
+	cframe: CFrame,
+	color: Color3,
+	material: Enum.Material,
+	micro: boolean
+): Part
+	local part = new(parent, name, size, cframe, color, material, micro)
+	part.Shape = Enum.PartType.Cylinder
+	return part
+end
+
 -- Cylinder whose round axis is world-up. Part cylinders run along X (M19),
 -- so roll by 90 degrees about Z.
 local function upright(cframe: CFrame): CFrame
@@ -161,11 +177,11 @@ end
 Kit.Piling = function(p, parent)
 	local m = model(p, parent)
 	local s = vec(p.size)
-	new(m, "Post", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.WoodDark, Enum.Material.Wood, false)
+	newCyl(m, "Post", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.WoodDark, Enum.Material.Wood, false)
 	-- M35 trim: iron band near the top and a cap
 	local top = cf(p) * CFrame.new(0, s.Y / 2 - 1.2, 0)
-	new(m, "Band", Vector3.new(0.35, s.X + 0.2, s.X + 0.2), upright(top), PALETTE.Iron, Enum.Material.Metal, true)
-	new(
+	newCyl(m, "Band", Vector3.new(0.35, s.X + 0.2, s.X + 0.2), upright(top), PALETTE.Iron, Enum.Material.Metal, true)
+	newCyl(
 		m,
 		"Cap",
 		Vector3.new(0.4, s.X + 0.4, s.X + 0.4),
@@ -206,7 +222,7 @@ end
 Kit.BuntingPole = function(p, parent)
 	local m = model(p, parent)
 	local s = vec(p.size)
-	new(m, "Pole", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.Wood, Enum.Material.Wood, false)
+	newCyl(m, "Pole", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.Wood, Enum.Material.Wood, false)
 	return m
 end
 
@@ -265,7 +281,7 @@ end
 local function cylinderProp(p: Placement, parent: Instance, color: Color3, material: Enum.Material): Model
 	local m = model(p, parent)
 	local s = vec(p.size)
-	new(m, p.kind, Vector3.new(s.Y, s.X, s.Z), upright(cf(p)), color, material, true)
+	newCyl(m, p.kind, Vector3.new(s.Y, s.X, s.Z), upright(cf(p)), color, material, true)
 	return m
 end
 
@@ -273,7 +289,7 @@ Kit.Barrel = function(p, parent)
 	local m = cylinderProp(p, parent, PALETTE.Wood, Enum.Material.Wood)
 	local s = vec(p.size)
 	for _, y in { -0.3, 0.3 } do
-		new(
+		newCyl(
 			m,
 			"Hoop",
 			Vector3.new(0.2, s.X + 0.08, s.X + 0.08),
@@ -353,7 +369,7 @@ end
 Kit.Mast = function(p, parent)
 	local m = model(p, parent)
 	local s = vec(p.size)
-	new(m, "Mast", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.Wood, Enum.Material.Wood, false)
+	newCyl(m, "Mast", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.Wood, Enum.Material.Wood, false)
 	return m
 end
 
@@ -393,8 +409,15 @@ end
 Kit.Buoy = function(p, parent)
 	local m = model(p, parent)
 	local s = vec(p.size)
-	local body =
-		new(m, "Body", Vector3.new(s.Y * 0.6, s.X, s.X), upright(cf(p)), PALETTE.Red, Enum.Material.SmoothPlastic, true)
+	local body = newCyl(
+		m,
+		"Body",
+		Vector3.new(s.Y * 0.6, s.X, s.X),
+		upright(cf(p)),
+		PALETTE.Red,
+		Enum.Material.SmoothPlastic,
+		true
+	)
 	body.CanQuery = true -- fruit can bonk it
 	local lamp = new(
 		m,
@@ -459,7 +482,7 @@ Kit.Lighthouse = function(p, parent)
 	for i = 0, drums - 1 do
 		local h = s.Y / drums
 		local w = s.X * (1 - 0.06 * i)
-		new(
+		newCyl(
 			m,
 			"Drum" .. i,
 			Vector3.new(h, w, w),
@@ -469,7 +492,7 @@ Kit.Lighthouse = function(p, parent)
 			false
 		)
 	end
-	new(
+	newCyl(
 		m,
 		"Gallery",
 		Vector3.new(1, s.X * 0.95, s.X * 0.95),
