@@ -127,7 +127,7 @@ function ThrowController.start()
 
 	-- THROW button (taps anywhere also count): right side, above the jump
 	-- button. Premium 3D build: chrome bezel, sinking face (PremiumHUD).
-	local throwHud = PremiumHUD.button(gui, "THROW", 0.26)
+	local throwHud = PremiumHUD.button(gui, "THROW", 0.2)
 	local button = throwHud.root
 	button.Position = UDim2.fromScale(0.96, 0.42)
 	button.Visible = false

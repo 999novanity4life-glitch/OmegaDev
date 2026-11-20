@@ -157,9 +157,11 @@ function PremiumHUD.button(parent: Instance, label: string, size: number): Butto
 	aspect.AspectRatio = 1
 	aspect.Parent = root
 
-	local halo = circle("Halo", root, Color3.fromRGB(255, 138, 31), 1.25)
-	halo.BackgroundTransparency = 0.72
-	halo.ZIndex = 0
+	-- Halo: a soft orange glow ring just outside the bezel.
+	local halo = ring("Halo", root, Color3.fromRGB(255, 138, 31), 6)
+	halo.Size = UDim2.fromScale(1.06, 1.06)
+	local haloStroke = halo:FindFirstChildOfClass("UIStroke") :: UIStroke
+	haloStroke.Transparency = 0.35
 	local bezel = circle("Bezel", root, Color3.new(1, 1, 1), 1)
 	local chrome = gradient(bezel, CHROME, 35)
 	local gap = circle("Gap", bezel, Color3.fromRGB(12, 13, 17), 0.9)
@@ -231,7 +233,7 @@ function PremiumHUD.button(parent: Instance, label: string, size: number): Butto
 		end
 		local now = os.clock()
 		chrome.Rotation = 35 + math.sin(now * 1.3) * 25
-		halo.BackgroundTransparency = 0.72 + math.sin(now * 3) * 0.08
+		haloStroke.Transparency = 0.35 + math.sin(now * 3) * 0.2
 		if shrinking.Visible then
 			local g = sweep and sweep:FindFirstChildOfClass("UIGradient")
 			if g then
@@ -307,10 +309,9 @@ function PremiumHUD.meter(parent: Instance): Meter
 	fade(shine, 0.35, 0.9, 90)
 
 	local perfect = text("PerfectTag", root, "PERFECT", Color3.fromRGB(255, 246, 194))
-	perfect.Size = UDim2.fromScale(3.2, 0.06)
-	perfect.AnchorPoint = Vector2.new(0, 0.5)
-	perfect.Position = UDim2.fromScale(1.25, 0.03)
-	perfect.TextXAlignment = Enum.TextXAlignment.Left
+	perfect.Size = UDim2.fromScale(3, 0.06)
+	perfect.AnchorPoint = Vector2.new(0.5, 1)
+	perfect.Position = UDim2.fromScale(0.5, -0.02)
 	outline(perfect, Color3.fromRGB(106, 58, 0), 2)
 
 	local marker = frame("Marker", root, Color3.new(1, 1, 1), UDim2.fromScale(1.5, 0.03), UDim2.fromScale(0.5, 0.5))
@@ -331,6 +332,8 @@ function PremiumHUD.meter(parent: Instance): Meter
 		Vector2.new(0, 0.5)
 	)
 	bubble.ZIndex = 3
+	bubble.SizeConstraint = Enum.SizeConstraint.RelativeXX
+	bubble.Size = UDim2.fromScale(1.1, 0.62)
 	corner(bubble, 0.3)
 	gradient(bubble, { { 0, 255, 255, 255 }, { 1, 223, 227, 236 } }, 90)
 	local plus = text("Plus", bubble, "+5", Color3.fromRGB(255, 122, 18))
