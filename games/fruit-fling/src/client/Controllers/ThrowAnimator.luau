@@ -423,6 +423,19 @@ local function layer(joint: Instance, rot: CFrame, weight: number)
 	end
 end
 
+-- The throwing shoulder turns about the upper arm's own axis (the twist that
+-- lays the forearm back and whips it forward), so it is composed as
+-- swing (vertical axis) * abduct (sideways raise) * twist (arm's long axis):
+-- a plain Euler X would tilt the raised arm down instead of turning it.
+-- Studio check 2026-11-20: with Angles(x, y, z) the elbow sat 45 deg below
+-- the shoulder in the set pose.
+local function jointRotation(slot: string, e: { number }): CFrame
+	if slot == "rightShoulder" then
+		return CFrame.Angles(0, e[2], 0) * CFrame.Angles(0, 0, e[3]) * CFrame.Angles(0, -e[1], 0)
+	end
+	return CFrame.new(0, e[4] or 0, 0) * CFrame.Angles(e[1], e[2], e[3])
+end
+
 local function applyPose(a: { character: Model, rig: Rig, pose: Pose }, w: number)
 	local animator = animatorOf(a.character)
 	-- Skip throttled frames as the docs advise.
@@ -432,7 +445,7 @@ local function applyPose(a: { character: Model, rig: Rig, pose: Pose }, w: numbe
 	for slot, joint in a.rig do
 		local e = a.pose[slot]
 		if e then
-			layer(joint, CFrame.new(0, e[4] or 0, 0) * CFrame.Angles(e[1], e[2], e[3]), w)
+			layer(joint, jointRotation(slot, e), w)
 		end
 	end
 end

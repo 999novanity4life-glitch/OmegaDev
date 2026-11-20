@@ -14,9 +14,10 @@
 -- Each joint is an {x, y, z} rotation (CFrame.Angles order, applied in the
 -- joint's parent frame on top of the animated Transform). `root` carries a
 -- 4th value: a vertical drop in studs (the body sinks into the stride).
--- Shoulders: z abducts (raises the arm sideways), y swings it horizontally
--- (+ forward for the right arm), and x then turns the arm about its own axis
--- (+ lays the bent forearm up/back, - turns it forward and down).
+-- Throwing shoulder: z abducts (raises the arm sideways), y swings it
+-- horizontally (+ forward), x turns the arm about its own axis (+ lays the
+-- bent forearm up/back, - turns it forward and down); ThrowAnimator composes
+-- it as swing * abduct * twist. Glove shoulder: plain Euler, +x raises forward.
 -- Hips/knees/elbows/wrists: +x swings the limb forward, -x back.
 -- No `game` access; tests/ThrowPose.spec.luau covers it under Lune.
 
