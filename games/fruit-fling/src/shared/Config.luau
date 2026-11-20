@@ -2,6 +2,18 @@
 -- Every tunable number lives here so designers (and agents) can balance the
 -- game without touching logic. Change values, not code.
 
+export type ShopItem = {
+	Kind: "GamePass" | "Product",
+	AssetId: number,
+	Price: number,
+	Name: string,
+	Blurb: string,
+	Cover: string,
+	Order: number,
+	Tab: string,
+	Berries: number?,
+}
+
 local Config = {}
 
 Config.Progression = {
@@ -293,6 +305,169 @@ Config.UI = {
 	ReleaseFovKick = 6, -- degrees of field-of-view punch on release
 	-- Fruit tumble in flight (radians per second at alpha 0, eases out).
 	TumbleSpin = 14,
+}
+
+-- Shop + smart offers (2026-11-20, Sharman's "Smart Offer Method" video).
+-- AssetId 0 = not created on Roblox yet (the shop shows it but cannot sell it).
+-- Creating the passes/products on Roblox needs Sharman's OK first.
+-- Prices are Robux and always shown in full before buying (vault/09).
+-- Nothing here is random: no paid loot boxes (CLAUDE.md rule 7 stays moot).
+Config.Shop = {
+	Items = {
+		-- Gamepasses: one-time, forever.
+		DoubleTraining = {
+			Kind = "GamePass",
+			AssetId = 0,
+			Price = 199,
+			Name = "2x Training",
+			Blurb = "Every dummy hit trains double Jump Power.",
+			Cover = "DoubleTraining",
+			Order = 1,
+			Tab = "Boosts",
+		},
+		DoubleBerries = {
+			Kind = "GamePass",
+			AssetId = 0,
+			Price = 149,
+			Name = "2x Berries",
+			Blurb = "Earn double Berries from every jump.",
+			Cover = "DoubleBerries",
+			Order = 2,
+			Tab = "Boosts",
+		},
+		AutoTrain = {
+			Kind = "GamePass",
+			AssetId = 0,
+			Price = 249,
+			Name = "Auto Train",
+			Blurb = "Your fighter keeps hitting the nearest dummy for you.",
+			Cover = "AutoTrain",
+			Order = 3,
+			Tab = "Boosts",
+		},
+		FruitVault = {
+			Kind = "GamePass",
+			AssetId = 0,
+			Price = 99,
+			Name = "Fruit Vault +20",
+			Blurb = "20 more slots to keep every fruit you find.",
+			Cover = "FruitVault",
+			Order = 4,
+			Tab = "Boosts",
+		},
+		VIPCaptain = {
+			Kind = "GamePass",
+			AssetId = 0,
+			Price = 299,
+			Name = "VIP Captain",
+			Blurb = "Gold captain nameplate, VIP flag on your launch rock, gold chat tag.",
+			Cover = "VIPCaptain",
+			Order = 5,
+			Tab = "Style",
+		},
+		HakiTrail = {
+			Kind = "GamePass",
+			AssetId = 0,
+			Price = 149,
+			Name = "Haki Lightning Trail",
+			Blurb = "Black and red lightning follows your dive.",
+			Cover = "HakiTrail",
+			Order = 6,
+			Tab = "Style",
+		},
+		GoldenSplash = {
+			Kind = "GamePass",
+			AssetId = 0,
+			Price = 99,
+			Name = "Golden Splash",
+			Blurb = "Your water landing bursts into a gold coin crown.",
+			Cover = "GoldenSplash",
+			Order = 7,
+			Tab = "Style",
+		},
+		CloudTrail = {
+			Kind = "GamePass",
+			AssetId = 0,
+			Price = 149,
+			Name = "Sky Cloud Trail",
+			Blurb = "Fluffy white clouds puff behind every jump.",
+			Cover = "CloudTrail",
+			Order = 8,
+			Tab = "Style",
+		},
+		-- Developer products: repeatable.
+		JumpSurge = {
+			Kind = "Product",
+			AssetId = 0,
+			Price = 49,
+			Name = "Jump Surge (15 min)",
+			Blurb = "+25% jump distance for 15 minutes.",
+			Cover = "JumpSurge",
+			Order = 9,
+			Tab = "Berries",
+		},
+		BerryPouch = {
+			Kind = "Product",
+			AssetId = 0,
+			Price = 39,
+			Name = "Berry Pouch",
+			Blurb = "10,000 Berries.",
+			Berries = 10000,
+			Cover = "BerryPouch",
+			Order = 10,
+			Tab = "Berries",
+		},
+		BerryChest = {
+			Kind = "Product",
+			AssetId = 0,
+			Price = 149,
+			Name = "Berry Chest",
+			Blurb = "60,000 Berries.",
+			Berries = 60000,
+			Cover = "BerryChest",
+			Order = 11,
+			Tab = "Berries",
+		},
+		BerryHoard = {
+			Kind = "Product",
+			AssetId = 0,
+			Price = 499,
+			Name = "Treasure Hoard",
+			Blurb = "400,000 Berries.",
+			Berries = 400000,
+			Cover = "BerryHoard",
+			Order = 12,
+			Tab = "Berries",
+		},
+	} :: { [string]: ShopItem },
+	Tabs = { "Boosts", "Style", "Berries" },
+	Offers = {
+		GraceSeconds = 180, -- never in the first 3 minutes (never on join)
+		CooldownSeconds = 240, -- at most one offer every 4 minutes
+		MaxPerSession = 3,
+		SnoozeSeconds = 1800, -- "Not now" hides that item for 30 minutes
+		DismissLimit = 2, -- two "Not now"s and that item is done for the session
+		AfterPurchaseQuietSeconds = 300, -- no offers for 5 minutes after any purchase
+		NearMissFraction = 0.15, -- jump within 15% of the next arc
+		ShortStreakForTraining = 3,
+		LongTrainingSeconds = 600,
+		CelebrationItems = { "GoldenSplash", "HakiTrail", "CloudTrail" },
+		AutoCloseSeconds = 12, -- the card quietly slides away if ignored (counts as "Not now")
+	},
+	-- Cover art per item.Cover. Empty = the built-in placeholder cover. Real
+	-- covers wait for Sharman's OK on the reference board (standing rule).
+	CoverImages = {} :: { [string]: string },
+	Sounds = {
+		Open = "rbxasset://sounds/electronicpingshort.wav",
+		Offer = "rbxasset://sounds/electronicpingshort.wav",
+	},
+	Motion = {
+		PanelOpen = 0.25,
+		PanelClose = 0.18,
+		OfferSlide = 0.35,
+		RaySpinDegPerSec = 25,
+		MenuBlur = 18,
+	},
 }
 
 return table.freeze(Config)
