@@ -194,6 +194,7 @@ local function text3D(parent: Instance, width: number, height: number): Text3D
 		sg.PixelsPerStud = 80
 		sg.LightInfluence = 0
 		sg.ZOffset = -z
+		sg.AlwaysOnTop = true -- beams and the pillar must not cut through the word
 		sg.Parent = p
 		local t = Instance.new("TextLabel")
 		t.BackgroundTransparency = 1
@@ -653,6 +654,14 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 		backdrop.Transparency = 1
 		TweenService:Create(backdrop, TweenInfo.new(0.4), { Transparency = 0.3 }):Play()
 
+		-- Dark floor just above the water: keeps the sunlit sea in front of the
+		-- camera from washing out the reveal.
+		local floor = part("Floor", stage, Vector3.new(160, 0.2, 160), CFrame.new(at.X, at.Y + 0.6, at.Z))
+		floor.Color = Color3.fromRGB(4, 6, 12)
+		floor.Material = Enum.Material.SmoothPlastic
+		floor.Transparency = 1
+		TweenService:Create(floor, TweenInfo.new(0.4), { Transparency = 0.18 }):Play()
+
 		-- God rays: beams fanning out behind the fruit, the whole fan turning.
 		local fanPart = part("Rays", stage, Vector3.one, CFrame.lookAt(behind, behind - toCam))
 		local rayBeams: { Beam } = {}
@@ -769,7 +778,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 				end
 				dir = dir.Unit
 				local a = spot + dir * fruitSize * 0.45
-				local b = spot + dir * fruitSize * (1.3 + math.random() * 0.9)
+				local b = spot + dir * fruitSize * (0.9 + math.random() * 0.6)
 				local pts = ShowcaseBeats.bolt({ a.X, a.Y, a.Z }, { b.X, b.Y, b.Z }, 6, 0.45, math.random)
 				for i = 1, #pts - 1 do
 					local p0 = Vector3.new(pts[i][1], pts[i][2], pts[i][3])
@@ -948,7 +957,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 		local spin = 0
 		local shake = 0
 		local zoomFrom = plan.slam
-		local lunge = spot + toCam * (cfg.CameraDistance * 0.62)
+		local lunge = spot + toCam * (cfg.CameraDistance * 0.42) + Vector3.new(0, 0.5, 0)
 		run(function(now, dt)
 			if not isPlaying then
 				return false
