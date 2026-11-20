@@ -350,6 +350,9 @@ end
 -- Pose state ------------------------------------------------------------------
 
 local active: { character: Model, rig: Rig, pose: Pose }? = nil
+-- How much the throw pose overrides the playing animation (0..1).
+local weight = 0
+local BLEND_IN_SECONDS = 0.18
 local swingStart: number? = nil
 local swingKeys: { ThrowPose.Key }? = nil
 local lastFill = 0
@@ -383,6 +386,7 @@ end
 local function setActive(a: { character: Model, rig: Rig, pose: Pose }?)
 	if a == nil or (active and active.character ~= a.character) then
 		unlayer()
+		weight = 0
 	end
 	active = a
 end
@@ -400,23 +404,26 @@ local function hold(character: Model?, pose: Pose)
 	end
 end
 
-local function layer(joint: Instance, rot: CFrame)
+-- The throw overrides the playing animation (avatar idles can be heavily
+-- posed: a hunched idle measured Waist -0.59 rad, LeftHip 1.08 rad), blended
+-- by `weight` 0..1 so it eases in and back out to the idle.
+local function layer(joint: Instance, rot: CFrame, weight: number)
 	local st = layered[joint]
 	local function base(cur: CFrame): CFrame
 		return if st and cur:FuzzyEq(st.written, 1e-4) then st.base else cur
 	end
 	if joint:IsA("AnimationConstraint") then
 		local b = base(joint.Transform)
-		joint.Transform = rot * b
+		joint.Transform = b:Lerp(rot, weight)
 		layered[joint] = { written = joint.Transform, base = b }
 	elseif joint:IsA("Motor6D") then
 		local b = base(joint.Transform)
-		joint.Transform = rot * b
+		joint.Transform = b:Lerp(rot, weight)
 		layered[joint] = { written = joint.Transform, base = b }
 	end
 end
 
-local function applyPose(a: { character: Model, rig: Rig, pose: Pose })
+local function applyPose(a: { character: Model, rig: Rig, pose: Pose }, w: number)
 	local animator = animatorOf(a.character)
 	-- Skip throttled frames as the docs advise.
 	if animator and animator.EvaluationThrottled then
@@ -425,9 +432,16 @@ local function applyPose(a: { character: Model, rig: Rig, pose: Pose })
 	for slot, joint in a.rig do
 		local e = a.pose[slot]
 		if e then
-			layer(joint, CFrame.new(0, e[4] or 0, 0) * CFrame.Angles(e[1], e[2], e[3]))
+			layer(joint, CFrame.new(0, e[4] or 0, 0) * CFrame.Angles(e[1], e[2], e[3]), w)
 		end
 	end
+end
+
+-- Fade back to the playing animation over the settle at the end of the swing.
+local function settleWeight(t: number): number
+	local cfg = Config.Throw
+	local from = cfg.SwingWindup + cfg.SwingFollow
+	return 1 - math.clamp((t - from) / ThrowPose.SETTLE_SECONDS, 0, 1)
 end
 
 local function preview(dt: number): boolean
@@ -463,7 +477,8 @@ local function preview(dt: number): boolean
 	hold(character, pose)
 	local a = active
 	if a then
-		applyPose(a)
+		weight = math.min(1, weight + dt / BLEND_IN_SECONDS)
+		applyPose(a, weight * settleWeight(math.max(now, 0)))
 	end
 	driveFx(
 		character,
@@ -491,7 +506,8 @@ RunService.PreSimulation:Connect(function(dt: number)
 		t = os.clock() - started
 		a.pose = ThrowPose.sample(keys, t :: number)
 	end
-	applyPose(a)
+	weight = math.min(1, weight + dt / BLEND_IN_SECONDS)
+	applyPose(a, weight * settleWeight(t or 0))
 	driveFx(a.character, lastFill, t, prevSwingT, Config.UI.TrailSeconds, true)
 	prevSwingT = t
 end)
