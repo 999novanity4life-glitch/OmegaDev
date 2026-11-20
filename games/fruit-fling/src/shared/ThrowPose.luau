@@ -76,13 +76,13 @@ local function setPose(cfg: ChargeConfig): Pose
 	return pose({
 		root = { 0, 0, 0, -0.12 },
 		waist = { 0.08, -cfg.ChargeWaistTwist, -0.06 }, -- lean back a touch, coil right
-		rightShoulder = { cfg.ChargeLayback, -0.35, 1.45 }, -- elbow at shoulder height, forearm up
+		rightShoulder = { cfg.ChargeLayback, -0.35, 1.8 }, -- elbow at shoulder height, forearm up
 		rightElbow = { 1.55, 0, 0 },
 		rightWrist = { -0.35, 0, 0 },
 		leftShoulder = { 1.45, 0, -0.15 }, -- glove arm points down the lane
 		leftElbow = { 0.25, 0, 0 },
 		leftHip = { cfg.ChargeLegLift, 0, 0.05 }, -- knee up
-		leftKnee = { -1.45, 0, 0 },
+		leftKnee = { -1.75, 0, 0 },
 		rightHip = { 0.15, 0, 0 }, -- weight sits on the back leg
 		rightKnee = { -0.3, 0, 0 },
 	})
@@ -136,7 +136,7 @@ function ThrowPose.keys(cfg: SwingConfig, from: Pose?): { Key }
 			pose = pose({
 				root = { 0, 0, 0, -0.4 },
 				waist = { 0.05, -0.6, -0.08 },
-				rightShoulder = { 2.15, -0.45, 1.5 },
+				rightShoulder = { 2.3, -0.45, 1.8 },
 				rightElbow = { 1.6, 0, 0 },
 				rightWrist = { -0.5, 0, 0 },
 				leftShoulder = { 1.5, 0, -0.25 },
@@ -154,7 +154,7 @@ function ThrowPose.keys(cfg: SwingConfig, from: Pose?): { Key }
 			pose = pose({
 				root = { 0, 0, 0, -0.5 },
 				waist = { -0.05, -0.15, -0.1 },
-				rightShoulder = { 2.55, -0.55, 1.6 },
+				rightShoulder = { 2.6, -0.55, 1.85 },
 				rightElbow = { 1.6, 0, 0 },
 				rightWrist = { -0.7, 0, 0 },
 				leftShoulder = { 0.9, 0, -0.5 },
@@ -172,7 +172,7 @@ function ThrowPose.keys(cfg: SwingConfig, from: Pose?): { Key }
 			pose = pose({
 				root = { 0, 0, 0, -0.55 },
 				waist = { -0.35, 0.5, 0.05 },
-				rightShoulder = { 0, 0.85, 1.75 },
+				rightShoulder = { 0.1, 0.85, 1.9 },
 				rightElbow = { 0.2, 0, 0 },
 				rightWrist = { 0.55, 0, 0 },
 				leftShoulder = { 0.35, 0, -0.6 }, -- glove tucked to the chest

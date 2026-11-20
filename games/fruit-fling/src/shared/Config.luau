@@ -210,9 +210,9 @@ Config.UI = {
 	RevealBlurSize = 18, -- BlurEffect.Size at the peak (world only; UI stays sharp)
 	-- Meter anticipation: the body winds into the "set" pose as the marker
 	-- climbs (front knee up, torso coiled, fruit by the ear). Radians at a full meter.
-	ChargeLayback = 1.6, -- throwing forearm turned up behind the ear
+	ChargeLayback = 1.9, -- throwing forearm turned up behind the ear
 	ChargeWaistTwist = 0.4, -- chest coils away from the lane
-	ChargeLegLift = 1.15, -- front thigh raised
+	ChargeLegLift = 1.5, -- front thigh raised
 	-- Throw VFX on the character (ThrowAnimator).
 	HeldOrbSize = 0.9, -- studs, the glowing fruit in the hand while charging
 	ChargeAuraRate = 40, -- wind particles per second at a full meter
