@@ -183,4 +183,36 @@ Config.Dock = {
 	TerraceStep = 22,
 }
 
+-- Premium HUD + throw animation (2026-11-20 UI pass; mockups in project files
+-- fruit-throw/ui-mockups-2026-11-20). Pure numbers; PremiumHUD, ThrowAnimator,
+-- Motion, RarityStyle and ThrowPose read them.
+Config.UI = {
+	-- 3D buttons: a face over a darker base; pressing sinks the face this
+	-- fraction of the button height (Brawl Stars style).
+	ButtonDepth = 0.06,
+	ButtonPressSeconds = 0.05,
+	-- Extruded grade text: stacked copies, each this many px lower, darkest last.
+	ExtrudeLayers = 3,
+	ExtrudeStepPx = 4,
+	RgbSplitPx = 5, -- red/cyan ghost copies on PERFECT and MASTERWORK
+	RgbSplitSeconds = 0.25, -- the split closes to 0 over this long
+	GradeHoldSeconds = 0.9,
+	-- Distance plate: digits roll toward the real value.
+	DigitRollRate = 14, -- 1/s exponential approach
+	DigitMinStep = 0.4, -- m/s floor so it never crawls at the end
+	-- Mythical rainbow: hue cycles per second.
+	RainbowSpeed = 0.35,
+	-- Fruit reveal after landing: climb the rarity ladder, then the card.
+	RevealClimbStep = 0.16, -- seconds per rung
+	RevealBloomFrom = "Legendary", -- star flare before the card from this tier up
+	RevealBloomSeconds = 0.35,
+	RevealHoldSeconds = 1.2,
+	RevealBlurSize = 18, -- BlurEffect.Size at the peak (world only; UI stays sharp)
+	-- Meter anticipation: the throwing arm cocks back as the marker climbs.
+	ChargeArmPitch = 1.2, -- radians at a full meter
+	ChargeWaistTwist = 0.35,
+	-- Fruit tumble in flight (radians per second at alpha 0, eases out).
+	TumbleSpin = 14,
+}
+
 return table.freeze(Config)

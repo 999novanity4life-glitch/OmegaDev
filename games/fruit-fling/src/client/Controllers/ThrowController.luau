@@ -25,6 +25,8 @@ local Remotes = require(Shared:WaitForChild("Remotes"))
 local ThrowGrade = require(Shared:WaitForChild("ThrowGrade"))
 local UITokens = require(Shared:WaitForChild("UITokens"))
 local Juice = require(script.Parent.Juice)
+local PremiumHUD = require(script.Parent.PremiumHUD)
+local ThrowAnimator = require(script.Parent.ThrowAnimator)
 local ThrowFX = require(script.Parent.ThrowFX)
 local UIKit = require(script.Parent.UIKit)
 
@@ -52,24 +54,6 @@ local function outlined(label: TextLabel, thickness: number)
 	s.Thickness = thickness
 	s.Color = Color3.new(0, 0, 0)
 	s.Parent = label
-end
-
-local function circle(name: string, parent: Instance, color: Color3, thickness: number): Frame
-	local f = Instance.new("Frame")
-	f.Name = name
-	f.AnchorPoint = Vector2.new(0.5, 0.5)
-	f.Position = UDim2.fromScale(0.5, 0.5)
-	f.Size = UDim2.fromScale(1, 1)
-	f.BackgroundTransparency = 1
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0.5, 0)
-	c.Parent = f
-	local s = Instance.new("UIStroke")
-	s.Thickness = thickness
-	s.Color = color
-	s.Parent = f
-	f.Parent = parent
-	return f
 end
 
 -- Where the player stands to throw, and which way the lane runs (-Z).
@@ -141,26 +125,14 @@ function ThrowController.start()
 		TweenService:Create(flash, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
 	end
 
-	-- THROW button (taps anywhere also count): right side, above the jump button.
-	local button = UIKit.button("THROW", UDim2.fromScale(0.13, 0.13), "Primary", 1)
-	button.Name = "ThrowButton"
-	button.AnchorPoint = Vector2.new(1, 0.5)
+	-- THROW button (taps anywhere also count): right side, above the jump
+	-- button. Premium 3D build: chrome bezel, sinking face (PremiumHUD).
+	local throwHud = PremiumHUD.button(gui, "THROW", 0.26)
+	local button = throwHud.root
 	button.Position = UDim2.fromScale(0.96, 0.42)
 	button.Visible = false
-	button.Parent = gui
-	local buttonCorner = button:FindFirstChildOfClass("UICorner")
-	if buttonCorner then
-		buttonCorner.CornerRadius = UDim.new(0.5, 0)
-	end
-	local ringHolder = Instance.new("Frame")
-	ringHolder.Name = "Rings"
-	ringHolder.BackgroundTransparency = 1
-	ringHolder.Size = UDim2.fromScale(1, 1)
-	ringHolder.Parent = button
-	local target = circle("Target", ringHolder, Color3.new(1, 1, 1), 3)
-	target.Visible = false
-	local shrinking = circle("Shrinking", ringHolder, rgb(UITokens.Color.Accent), 5)
-	shrinking.Visible = false
+	local target = throwHud.target
+	local shrinking = throwHud.shrinking
 
 	-- LEAVE button: back out of the throw (left side, clear of the thumbstick).
 	local leave = UIKit.button("LEAVE", UDim2.fromScale(0.12, 0.06), "Secondary", 2.6)
@@ -170,75 +142,13 @@ function ThrowController.start()
 	leave.Visible = false
 	leave.Parent = gui
 
-	-- Power meter (TFFA): a capsule bar next to the player's right shoulder,
-	-- fixed gradient green (top) -> yellow -> red (bottom), 7 tick lines, a
-	-- white pill marker with "+N" beside it, "TAP TO THROW!" underneath.
-	local meter = Instance.new("Frame")
-	meter.Name = "PowerMeter"
-	meter.AnchorPoint = Vector2.new(0.5, 0.5)
+	-- Power meter (TFFA layout: bar beside the player, green top, "+N" on the
+	-- marker) in the premium glass + chrome finish (PremiumHUD.meter).
+	local meterHud = PremiumHUD.meter(gui)
+	local meter = meterHud.root
 	meter.Position = UDim2.fromScale(0.58, 0.45)
-	meter.Size = UDim2.fromScale(0.05, 0.56)
-	meter.BackgroundColor3 = Color3.new(1, 1, 1)
-	meter.BorderSizePixel = 0
-	meter.Visible = false
-	meter.Parent = gui
-	local meterRatio = Instance.new("UIAspectRatioConstraint")
-	meterRatio.AspectRatio = 0.16
-	meterRatio.Parent = meter
-	local meterCorner = Instance.new("UICorner")
-	meterCorner.CornerRadius = UDim.new(0.5, 0)
-	meterCorner.Parent = meter
-	local meterStroke = Instance.new("UIStroke")
-	meterStroke.Thickness = 4
-	meterStroke.Color = Color3.new(0, 0, 0)
-	meterStroke.Parent = meter
-	local gradient = Instance.new("UIGradient")
-	gradient.Rotation = 90 -- keypoint 0 at the top
-	gradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 220, 90)),
-		ColorSequenceKeypoint.new(0.35, Color3.fromRGB(190, 230, 60)),
-		ColorSequenceKeypoint.new(0.6, Color3.fromRGB(255, 210, 50)),
-		ColorSequenceKeypoint.new(0.8, Color3.fromRGB(255, 140, 40)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(240, 70, 40)),
-	})
-	gradient.Parent = meter
-	for i = 1, 7 do
-		local tick = Instance.new("Frame")
-		tick.Name = "Tick"
-		tick.AnchorPoint = Vector2.new(0.5, 0.5)
-		tick.Position = UDim2.fromScale(0.5, i / 8)
-		tick.Size = UDim2.new(0.7, 0, 0, 2)
-		tick.BackgroundColor3 = Color3.new(0, 0, 0)
-		tick.BackgroundTransparency = 0.6
-		tick.BorderSizePixel = 0
-		tick.Parent = meter
-	end
-	local marker = Instance.new("Frame")
-	marker.Name = "Marker"
-	marker.AnchorPoint = Vector2.new(0.5, 0.5)
-	marker.Size = UDim2.new(1.5, 0, 0.045, 0)
-	marker.BackgroundColor3 = Color3.new(1, 1, 1)
-	marker.BorderSizePixel = 0
-	marker.ZIndex = 3
-	marker.Parent = meter
-	local markerCorner = Instance.new("UICorner")
-	markerCorner.CornerRadius = UDim.new(0.5, 0)
-	markerCorner.Parent = marker
-	local markerStroke = Instance.new("UIStroke")
-	markerStroke.Thickness = 3
-	markerStroke.Color = Color3.new(0, 0, 0)
-	markerStroke.Parent = marker
-	local plusLabel = UIKit.label("+5", UDim2.new(2.4, 0, 0, 0), UITokens.Text.Title)
-	plusLabel.Name = "Plus"
-	plusLabel.AnchorPoint = Vector2.new(0, 0.5)
-	plusLabel.Position = UDim2.new(1.3, 0, 0.5, 0)
-	plusLabel.Size = UDim2.new(2.6, 0, 3.2, 0)
-	plusLabel.Font = Enum.Font.GothamBlack
-	plusLabel.TextScaled = true
-	plusLabel.TextXAlignment = Enum.TextXAlignment.Left
-	plusLabel.ZIndex = 3
-	plusLabel.Parent = marker
-	outlined(plusLabel, 2.5)
+	local marker = meterHud.marker
+	local plusLabel = meterHud.plus
 	local tapLabel = UIKit.label("TAP TO THROW!", UDim2.fromScale(0.3, 0.06), UITokens.Text.Title)
 	tapLabel.Name = "TapToThrow"
 	tapLabel.AnchorPoint = Vector2.new(0.5, 0)
@@ -260,15 +170,7 @@ function ThrowController.start()
 	powerPop.Parent = gui
 	outlined(powerPop, 3)
 
-	local gradeLabel = UIKit.label("", UDim2.fromScale(0.5, 0.1), UITokens.Text.Display)
-	gradeLabel.Name = "Grade"
-	gradeLabel.AnchorPoint = Vector2.new(0.5, 0)
-	gradeLabel.Position = UDim2.fromScale(0.5, 0.3)
-	gradeLabel.Font = Enum.Font.GothamBlack
-	gradeLabel.TextScaled = true
-	gradeLabel.Visible = false
-	gradeLabel.Parent = gui
-	outlined(gradeLabel, 3)
+	local grade = PremiumHUD.gradeText(gui) -- extruded PERFECT / MASTERWORK text
 
 	local infoLabel = UIKit.label("", UDim2.fromScale(0.4, 0.06), UITokens.Text.Title)
 	infoLabel.Name = "Info"
@@ -279,28 +181,11 @@ function ThrowController.start()
 	infoLabel.Parent = gui
 	outlined(infoLabel, 2)
 
-	-- Flight banner (TFFA: big number top-centre with a small label under it).
-	local banner = Instance.new("Frame")
-	banner.Name = "FlightBanner"
-	banner.AnchorPoint = Vector2.new(0.5, 0)
-	banner.Position = UDim2.fromScale(0.5, 0.02)
-	banner.Size = UDim2.fromScale(0.7, 0.14)
-	banner.BackgroundTransparency = 1
-	banner.Visible = false
-	banner.Parent = gui
-	local distLabel = UIKit.label("0 m", UDim2.fromScale(1, 0.65), UITokens.Text.Display)
-	distLabel.Name = "Distance"
-	distLabel.Font = Enum.Font.GothamBlack
-	distLabel.TextScaled = true
-	distLabel.Parent = banner
-	outlined(distLabel, 3)
-	local fruitLabel = UIKit.label("", UDim2.fromScale(1, 0.35), UITokens.Text.Title)
-	fruitLabel.Name = "Fruit"
-	fruitLabel.Position = UDim2.fromScale(0, 0.65)
-	fruitLabel.Font = Enum.Font.GothamBold
-	fruitLabel.TextScaled = true
-	fruitLabel.Parent = banner
-	outlined(fruitLabel, 2)
+	-- Flight banner (TFFA: big number top-centre, fruit + rarity under it) as a
+	-- chrome plate with rolling digits; the fruit reveal plays after landing.
+	local plate = PremiumHUD.distancePlate(gui)
+	local banner = plate.root
+	local reveal = PremiumHUD.reveal(gui)
 
 	-- State ---------------------------------------------------------------
 	local phase: Phase = "Roam"
@@ -341,9 +226,7 @@ function ThrowController.start()
 	end
 
 	local function showGrade(text: string, color: Color3, big: boolean?)
-		gradeLabel.Text = text
-		gradeLabel.TextColor3 = color
-		Juice.popIn(gradeLabel)
+		grade.show(text, color, big)
 		if big then
 			Juice.shakeCamera(cfg.MasterworkShake)
 		end
@@ -389,7 +272,7 @@ function ThrowController.start()
 		marker.BackgroundColor3 = Color3.new(1, 1, 1)
 		plusLabel.TextColor3 = Color3.new(1, 1, 1)
 		powerPop.Visible = false
-		gradeLabel.Visible = false
+		grade.root.Visible = false
 		infoLabel.Text = ""
 		banner.Visible = false
 		button.Visible = true
@@ -462,11 +345,12 @@ function ThrowController.start()
 		button.Visible = false
 		leave.Visible = false
 		banner.Visible = false
-		gradeLabel.Visible = false
+		grade.root.Visible = false
 		infoLabel.Text = ""
 		stopRing()
 		letterbox(0, 0.3)
 		freeze(false)
+		ThrowAnimator.reset(player.Character)
 		local cam = camera()
 		if cam then
 			cam.CameraType = Enum.CameraType.Custom
@@ -498,7 +382,7 @@ function ThrowController.start()
 		end
 		leave.Visible = false
 		task.delay(cfg.MeterLockHold, function()
-			if phase ~= "Locked" then
+			if (phase :: Phase) ~= "Locked" then -- phase changes while we wait
 				return
 			end
 			meter.Visible = false
@@ -520,7 +404,7 @@ function ThrowController.start()
 		releaseReady = false
 		launch = nil
 		throwRemote:FireServer(lockedPower, offset)
-		ThrowFX.swing(player.Character, function(handPos: Vector3)
+		ThrowAnimator.swing(player.Character, function(handPos: Vector3)
 			releasePos = handPos
 			releaseReady = true
 		end)
@@ -604,8 +488,8 @@ function ThrowController.start()
 		hitstopUntil = 0
 		phase = "Flight"
 		banner.Visible = true
-		fruitLabel.Text = string.format("%s  •  %s", string.upper(data.fruitName), string.upper(rarity))
-		fruitLabel.TextColor3 = rarityColor
+		plate.setTarget(0, true)
+		plate.setSub(string.format("%s  •  %s", string.upper(data.fruitName), string.upper(rarity)), rarityColor)
 		Juice.popIn(banner)
 		if data.combo > 1 then
 			infoLabel.Text = string.format("COMBO x%d", data.combo)
@@ -616,6 +500,7 @@ function ThrowController.start()
 		local f = fruit
 		local data = launch
 		local info = landedInfo
+		local revealSeconds = 0
 		phase = "Landing"
 		stopRing()
 		if f and data then
@@ -627,6 +512,7 @@ function ThrowController.start()
 				rarityRank(data.rarity),
 				info ~= nil and info.masterwork == true
 			)
+			revealSeconds = reveal.play(data.fruitName, data.rarity, f)
 			f:Destroy()
 			-- TFFA cuts to a low shot by the landing and dollies in slowly.
 			local cam = camera()
@@ -639,10 +525,11 @@ function ThrowController.start()
 		end
 		fruit = nil
 		if info then
-			distLabel.Text = string.format("%d m", info.distance)
+			plate.setTarget(info.distance)
 			infoLabel.Text = string.format("BEST %d m", info.best)
 		end
-		task.delay(1.6, function()
+		-- Wait for the fruit reveal card if it runs longer than the landing beat.
+		task.delay(math.max(1.6, revealSeconds + 0.2), function()
 			if phase == "Landing" then
 				screenFlash(0.6)
 				showMeter() -- stay at the edge for the next throw
@@ -690,6 +577,7 @@ function ThrowController.start()
 			local v = ThrowGrade.meterValue(now - meterStart, cfg)
 			marker.Position = UDim2.fromScale(0.5, 1 - v / cfg.MeterMax)
 			plusLabel.Text = "+" .. ThrowGrade.meterPower(v, cfg)
+			ThrowAnimator.charge(player.Character, v / cfg.MeterMax)
 		end
 
 		if phase == "Waiting" then
@@ -733,7 +621,7 @@ function ThrowController.start()
 			local start = releasePos
 			local pos = start + LANE * forward + Vector3.new(0, height, 0)
 			f.CFrame = CFrame.new(pos) * CFrame.Angles(alpha * 20, alpha * 7, 0)
-			distLabel.Text = string.format("%d m", math.floor(forward + 0.5))
+			plate.setTarget(forward)
 			-- Follow cam: high behind the fruit looking down the lane (TFFA),
 			-- catch-up rate from the rarity (rarer = lazier, more dramatic).
 			local cam = camera()
