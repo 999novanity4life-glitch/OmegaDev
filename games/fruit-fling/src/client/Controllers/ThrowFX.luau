@@ -178,6 +178,22 @@ function ThrowFX.swing(character: Model?, onRelease: (Vector3) -> ()): number
 	return total
 end
 
+-- Runs `step(t)` every frame until it returns false; t = seconds since start.
+local function animate(step: (number) -> boolean)
+	local start = os.clock()
+	local connection: RBXScriptConnection
+	connection = RunService.Heartbeat:Connect(function()
+		if not step(os.clock() - start) then
+			connection:Disconnect()
+		end
+	end)
+end
+
+local function easeOut(k: number): number
+	local c = math.clamp(k, 0, 1)
+	return 1 - (1 - c) * (1 - c)
+end
+
 -- The release burst: white starburst (TFFA) + rarity shockwave ring + sparks.
 function ThrowFX.releaseBurst(at: Vector3, rarityColor: Color3, forward: Vector3, power: number)
 	local big = 0.6 + power -- power in 0..1
@@ -199,6 +215,36 @@ function ThrowFX.releaseBurst(at: Vector3, rarityColor: Color3, forward: Vector3
 	ring.Transparency = 0.35
 	fadeOut(ring, 0.3, { Size = Vector3.new(0.05, 5, 5) * big })
 	sparks(at, rarityColor, math.floor(24 * big), 30)
+	-- anime impact rays: thin spikes bursting out around the hand, in the
+	-- plane facing the throw, the longest at full power
+	local face = CFrame.lookAt(at, at + forward)
+	local rays = if reduced() then 4 else 10
+	for i = 1, rays do
+		local a = (i - 1) / rays * 2 * math.pi + math.random() * 0.3
+		local dir = (face.RightVector * math.cos(a) + face.UpVector * math.sin(a)).Unit
+		local length = (1.5 + math.random() * 1.5) * big
+		local spike = fxPart(
+			"ReleaseRay",
+			Enum.PartType.Block,
+			if i % 2 == 0 then Color3.new(1, 1, 1) else rarityColor,
+			Vector3.new(0.12, 0.12, 0.1),
+			CFrame.new(at)
+		)
+		spike.Transparency = 0.05
+		animate(function(t: number): boolean
+			local k = t / 0.18
+			if k >= 1 then
+				spike:Destroy()
+				return false
+			end
+			local len = length * easeOut(k)
+			local mid = at + dir * (0.6 + len / 2)
+			spike.Size = Vector3.new(0.12 * (1 - k * 0.7), 0.12 * (1 - k * 0.7), math.max(len, 0.1))
+			spike.CFrame = CFrame.lookAt(mid, mid + dir)
+			spike.Transparency = 0.05 + 0.95 * k * k
+			return true
+		end)
+	end
 	-- speed streaks shooting forward
 	if not reduced() then
 		for _ = 1, 6 do
@@ -307,22 +353,6 @@ function ThrowFX.makeFruit(key: string, glow: Color3, rarityColor: Color3): Base
 end
 
 -- Landing splash: water ring, spray sparks, and a rarity pillar for rare finds.
--- Runs `step(t)` every frame until it returns false; t = seconds since start.
-local function animate(step: (number) -> boolean)
-	local start = os.clock()
-	local connection: RBXScriptConnection
-	connection = RunService.Heartbeat:Connect(function()
-		if not step(os.clock() - start) then
-			connection:Disconnect()
-		end
-	end)
-end
-
-local function easeOut(k: number): number
-	local c = math.clamp(k, 0, 1)
-	return 1 - (1 - c) * (1 - c)
-end
-
 -- A ring on the water made of short Neon dashes (Roblox has no torus part).
 -- Grows from 0 to `radius` over `seconds`, fading out. Starts after `delay`.
 local function dashRing(at: Vector3, color: Color3, radius: number, seconds: number, delay: number, thick: number)
