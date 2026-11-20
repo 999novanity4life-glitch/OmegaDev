@@ -218,7 +218,7 @@ local function text3D(parent: Instance, width: number, height: number): Text3D
 	ghostRLabel.TextColor3 = Color3.fromRGB(255, 40, 70)
 	ghostCLabel.TextColor3 = Color3.fromRGB(40, 230, 255)
 	for _, g in { ghostRLabel, ghostCLabel } do
-		g.TextTransparency = 0.25
+		g.TextTransparency = 0.55
 		local st = g:FindFirstChildOfClass("UIStroke")
 		if st then
 			st.Transparency = 1
@@ -280,7 +280,7 @@ local function text3D(parent: Instance, width: number, height: number): Text3D
 			if cWeld then
 				cWeld.C0 = CFrame.new(amount, -amount * 0.25, 0.02)
 			end
-			ghostRLabel.TextTransparency = if amount > 0.005 then 0.25 else 1
+			ghostRLabel.TextTransparency = if amount > 0.005 then 0.55 else 1
 			ghostCLabel.TextTransparency = ghostRLabel.TextTransparency
 		end,
 		setShine = function(offset: number)
