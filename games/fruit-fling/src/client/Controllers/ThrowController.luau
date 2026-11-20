@@ -22,8 +22,10 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Motion = require(Shared:WaitForChild("Motion"))
 local ThrowGrade = require(Shared:WaitForChild("ThrowGrade"))
 local UITokens = require(Shared:WaitForChild("UITokens"))
+local FruitShowcase = require(script.Parent.FruitShowcase)
 local Juice = require(script.Parent.Juice)
 local PremiumHUD = require(script.Parent.PremiumHUD)
 local ThrowAnimator = require(script.Parent.ThrowAnimator)
@@ -185,7 +187,70 @@ function ThrowController.start()
 	-- chrome plate with rolling digits; the fruit reveal plays after landing.
 	local plate = PremiumHUD.distancePlate(gui)
 	local banner = plate.root
-	local reveal = PremiumHUD.reveal(gui)
+	-- After landing: the real fruit model in an in-world showcase (no card).
+	local showcase = FruitShowcase.new(gui)
+
+	-- Flight extras (ref M2): a speed vignette round the screen edges and the
+	-- zone name popping in as the fruit passes it (Config.UI.Zones).
+	local vignette = Instance.new("Frame")
+	vignette.Name = "Vignette"
+	vignette.BackgroundTransparency = 1
+	vignette.Size = UDim2.fromScale(1, 1)
+	vignette.Visible = false
+	vignette.ZIndex = 1
+	vignette.Parent = cinema
+	local vignetteFades: { UIGradient } = {}
+	for _, side in { { 0, 0.5, 0.28, 1, 0 }, { 1, 0.5, 0.28, 1, 180 }, { 0.5, 0, 1, 0.3, 90 }, { 0.5, 1, 1, 0.3, 270 } } do
+		local edge = Instance.new("Frame")
+		edge.AnchorPoint = Vector2.new(side[1], side[2])
+		edge.Position = UDim2.fromScale(side[1], side[2])
+		edge.Size = UDim2.fromScale(side[3], side[4])
+		edge.BackgroundColor3 = Color3.new(0, 0, 0)
+		edge.BorderSizePixel = 0
+		edge.Parent = vignette
+		local g = Instance.new("UIGradient")
+		g.Rotation = side[5]
+		g.Transparency = NumberSequence.new(1, 1)
+		g.Parent = edge
+		table.insert(vignetteFades, g)
+	end
+	local function setVignette(strength: number)
+		-- strength 0..1: the outer edge goes from clear to VignetteAlpha
+		local edgeAlpha = 1 - (1 - Config.UI.VignetteAlpha) * math.clamp(strength, 0, 1)
+		for _, g in vignetteFades do
+			g.Transparency = NumberSequence.new(edgeAlpha, 1)
+		end
+		vignette.Visible = strength > 0.01
+	end
+	local zoneLabel = UIKit.label("", UDim2.fromScale(0.5, 0.075), UITokens.Text.Title)
+	zoneLabel.Name = "Zone"
+	zoneLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+	zoneLabel.Position = UDim2.fromScale(0.5, 0.3)
+	zoneLabel.Font = Enum.Font.LuckiestGuy
+	zoneLabel.TextScaled = true
+	zoneLabel.TextTransparency = 1
+	zoneLabel.Parent = gui
+	outlined(zoneLabel, 3)
+	local zoneStroke = zoneLabel:FindFirstChildOfClass("UIStroke")
+	local zoneName: string? = nil
+	local function popZone(name: string)
+		zoneLabel.Text = name
+		zoneLabel.TextTransparency = 0
+		if zoneStroke then
+			zoneStroke.Transparency = 0
+		end
+		zoneLabel.Position = UDim2.fromScale(0.42, 0.3)
+		local info = TweenInfo.new(if GuiService.ReducedMotionEnabled then 0 else 0.25, Enum.EasingStyle.Back)
+		TweenService:Create(zoneLabel, info, { Position = UDim2.fromScale(0.5, 0.3) }):Play()
+		task.delay(1.2, function()
+			if zoneLabel.Text == name then
+				TweenService:Create(zoneLabel, TweenInfo.new(0.35), { TextTransparency = 1 }):Play()
+				if zoneStroke then
+					TweenService:Create(zoneStroke, TweenInfo.new(0.35), { Transparency = 1 }):Play()
+				end
+			end
+		end)
+	end
 
 	-- State ---------------------------------------------------------------
 	local phase: Phase = "Roam"
@@ -478,7 +543,8 @@ function ThrowController.start()
 		end
 		ThrowFX.releaseBurst(releasePos, rarityColor, LANE, lockedPower / cfg.MeterMax)
 		screenFlash(if rarityRank(rarity) >= 4 then 0.5 else 0.25)
-		fruit = ThrowFX.makeFruit(data.fruit, glow, rarityColor)
+		fruit = ThrowFX.makeFruit(data.fruit, glow, rarityColor, rarityRank(rarity))
+		zoneName = nil
 		flightStart = os.clock()
 		distance = data.distance
 		targetDistance = data.distance
@@ -512,17 +578,12 @@ function ThrowController.start()
 				rarityRank(data.rarity),
 				info ~= nil and info.masterwork == true
 			)
-			gradeHud.root.Visible = false -- the reveal card owns the screen now
-			revealSeconds = reveal.play(data.fruitName, data.rarity, f)
+			gradeHud.root.Visible = false -- the showcase owns the screen now
+			banner.Visible = false
+			setVignette(0)
+			zoneLabel.TextTransparency = 1
+			revealSeconds = showcase.play(data.fruit, data.fruitName, data.rarity, at, f)
 			f:Destroy()
-			-- TFFA cuts to a low shot by the landing and dollies in slowly.
-			local cam = camera()
-			if cam and not GuiService.ReducedMotionEnabled then
-				cam.CFrame = CFrame.lookAt(at + Vector3.new(9, 4, 12), at)
-				TweenService:Create(cam, TweenInfo.new(1.4, Enum.EasingStyle.Sine), {
-					CFrame = CFrame.lookAt(at + Vector3.new(5, 2.5, 7), at),
-				}):Play()
-			end
 		end
 		fruit = nil
 		if info then
@@ -623,6 +684,14 @@ function ThrowController.start()
 			local pos = start + LANE * forward + Vector3.new(0, height, 0)
 			f.CFrame = CFrame.new(pos) * CFrame.Angles(alpha * 20, alpha * 7, 0)
 			plate.setTarget(forward)
+			setVignette(math.min(1, alpha * 4) * (1 - math.clamp((alpha - 0.85) / 0.15, 0, 1)))
+			local zone = Motion.zoneAt(forward, Config.UI.Zones)
+			if zone and zone ~= zoneName then
+				if zoneName ~= nil or forward > 1 then
+					popZone(zone)
+				end
+				zoneName = zone
+			end
 			-- Follow cam: high behind the fruit looking down the lane (TFFA),
 			-- catch-up rate from the rarity (rarer = lazier, more dramatic).
 			local cam = camera()

@@ -207,6 +207,36 @@ Config.UI = {
 	RevealBloomFrom = "Legendary", -- star flare before the card from this tier up
 	RevealBloomSeconds = 0.35,
 	RevealHoldSeconds = 1.2,
+	-- In-world 3D showcase (replaces the card, Sharman 2026-11-20): the real
+	-- fruit model bursts out of the water and the aura climbs tier by tier.
+	Showcase = {
+		RiseSeconds = 0.6, -- out of the water up to the showcase spot
+		StepSeconds = 0.55, -- per tier on the climb
+		SlamSeconds = 0.4, -- final tier slam
+		Hold = { Rare = 1.6, Epic = 2, Legendary = 2.5, Mythical = 3.2 },
+		Flare = { Legendary = 0.7, Mythical = 1.1 }, -- ref M4: longer build = rarer
+		ZoomSeconds = 0.55, -- ref M6: Mythical fills the screen, then settles
+		Lift = 5, -- studs above the water the fruit hangs
+		CameraDistance = 9.5,
+		FruitSize = 3.4, -- studs across the model's widest side
+		SpinRate = 1.3, -- rad/s
+		RayLength = 11,
+		DofFar = 0.85, -- DepthOfFieldEffect.FarIntensity: blurs the world, not the fruit (ref T2)
+		TextLayers = 6, -- ref P7: 3D tier word, SurfaceGui slices stacked in depth
+		TextDepth = 0.07, -- studs between slices
+		RgbSplit = 0.18, -- studs the red/cyan ghosts start apart, closing to 0
+	},
+	-- Flight (ref M2): speed vignette + a zone name as the fruit passes it.
+	-- Placeholder names from the dock map's landmarks; the One Piece arc
+	-- names come from Sharman later.
+	Zones = {
+		{ from = 0, name = "THE DOCK" },
+		{ from = 50, name = "BUOY LINE" },
+		{ from = 160, name = "SEA STACKS" },
+		{ from = 320, name = "LIGHTHOUSE" },
+		{ from = 500, name = "OPEN SEA" },
+	} :: { { from: number, name: string } },
+	VignetteAlpha = 0.35, -- edge darkness at full flight speed (0 = black)
 	RevealBlurSize = 18, -- BlurEffect.Size at the peak (world only; UI stays sharp)
 	-- Meter anticipation: the body winds into the "set" pose as the marker
 	-- climbs (front knee up, torso coiled, fruit by the ear). Radians at a full meter.

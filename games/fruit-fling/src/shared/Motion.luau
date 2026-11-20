@@ -106,4 +106,16 @@ function Motion.backOut(t: number, overshoot: number?): number
 	return 1 + u * u * ((s + 1) * u + s)
 end
 
+-- Name of the zone a distance falls in (zones sorted by `from`), or nil
+-- before the first one.
+function Motion.zoneAt(distance: number, zones: { { from: number, name: string } }): string?
+	local found: string? = nil
+	for _, z in zones do
+		if distance >= z.from then
+			found = z.name
+		end
+	end
+	return found
+end
+
 return Motion
