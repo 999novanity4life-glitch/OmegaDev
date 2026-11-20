@@ -412,7 +412,10 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 			end
 			scheduled = later
 			for _, fn in due do
-				local ok, err = pcall(fn)
+				local ok, err = pcall(function(): string?
+					fn()
+					return nil
+				end)
 				if not ok then
 					warn("[FruitShowcase]", err)
 				end
@@ -634,14 +637,12 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 		-- Big soft glow behind the fruit in the tier colour (sprite).
 		local glowTex = tex("Glow")
 		local glowImg: ImageLabel? = nil
-		local glowBB: BillboardGui? = nil
 		if glowTex then
 			local bb, img = sprite(stage, core, glowTex, 1)
 			bb.StudsOffsetWorldSpace = -toCam * 1.5
 			bb.Size = UDim2.fromScale(fruitSize * 3.2, fruitSize * 3.2)
 			img.ImageTransparency = 0.25
 			glowImg = img
-			glowBB = bb
 		end
 
 		-- Dark backdrop far behind the fruit (the refs all reveal on a dark
