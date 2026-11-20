@@ -49,3 +49,6 @@ Snap 5 studs and 90°; doors at least 10 studs tall; walls at least 10 studs (ju
 
 ## Check before VISUAL_QA [RULE]
 Overhead map and color script in SPEC.md; greybox playtested for travel time; landmark visible from spawn; each zone passes the squint test; terrain palette muted next to gameplay colors; procedural maps validated for reachability.
+
+## Building it with intent
+Placement rules (three scales, weenies, intent scatter, mesh-first, review stations) live in chapter 20 and `docs/rulebooks/MAP_RULEBOOK.md`.
