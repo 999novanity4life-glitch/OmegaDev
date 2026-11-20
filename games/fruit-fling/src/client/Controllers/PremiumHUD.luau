@@ -374,8 +374,8 @@ function PremiumHUD.gradeText(parent: Instance): GradeText
 		"Grade",
 		parent,
 		Color3.new(0, 0, 0),
-		UDim2.fromScale(0.62, 0.15),
-		UDim2.fromScale(0.5, 0.3),
+		UDim2.fromScale(0.62, 0.11),
+		UDim2.fromScale(0.5, 0.27),
 		Vector2.new(0.5, 0)
 	)
 	root.BackgroundTransparency = 1
@@ -665,6 +665,11 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 			odds.Text = RarityStyle.oddsText(RarityStyle.chance(rarity, Config.Rarity))
 			for _, r in rungs do
 				r.BackgroundTransparency = 0.35
+				r.BackgroundColor3 = Color3.fromRGB(10, 10, 16)
+				local label = r:FindFirstChild("Name")
+				if label and label:IsA("TextLabel") then
+					label.TextColor3 = Color3.fromRGB(150, 150, 160)
+				end
 				local s = r:FindFirstChildOfClass("UIStroke")
 				if s then
 					s.Transparency = 0.8
@@ -698,10 +703,15 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 				task.delay(step * (i - 1), function()
 					local r = rungs[tierName]
 					if r then
-						r.BackgroundTransparency = 0.1
+						r.BackgroundTransparency = 0.05
+						r.BackgroundColor3 = rarityColor(tierName):Lerp(Color3.new(0, 0, 0), 0.45)
 						local s = r:FindFirstChildOfClass("UIStroke")
 						if s then
 							s.Transparency = 0
+						end
+						local label = r:FindFirstChild("Name")
+						if label and label:IsA("TextLabel") then
+							label.TextColor3 = Color3.new(1, 1, 1)
 						end
 						Juice.popIn(r)
 					end

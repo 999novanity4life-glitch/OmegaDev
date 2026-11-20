@@ -512,6 +512,7 @@ function ThrowController.start()
 				rarityRank(data.rarity),
 				info ~= nil and info.masterwork == true
 			)
+			gradeHud.root.Visible = false -- the reveal card owns the screen now
 			revealSeconds = reveal.play(data.fruitName, data.rarity, f)
 			f:Destroy()
 			-- TFFA cuts to a low shot by the landing and dollies in slowly.
