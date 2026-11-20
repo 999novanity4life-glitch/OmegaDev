@@ -153,7 +153,7 @@ local function heroText(value: string, size: UDim2, maxSize: number): Frame
 	holder.BackgroundTransparency = 1
 	holder.Size = size
 	local back = text(value, UDim2.fromScale(1, 1), TITLE_FONT, BRASS, maxSize)
-	back.Position = UDim2.new(0, 2, 0, 3)
+	back.Position = UDim2.fromOffset(2, 3)
 	stroke(back, 2, BLACK, Enum.ApplyStrokeMode.Contextual)
 	back.Parent = holder
 	local face = text(value, UDim2.fromScale(1, 1), TITLE_FONT, Color3.new(1, 1, 1), maxSize)
@@ -585,7 +585,7 @@ local function showOffer(itemId: string, reason: string)
 	TweenService:Create(
 		card,
 		TweenInfo.new(motion(Config.Shop.Motion.OfferSlide), Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{ Position = UDim2.new(0.98, 0, 0.42, 0) }
+		{ Position = UDim2.fromScale(0.98, 0.42) }
 	):Play()
 
 	task.delay(Config.Shop.Offers.AutoCloseSeconds, function()
