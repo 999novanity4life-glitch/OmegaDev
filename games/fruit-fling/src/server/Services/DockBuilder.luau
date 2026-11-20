@@ -187,6 +187,22 @@ Kit.Lantern = function(p, parent)
 	return m
 end
 
+Kit.HangingLantern = function(p, parent)
+	local m = Kit.Lantern(p, parent)
+	local s = vec(p.size)
+	local cord = DockLayout.LanternCord
+	new(
+		m,
+		"Cord",
+		Vector3.new(0.08, cord, 0.08),
+		cf(p) * CFrame.new(0, s.Y / 2 + cord / 2, 0),
+		PALETTE.Rope,
+		Enum.Material.Fabric,
+		true
+	)
+	return m
+end
+
 Kit.BuntingPole = function(p, parent)
 	local m = model(p, parent)
 	local s = vec(p.size)

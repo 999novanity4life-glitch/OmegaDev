@@ -73,6 +73,7 @@ export type DockConfig = {
 	GroupSize: { number },
 	BuntingEvery: number,
 	BuntingPoleHeight: number,
+	OverheadLanterns: number?,
 	LaneLength: number,
 	BuoyEvery: number,
 	SeaStackEvery: number,
@@ -220,6 +221,36 @@ local function pier(plan: Plan, cfg: DockConfig, rng: Rng.Rng)
 	end
 end
 
+-- Ref R3: lanterns hang under a rope at even points, skipping the ends (poles) and
+-- the centre of the pier so the camera line over the thrower stays clean (M10).
+local CORD = 0.8
+local LANTERN = { x = 0.8, y = 1.2, z = 0.8 }
+
+local function hangLanterns(plan: Plan, cfg: DockConfig, points: { Vec3 })
+	local count = cfg.OverheadLanterns or 3
+	if count <= 0 then
+		return
+	end
+	for k = 1, count do
+		local i = math.clamp(math.floor(k / (count + 1) * (#points - 1) + 0.5) + 1, 2, #points - 1)
+		local at = points[i]
+		if math.abs(at.x) >= cfg.LaneKeepClearHalfWidth then
+			addPlacement(plan, {
+				kind = "HangingLantern",
+				area = "Pier",
+				tier = "Micro",
+				pos = v(at.x, at.y - CORD - LANTERN.y / 2, at.z),
+				size = v(LANTERN.x, LANTERN.y, LANTERN.z),
+				yaw = 0,
+				tilt = 0,
+				why = "ref R3 warm lanterns hung overhead; M41 light pools",
+			})
+		end
+	end
+end
+
+DockLayout.LanternCord = CORD
+
 -- Overhead layer (M36): bunting across the pier between pole pairs.
 local function overhead(plan: Plan, cfg: DockConfig)
 	local z = cfg.ThrowEdgeZ + cfg.BuntingEvery
@@ -239,15 +270,33 @@ local function overhead(plan: Plan, cfg: DockConfig)
 			})
 			table.insert(tops, v(x, cfg.DeckHeight + cfg.BuntingPoleHeight - 0.5, z))
 		end
+		local across = Catenary.points(tops[1], tops[2], Catenary.sagFor(cfg.PierHalfWidth * 2, 0.12), 12)
 		table.insert(plan.ropes, {
 			kind = "Bunting",
 			area = "Pier",
 			tier = "Micro",
-			points = Catenary.points(tops[1], tops[2], Catenary.sagFor(cfg.PierHalfWidth * 2, 0.12), 12),
+			points = across,
 			thickness = 0.15,
 			why = "M36 overhead layer in every shot; M40 sag",
 		})
-		z += cfg.BuntingEvery
+		hangLanterns(plan, cfg, across)
+		-- ref R3: a sagging lantern string also runs along each pier edge to the next pole pair
+		local nextZ = z + cfg.BuntingEvery
+		if nextZ < cfg.ShoreZ - 4 then
+			for _, top in tops do
+				local along = Catenary.points(top, v(top.x, top.y, nextZ), Catenary.sagFor(cfg.BuntingEvery, 0.1), 12)
+				table.insert(plan.ropes, {
+					kind = "Rope",
+					area = "Pier",
+					tier = "Micro",
+					points = along,
+					thickness = 0.12,
+					why = "ref R3 lantern string along the pier edge; M40 sag",
+				})
+				hangLanterns(plan, cfg, along)
+			end
+		end
+		z = nextZ
 	end
 end
 

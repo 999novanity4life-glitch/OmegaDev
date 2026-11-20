@@ -74,6 +74,26 @@ return function(t, load)
 			end
 		end)
 
+		it("ref R3: lanterns hang under overhead ropes, clear of the lane centre", function()
+			local hung = 0
+			for _, p in plan.placements do
+				if p.kind == "HangingLantern" then
+					hung += 1
+					expect(math.abs(p.pos.x) >= cfg.LaneKeepClearHalfWidth).toBeTruthy()
+					expect(p.pos.y > cfg.DeckHeight + 6).toBeTruthy() -- head height is clear
+					expect(p.pos.z > cfg.ThrowEdgeZ).toBeTruthy() -- behind the thrower, not in the arc
+				end
+			end
+			expect(hung >= 6).toBeTruthy()
+			local along = 0
+			for _, r in plan.ropes do
+				if r.kind == "Rope" and r.area == "Pier" then
+					along += 1
+				end
+			end
+			expect(along >= 2).toBeTruthy()
+		end)
+
 		it("M38: story groups hold 3-8 props, each has a story, one is mid-task", function()
 			expect(#plan.groups >= 3).toBeTruthy()
 			local midTask = false

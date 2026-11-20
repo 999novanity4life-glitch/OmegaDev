@@ -122,6 +122,7 @@ Config.Dock = {
 	GroupSize = { 3, 8 }, -- M38
 	BuntingEvery = 24,
 	BuntingPoleHeight = 13,
+	OverheadLanterns = 3, -- lanterns hung under each overhead rope (ref R3)
 	LaneLength = 800,
 	BuoyEvery = 50, -- a landmark at least every ~50 studs along the lane
 	SeaStackEvery = 160,
