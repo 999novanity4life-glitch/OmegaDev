@@ -5,11 +5,16 @@ return function(t, load)
 	local describe, it, expect = t.describe, t.it, t.expect
 	local cfg = Config.Throw
 
+	-- Angle difference modulo 2pi (-2pi is the same pose as 0).
+	local function adiff(x, y)
+		local d = (x - y) % (2 * math.pi)
+		return math.min(d, 2 * math.pi - d)
+	end
 	local function maxJump(a, b)
 		local m = 0
 		for _, j in ThrowPose.JOINTS do
 			for i = 1, 3 do
-				m = math.max(m, math.abs(a[j][i] - b[j][i]))
+				m = math.max(m, adiff(a[j][i], b[j][i]))
 			end
 		end
 		return m
@@ -19,7 +24,7 @@ return function(t, load)
 		it("starts and ends at rest", function()
 			local keys = ThrowPose.keys(cfg)
 			expect(maxJump(ThrowPose.sample(keys, 0), ThrowPose.REST)).toBe(0)
-			expect(maxJump(ThrowPose.sample(keys, ThrowPose.totalTime(cfg) + 1), ThrowPose.REST)).toBe(0)
+			expect(maxJump(ThrowPose.sample(keys, ThrowPose.totalTime(cfg) + 1), ThrowPose.REST) < 1e-9).toBeTruthy()
 		end)
 		it("keys are in time order and release sits inside the swing", function()
 			local keys = ThrowPose.keys(cfg)
@@ -42,6 +47,15 @@ return function(t, load)
 				tt += step
 			end
 		end)
+		it("the arm circles backward: shoulder pitch never increases during the swing", function()
+			local keys = ThrowPose.keys(cfg, ThrowPose.charge(1, Config.UI))
+			local prev = ThrowPose.sample(keys, 0).rightShoulder[1]
+			for i = 1, 60 do
+				local p = ThrowPose.sample(keys, i * ThrowPose.totalTime(cfg) / 60).rightShoulder[1]
+				expect(p <= prev + 1e-9).toBeTruthy()
+				prev = p
+			end
+		end)
 		it("the whip is the fastest part (release reads as a snap)", function()
 			local keys = ThrowPose.keys(cfg)
 			local r = ThrowPose.releaseTime(cfg)
@@ -56,7 +70,7 @@ return function(t, load)
 			local half = ThrowPose.charge(0.5, Config.UI).rightShoulder[1]
 			local full = ThrowPose.charge(1, Config.UI).rightShoulder[1]
 			expect(full).toBeNear(Config.UI.ChargeArmPitch, 1e-9)
-			expect(half > 0 and half < full).toBeTruthy()
+			expect(math.abs(half) > 0 and math.abs(half) < math.abs(full)).toBeTruthy()
 			expect(maxJump(ThrowPose.charge(5, Config.UI), ThrowPose.charge(1, Config.UI))).toBe(0)
 		end)
 	end)

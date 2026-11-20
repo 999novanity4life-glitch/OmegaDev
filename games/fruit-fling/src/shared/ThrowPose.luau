@@ -6,7 +6,7 @@
 -- (anticipation, fast release, follow-through hold, settle).
 -- Each joint is an {x, y, z} rotation in radians applied on top of the
 -- joint's rest C0 (CFrame.Angles order). Sign convention matches ThrowFX:
--- +x on a shoulder raises the arm forward/up.
+-- +x on a shoulder raises the arm forward/up, -x swings it back.
 -- No `game` access; tests/ThrowPose.spec.luau covers it under Lune.
 
 export type Euler = { number }
@@ -61,34 +61,47 @@ end
 -- so there is no pop between the meter and the swing.
 function ThrowPose.keys(cfg: SwingConfig, from: Pose?): { Key }
 	local w, f = cfg.SwingWindup, cfg.SwingFollow
+	local TAU = 2 * math.pi
+	-- The throwing arm circles BACKWARD: down-behind (charge), up behind the
+	-- head, then whips forward over the top. Shoulder pitch only ever
+	-- decreases (0 -> -2pi) so blending never takes the short way round
+	-- through the front; -2pi at the end is the same angle as rest.
 	return {
 		{ time = 0, pose = from or ThrowPose.REST, ease = "smooth" },
-		-- cock: arm up and back, elbow folded, torso turned away, lead arm points
+		-- cock: arm back and rising, elbow folding, torso turned away, lead arm points
 		{
 			time = w * 0.6,
-			pose = pose({ -0.15, 0.55, 0 }, { 2.9, 0, -0.3 }, { 1.4, 0, 0 }, { 1.2, 0, 0.15 }),
+			pose = pose({ -0.15, 0.55, 0 }, { -2.5, 0, -0.3 }, { 1.4, 0, 0 }, { 1.2, 0, 0.15 }),
 			ease = "out",
 		},
-		-- top of the wind-up (small hold = readable anticipation)
-		{ time = w, pose = pose({ -0.2, 0.6, 0 }, { 3.4, 0, -0.35 }, { 1.7, 0, 0 }, { 1.4, 0, 0.2 }), ease = "smooth" },
-		-- whip: accelerating into release, elbow snaps straight
+		-- top of the wind-up: hand behind the head (small hold = readable anticipation)
+		{
+			time = w,
+			pose = pose({ -0.2, 0.6, 0 }, { -2.95, 0, -0.35 }, { 1.7, 0, 0 }, { 1.4, 0, 0.2 }),
+			ease = "smooth",
+		},
+		-- whip: over the top, accelerating into release in front, elbow snaps straight
 		{
 			time = w + ThrowPose.WHIP_SECONDS,
-			pose = pose({ 0.25, -0.35, 0 }, { 1.5, 0, 0.1 }, { 0.15, 0, 0 }, { 0.3, 0, 0 }),
+			pose = pose({ 0.25, -0.35, 0 }, { 1.5 - TAU, 0, 0.1 }, { 0.15, 0, 0 }, { 0.3, 0, 0 }),
 			ease = "in",
 		},
-		-- follow-through across the body, lead arm swings back (held)
+		-- follow-through down across the body, lead arm swings back (held)
 		{
 			time = w + f * 0.6,
-			pose = pose({ 0.35, -0.55, 0 }, { 0.3, 0, 0.45 }, { 0.4, 0, 0 }, { -0.4, 0, -0.1 }),
+			pose = pose({ 0.35, -0.55, 0 }, { 0.3 - TAU, 0, 0.45 }, { 0.4, 0, 0 }, { -0.4, 0, -0.1 }),
 			ease = "out",
 		},
 		{
 			time = w + f,
-			pose = pose({ 0.3, -0.5, 0 }, { 0.25, 0, 0.4 }, { 0.4, 0, 0 }, { -0.35, 0, -0.1 }),
+			pose = pose({ 0.3, -0.5, 0 }, { 0.25 - TAU, 0, 0.4 }, { 0.4, 0, 0 }, { -0.35, 0, -0.1 }),
 			ease = "smooth",
 		},
-		{ time = w + f + ThrowPose.SETTLE_SECONDS, pose = ThrowPose.REST, ease = "smooth" },
+		{
+			time = w + f + ThrowPose.SETTLE_SECONDS,
+			pose = pose({ 0, 0, 0 }, { -TAU, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }),
+			ease = "smooth",
+		},
 	}
 end
 

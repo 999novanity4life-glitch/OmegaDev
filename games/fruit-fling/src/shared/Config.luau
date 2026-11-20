@@ -209,7 +209,7 @@ Config.UI = {
 	RevealHoldSeconds = 1.2,
 	RevealBlurSize = 18, -- BlurEffect.Size at the peak (world only; UI stays sharp)
 	-- Meter anticipation: the throwing arm cocks back as the marker climbs.
-	ChargeArmPitch = 1.2, -- radians at a full meter
+	ChargeArmPitch = -1.3, -- radians at a full meter (negative = arm swings back)
 	ChargeWaistTwist = 0.35,
 	-- Fruit tumble in flight (radians per second at alpha 0, eases out).
 	TumbleSpin = 14,
