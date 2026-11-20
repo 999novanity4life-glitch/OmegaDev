@@ -425,6 +425,7 @@ function ThrowFX.splash(at: Vector3, rarityColor: Color3, rarityRank: number, ma
 	-- water column: a spray of soft particles shot straight up under gravity,
 	-- around a thin white-hot core that spikes up and collapses
 	local upSpeed = math.sqrt(2 * cfg.Gravity * tier.column)
+	local life = SplashShape.airTime(upSpeed, cfg.Gravity) -- until it falls back
 	local sprayAnchor = fxPart("SplashSpray", Enum.PartType.Ball, water, Vector3.new(0.2, 0.2, 0.2), CFrame.new(at))
 	sprayAnchor.Transparency = 1
 	local function spray(spread: number, count: number, speedLo: number, sizeFrom: number, sizeTo: number)
@@ -435,26 +436,25 @@ function ThrowFX.splash(at: Vector3, rarityColor: Color3, rarityRank: number, ma
 			e.Texture = tex
 		end
 		e.Color = ColorSequence.new(Color3.new(1, 1, 1), water)
-		e.LightEmission = 0.4
-		e.LightInfluence = 0.3
-		e.Lifetime = NumberRange.new(0.7, 1.1)
+		e.LightEmission = 0
+		e.LightInfluence = 1
+		e.Lifetime = NumberRange.new(life * 0.8, life)
 		e.Speed = NumberRange.new(upSpeed * speedLo, upSpeed)
 		e.Acceleration = Vector3.new(0, -cfg.Gravity, 0)
 		e.SpreadAngle = Vector2.new(spread, spread)
-		e.Drag = 0.6
 		e.Rotation = NumberRange.new(0, 360)
 		e.RotSpeed = NumberRange.new(-90, 90)
 		e.Size = NumberSequence.new(sizeFrom, sizeTo)
 		e.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0.1),
-			NumberSequenceKeypoint.new(0.6, 0.35),
+			NumberSequenceKeypoint.new(0, 0.25),
+			NumberSequenceKeypoint.new(0.7, 0.45),
 			NumberSequenceKeypoint.new(1, 1),
 		})
 		e.Parent = sprayAnchor
 		e:Emit(if calm then math.ceil(count / 3) else count)
 	end
-	spray(6, 18 + 8 * rarityRank, 0.75, 1.2 + 0.2 * tier.column / 6, 3 + tier.column / 6) -- the column
-	spray(32, 14 + 6 * rarityRank, 0.4, 0.8, 2.2) -- the sheet flaring out
+	spray(5, 30 + 12 * rarityRank, 0.55, 0.8, 1.6 + tier.column / 12) -- the column
+	spray(30, 18 + 8 * rarityRank, 0.3, 0.6, 1.4) -- the sheet flaring out
 	task.delay(1.4, function()
 		sprayAnchor:Destroy()
 	end)
