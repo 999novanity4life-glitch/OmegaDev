@@ -221,7 +221,9 @@ function ThrowFX.makeFruit(key: string, glow: Color3, rarityColor: Color3): Base
 	local models = ReplicatedStorage:FindFirstChild("FruitModels")
 	local template = models and models:FindFirstChild(key)
 	local part: BasePart
-	if template and template:IsA("BasePart") then
+	-- Only meshes with an uploaded MeshId: a MeshPart built from an
+	-- EditableMesh in Studio does not replicate its geometry to clients.
+	if template and template:IsA("MeshPart") and template.MeshId ~= "" then
 		part = template:Clone()
 		-- child parts (the glow shell) ride along on welds; the body is moved
 		-- by CFrame each frame
@@ -243,7 +245,24 @@ function ThrowFX.makeFruit(key: string, glow: Color3, rarityColor: Color3): Base
 		ball.Shape = Enum.PartType.Ball
 		ball.Size = Vector3.new(2.4, 2.4, 2.4)
 		ball.Material = Enum.Material.SmoothPlastic
-		ball.Color = glow
+		ball.Color = glow:Lerp(Color3.new(0, 0, 0), 0.25)
+		local shell = Instance.new("Part")
+		shell.Name = "GlowShell"
+		shell.Shape = Enum.PartType.Ball
+		shell.Size = Vector3.new(2.9, 2.9, 2.9)
+		shell.Material = Enum.Material.Neon
+		shell.Color = glow
+		shell.Transparency = 0.65
+		shell.CanCollide = false
+		shell.CanQuery = false
+		shell.CanTouch = false
+		shell.Massless = true
+		shell.CFrame = ball.CFrame
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = ball
+		weld.Part1 = shell
+		weld.Parent = shell
+		shell.Parent = ball
 		part = ball
 	end
 	part.Name = "ThrownFruit"

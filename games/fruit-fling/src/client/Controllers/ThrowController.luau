@@ -284,7 +284,7 @@ function ThrowController.start()
 	banner.Name = "FlightBanner"
 	banner.AnchorPoint = Vector2.new(0.5, 0)
 	banner.Position = UDim2.fromScale(0.5, 0.02)
-	banner.Size = UDim2.fromScale(0.4, 0.14)
+	banner.Size = UDim2.fromScale(0.7, 0.14)
 	banner.BackgroundTransparency = 1
 	banner.Visible = false
 	banner.Parent = gui
