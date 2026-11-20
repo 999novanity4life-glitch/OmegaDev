@@ -194,7 +194,6 @@ local function text3D(parent: Instance, width: number, height: number): Text3D
 		sg.PixelsPerStud = 80
 		sg.LightInfluence = 0
 		sg.ZOffset = -z
-		sg.AlwaysOnTop = true -- beams and the pillar must not cut through the word
 		sg.Parent = p
 		local t = Instance.new("TextLabel")
 		t.BackgroundTransparency = 1
@@ -709,9 +708,10 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 		local pillarBeam: Beam? = nil
 		local embers: ParticleEmitter? = nil
 		if layers.pillar then
-			local base = part("PillarBase", stage, Vector3.one, CFrame.new(behind.X, at.Y - 1, behind.Z))
+			local pillarAt = spot - toCam * 7 -- well behind the word so it sorts behind it
+			local base = part("PillarBase", stage, Vector3.one, CFrame.new(pillarAt.X, at.Y - 1, pillarAt.Z))
 			local a0 = attachment(base, Vector3.zero)
-			local a1 = attachment(base, Vector3.new(0, 70, 0))
+			local a1 = attachment(base, Vector3.new(0, 45, 0))
 			local pb = beam(
 				a0,
 				a1,
@@ -899,7 +899,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 
 		-- 3D tier word above the fruit (ref P7), angled off the camera axis.
 		local up = Vector3.yAxis
-		local textHome = spot + up * (fruitSize * 0.75 + 1.7)
+		local textHome = spot + up * (fruitSize * 0.6 + 1.3)
 		local textAim = CFrame.lookAt(textHome, camPos) * CFrame.Angles(math.rad(6), math.rad(-14), math.rad(-3))
 		local word = text3D(stage, 8, 2.1)
 		word.root.CFrame = textAim
