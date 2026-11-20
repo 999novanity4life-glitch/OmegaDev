@@ -185,17 +185,17 @@ function ThrowFX.releaseBurst(at: Vector3, rarityColor: Color3, forward: Vector3
 	light.Brightness = 6
 	light.Range = 14
 	light.Parent = star
-	fadeOut(star, 0.22, { Size = Vector3.new(5, 5, 5) * big })
+	fadeOut(star, 0.22, { Size = Vector3.new(3, 3, 3) * big })
 	-- shockwave: a flat cylinder facing along the throw (cylinder axis = X)
 	local ring = fxPart(
 		"Shockwave",
 		Enum.PartType.Cylinder,
 		rarityColor,
 		Vector3.new(0.15, 1.5, 1.5),
-		CFrame.lookAt(at, at + forward) * CFrame.Angles(0, math.rad(90), 0)
+		CFrame.lookAt(at + forward * 2, at + forward * 3) * CFrame.Angles(0, math.rad(90), 0)
 	)
-	ring.Transparency = 0.2
-	fadeOut(ring, 0.35, { Size = Vector3.new(0.05, 11, 11) * big })
+	ring.Transparency = 0.35
+	fadeOut(ring, 0.3, { Size = Vector3.new(0.05, 5, 5) * big })
 	sparks(at, rarityColor, math.floor(24 * big), 30)
 	-- speed streaks shooting forward
 	if not reduced() then
