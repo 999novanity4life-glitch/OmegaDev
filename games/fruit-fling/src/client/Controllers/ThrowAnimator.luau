@@ -1,13 +1,15 @@
 --!strict
--- Procedural throw animation (client, cosmetic). Drives four R15 joints from
+-- Procedural throw animation (client, cosmetic). Drives four rig joints from
 -- the pure ThrowPose curves:
---   charge(fill) while the meter runs: the arm cocks back as the marker climbs,
+--   charge(fill) while the meter runs: the arm swings back as the marker climbs,
 --   swing(): wind-up -> whip (release) -> follow-through hold -> settle.
--- Uses Motor6D.C0 offsets on top of each joint's rest C0, like ThrowFX did,
--- so it layers over whatever the Animator plays. R6 falls back to the two
--- shoulders. C0 edits made on the client do not replicate, so other players
--- see the default pose: a server-side or AnimationTrack version is a Studio
--- follow-up (noted in the PR).
+-- Rigs here use AnimationConstraint joints (the avatar joint upgrade), whose
+-- C0 is a read-only alias, so we layer onto Transform during
+-- RunService.PreSimulation, after the Animator writes it - the documented way
+-- for both AnimationConstraint and Motor6D:
+-- https://create.roblox.com/docs/reference/engine/classes/AnimationConstraint
+-- Transform edits made on the client do not replicate, so other players see
+-- the default pose: a replicated AnimationTrack version is a follow-up.
 
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,35 +23,26 @@ type Pose = ThrowPose.Pose
 
 local ThrowAnimator = {}
 
-type Rig = { [string]: { motor: Motor6D, rest: CFrame } }
-
--- Rest C0 per motor, remembered the first time we touch it so repeated
--- throws never drift.
-local rest: { [Motor6D]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
-
-local JOINT_PATHS: { [string]: { { string } } } = {
-	waist = { { "UpperTorso", "Waist" } },
-	rightShoulder = { { "RightUpperArm", "RightShoulder" }, { "Torso", "Right Shoulder" } },
-	rightElbow = { { "RightLowerArm", "RightElbow" } },
-	leftShoulder = { { "LeftUpperArm", "LeftShoulder" }, { "Torso", "Left Shoulder" } },
+-- Joint names per pose slot: R15 first, then the R6 fallback.
+local JOINT_NAMES: { [string]: { string } } = {
+	waist = { "Waist" },
+	rightShoulder = { "RightShoulder", "Right Shoulder" },
+	rightElbow = { "RightElbow" },
+	leftShoulder = { "LeftShoulder", "Left Shoulder" },
 }
 
-local function rig(character: Model?): Rig
+type Rig = { [string]: Instance } -- Motor6D or AnimationConstraint
+
+local function findRig(character: Model?): Rig
 	local out: Rig = {}
 	if not character then
 		return out
 	end
-	for joint, paths in JOINT_PATHS do
-		for _, path in paths do
-			local part = character:FindFirstChild(path[1])
-			local m = part and part:FindFirstChild(path[2])
-			if m and m:IsA("Motor6D") then
-				local known: CFrame? = rest[m]
-				if not known then
-					known = m.C0
-					rest[m] = m.C0
-				end
-				out[joint] = { motor = m, rest = known :: CFrame }
+	for slot, names in JOINT_NAMES do
+		for _, name in names do
+			local found = character:FindFirstChild(name, true)
+			if found and (found:IsA("Motor6D") or found:IsA("AnimationConstraint")) then
+				out[slot] = found
 				break
 			end
 		end
@@ -57,31 +50,74 @@ local function rig(character: Model?): Rig
 	return out
 end
 
-local function apply(r: Rig, pose: Pose)
-	for joint, entry in r do
-		local e = (pose :: any)[joint] :: { number }?
-		if e then
-			entry.motor.C0 = entry.rest * CFrame.Angles(e[1], e[2], e[3])
-		end
-	end
+local function animatorOf(character: Model?): Animator?
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	return humanoid and humanoid:FindFirstChildOfClass("Animator")
 end
 
+-- What PreSimulation layers on, if anything.
+local active: { character: Model, rig: Rig, pose: Pose }? = nil
+local swingStart: number? = nil
+local swingKeys: { ThrowPose.Key }? = nil
 local lastCharge: Pose = ThrowPose.REST
-local swinging = false
+
+RunService.PreSimulation:Connect(function()
+	local a = active
+	if not a then
+		return
+	end
+	local keys = swingKeys
+	local started = swingStart
+	if keys and started then
+		a.pose = ThrowPose.sample(keys, os.clock() - started)
+	end
+	local animator = animatorOf(a.character)
+	-- Skip throttled frames as the docs advise (the Animator didn't write
+	-- Transform, so layering again would compound the offset).
+	if animator and animator.EvaluationThrottled then
+		return
+	end
+	for slot, joint in a.rig do
+		local e = (a.pose :: any)[slot] :: { number }? -- Pose fields indexed by slot name
+		if e then
+			local rot = CFrame.Angles(e[1], e[2], e[3])
+			if joint:IsA("AnimationConstraint") then
+				joint.Transform = rot * joint.Transform
+			elseif joint:IsA("Motor6D") then
+				joint.Transform = rot * joint.Transform
+			end
+		end
+	end
+end)
+
+local function hold(character: Model?, pose: Pose)
+	if not character then
+		active = nil
+		return
+	end
+	local a = active
+	if a and a.character == character then
+		a.pose = pose
+	else
+		active = { character = character, rig = findRig(character), pose = pose }
+	end
+end
 
 -- Hold the anticipation pose for a meter fill of 0..1.
 function ThrowAnimator.charge(character: Model?, fill: number)
-	if swinging then
+	if swingStart then
 		return
 	end
 	lastCharge = if GuiService.ReducedMotionEnabled then ThrowPose.REST else ThrowPose.charge(fill, Config.UI)
-	apply(rig(character), lastCharge)
+	hold(character, lastCharge)
 end
 
--- Back to the rest pose (leaving the throw spot, respawn).
-function ThrowAnimator.reset(character: Model?)
+-- Back to the plain animation (leaving the throw spot, respawn).
+function ThrowAnimator.reset(_character: Model?)
 	lastCharge = ThrowPose.REST
-	apply(rig(character), ThrowPose.REST)
+	swingStart = nil
+	swingKeys = nil
+	active = nil
 end
 
 local function handPosition(character: Model?): Vector3
@@ -102,31 +138,27 @@ end
 -- release frame; returns the total length in seconds.
 function ThrowAnimator.swing(character: Model?, onRelease: (Vector3) -> ()): number
 	local cfg = Config.Throw
-	local keys = ThrowPose.keys(cfg, lastCharge)
 	local total = ThrowPose.totalTime(cfg)
 	local releaseAt = ThrowPose.releaseTime(cfg)
-	local r = rig(character)
-	if GuiService.ReducedMotionEnabled or next(r) == nil then
+	local rig = findRig(character)
+	if GuiService.ReducedMotionEnabled or next(rig) == nil then
 		-- No animation: release straight away so the throw never stalls.
 		task.defer(onRelease, handPosition(character))
 		return 0
 	end
-	swinging = true
+	swingKeys = ThrowPose.keys(cfg, lastCharge)
 	local start = os.clock()
-	local released = false
-	local connection: RBXScriptConnection
-	connection = RunService.RenderStepped:Connect(function()
-		local t = os.clock() - start
-		apply(r, ThrowPose.sample(keys, t))
-		if not released and t >= releaseAt then
-			released = true
-			onRelease(handPosition(character))
-		end
-		if t >= total then
-			connection:Disconnect()
-			apply(r, ThrowPose.REST)
+	swingStart = start
+	hold(character, lastCharge)
+	task.delay(releaseAt, function()
+		onRelease(handPosition(character))
+	end)
+	task.delay(total, function()
+		if swingStart == start then
+			swingStart = nil
+			swingKeys = nil
 			lastCharge = ThrowPose.REST
-			swinging = false
+			active = nil
 		end
 	end)
 	return total
