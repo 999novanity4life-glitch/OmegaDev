@@ -313,7 +313,7 @@ function PremiumHUD.meter(parent: Instance): Meter
 	perfect.TextXAlignment = Enum.TextXAlignment.Left
 	outline(perfect, Color3.fromRGB(106, 58, 0), 2)
 
-	local marker = frame("Marker", root, Color3.new(1, 1, 1), UDim2.new(1.5, 0, 0.03, 0), UDim2.fromScale(0.5, 0.5))
+	local marker = frame("Marker", root, Color3.new(1, 1, 1), UDim2.fromScale(1.5, 0.03), UDim2.fromScale(0.5, 0.5))
 	marker.ZIndex = 3
 	corner(marker, 0.5)
 	local markerGlow = Instance.new("UIStroke")
@@ -326,8 +326,8 @@ function PremiumHUD.meter(parent: Instance): Meter
 		"Bubble",
 		marker,
 		Color3.new(1, 1, 1),
-		UDim2.new(1.9, 0, 3.4, 0),
-		UDim2.new(1.15, 0, 0.5, 0),
+		UDim2.fromScale(1.9, 3.4),
+		UDim2.fromScale(1.15, 0.5),
 		Vector2.new(0, 0.5)
 	)
 	bubble.ZIndex = 3
