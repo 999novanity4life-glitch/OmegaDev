@@ -182,10 +182,10 @@ function ThrowFX.releaseBurst(at: Vector3, rarityColor: Color3, forward: Vector3
 	local star = fxPart("Starburst", Enum.PartType.Ball, Color3.new(1, 1, 1), Vector3.new(1, 1, 1), CFrame.new(at))
 	local light = Instance.new("PointLight")
 	light.Color = Color3.new(1, 1, 1)
-	light.Brightness = 6
+	light.Brightness = 4
 	light.Range = 14
 	light.Parent = star
-	fadeOut(star, 0.22, { Size = Vector3.new(3, 3, 3) * big })
+	fadeOut(star, 0.2, { Size = Vector3.new(2, 2, 2) * big })
 	-- shockwave: a flat cylinder facing along the throw (cylinder axis = X)
 	local ring = fxPart(
 		"Shockwave",
