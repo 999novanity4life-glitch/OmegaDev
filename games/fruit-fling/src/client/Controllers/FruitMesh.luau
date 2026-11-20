@@ -3,6 +3,10 @@
 -- Shared/FruitMeshes are built here with EditableMesh + CreateMeshPartAsync:
 -- a MeshPart made this way in Studio does not replicate, so each client
 -- builds its own copy. One template per fruit is cached and cloned.
+-- The MeshPart renders from the live EditableMesh (destroying it blanks the
+-- part), and a client only gets a few live EditableMeshes (Studio: the 9th
+-- failed with "reaching memory budget limits"), so at most MAX_CACHED fruits
+-- stay built; the oldest is freed when another is needed.
 -- APIs: AssetService:CreateEditableMesh, EditableMesh:AddVertex/AddTriangle/
 -- AddColor/SetFaceColors, AssetService:CreateMeshPartAsync(Content.fromObject)
 -- https://create.roblox.com/docs/reference/engine/classes/EditableMesh
@@ -21,7 +25,34 @@ local FruitMesh = {}
 local GLOW_THRESHOLD = 0.25 -- glow-mask average that counts as a crevice
 local SHELL_PUSH = 1.03 -- the glow shell sits just outside the body
 
-local templates: { [string]: Model | false } = {}
+local MAX_CACHED = 3 -- fruits kept built (2 meshes each: body + glow shell)
+
+type Entry = { model: Model, meshes: { EditableMesh } }
+local templates: { [string]: Entry } = {}
+local failed: { [string]: boolean } = {} -- keys that could not be built
+local order: { string } = {} -- least recently used first
+
+local function touch(key: string)
+	local i = table.find(order, key)
+	if i then
+		table.remove(order, i)
+	end
+	table.insert(order, key)
+end
+
+local function evict()
+	while #order >= MAX_CACHED do
+		local old = table.remove(order, 1) :: string
+		local e = templates[old]
+		templates[old] = nil
+		if e then
+			e.model:Destroy()
+			for _, em in e.meshes do
+				em:Destroy()
+			end
+		end
+	end
+end
 
 local function glowOf(key: string): Color3
 	for _, f in Config.Fruits do
@@ -32,9 +63,16 @@ local function glowOf(key: string): Color3
 	return Color3.new(1, 1, 1)
 end
 
-local function meshPart(mesh: FruitMeshData.Mesh, tris: { { number } }, scale: number, colored: boolean): MeshPart?
+local function meshPart(
+	mesh: FruitMeshData.Mesh,
+	tris: { { number } },
+	scale: number,
+	colored: boolean,
+	keep: { EditableMesh }
+): MeshPart?
 	local ok, result = pcall(function()
-		local em = AssetService:CreateEditableMesh()
+		local em = AssetService:CreateEditableMesh({ FixedSize = true })
+		table.insert(keep, em)
 		local ids: { [number]: number } = {}
 		local colors: { [number]: number } = {}
 		local function vertex(i: number): number
@@ -56,12 +94,7 @@ local function meshPart(mesh: FruitMeshData.Mesh, tris: { { number } }, scale: n
 				em:SetFaceColors(face, { colors[tri[1]], colors[tri[2]], colors[tri[3]] })
 			end
 		end
-		local part = AssetService:CreateMeshPartAsync(Content.fromObject(em))
-		-- The part keeps its own copy; free the EditableMesh so the client's
-		-- EditableMesh memory budget isn't spent (Studio: the 9th live mesh
-		-- failed with "reaching memory budget limits").
-		em:Destroy()
-		return part
+		return AssetService:CreateMeshPartAsync(Content.fromObject(em))
 	end)
 	if ok and result and result:IsA("MeshPart") then
 		return result
@@ -74,15 +107,17 @@ end
 -- PrimaryPart "Body" is the vertex-coloured fruit and "GlowShell" a Neon copy
 -- of its crevices, welded. `nil` if the key is unknown or building failed.
 function FruitMesh.get(key: string): Model?
-	local cached = templates[key]
-	if cached == nil then
-		templates[key] = false
+	local cached: Entry? = templates[key]
+	if not cached and not failed[key] then
+		evict()
+		failed[key] = true
+		local keep: { EditableMesh } = {}
 		local folder = Shared:FindFirstChild("FruitMeshes")
 		local source = folder and folder:FindFirstChild(key)
 		if source and source:IsA("ModuleScript") then
 			local data = (require :: any)(source) :: { v: string, t: string }
 			local mesh = FruitMeshData.parse(data.v, data.t)
-			local body = meshPart(mesh, mesh.tris, 1, true)
+			local body = meshPart(mesh, mesh.tris, 1, true, keep)
 			if body then
 				local model = Instance.new("Model")
 				model.Name = key
@@ -92,7 +127,7 @@ function FruitMesh.get(key: string): Model?
 				body.CastShadow = true
 				body.Parent = model
 				model.PrimaryPart = body
-				local shell = meshPart(mesh, FruitMeshData.glowTris(mesh, GLOW_THRESHOLD), SHELL_PUSH, false)
+				local shell = meshPart(mesh, FruitMeshData.glowTris(mesh, GLOW_THRESHOLD), SHELL_PUSH, false, keep)
 				if shell then
 					shell.Name = "GlowShell"
 					shell.Material = Enum.Material.Neon
@@ -116,13 +151,16 @@ function FruitMesh.get(key: string): Model?
 						p.Massless = true
 					end
 				end
-				templates[key] = model
-				cached = model
+				local entry = { model = model, meshes = keep }
+				templates[key] = entry
+				failed[key] = nil
+				cached = entry
 			end
 		end
 	end
-	if typeof(cached) == "Instance" and cached:IsA("Model") then
-		return cached:Clone()
+	if cached then
+		touch(key)
+		return cached.model:Clone()
 	end
 	return nil
 end
