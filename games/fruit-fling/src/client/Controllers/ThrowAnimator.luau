@@ -369,16 +369,20 @@ local previewT: number? = nil
 -- If Transform still holds what we wrote, the base is the one we saved.
 local layered: { [Instance]: { written: CFrame, base: CFrame } } = {}
 
+-- Transform on a Motor6D or AnimationConstraint (both have it; the rig
+-- table is typed Instance, so `any` here only bridges the union).
+local function getTransform(joint: Instance): CFrame
+	return (joint :: any).Transform
+end
+
+local function setTransform(joint: Instance, cf: CFrame)
+	(joint :: any).Transform = cf
+end
+
 local function unlayer()
 	for joint, st in layered do
-		if joint:IsA("AnimationConstraint") then
-			if joint.Transform:FuzzyEq(st.written, 1e-4) then
-				joint.Transform = st.base
-			end
-		elseif joint:IsA("Motor6D") then
-			if joint.Transform:FuzzyEq(st.written, 1e-4) then
-				joint.Transform = st.base
-			end
+		if getTransform(joint):FuzzyEq(st.written, 1e-4) then
+			setTransform(joint, st.base)
 		end
 	end
 	table.clear(layered)
@@ -408,20 +412,13 @@ end
 -- The throw overrides the playing animation (avatar idles can be heavily
 -- posed: a hunched idle measured Waist -0.59 rad, LeftHip 1.08 rad), blended
 -- by `weight` 0..1 so it eases in and back out to the idle.
-local function layer(joint: Instance, rot: CFrame, weight: number)
+local function layer(joint: Instance, rot: CFrame, w: number)
 	local st = layered[joint]
-	local function base(cur: CFrame): CFrame
-		return if st and cur:FuzzyEq(st.written, 1e-4) then st.base else cur
-	end
-	if joint:IsA("AnimationConstraint") then
-		local b = base(joint.Transform)
-		joint.Transform = b:Lerp(rot, weight)
-		layered[joint] = { written = joint.Transform, base = b }
-	elseif joint:IsA("Motor6D") then
-		local b = base(joint.Transform)
-		joint.Transform = b:Lerp(rot, weight)
-		layered[joint] = { written = joint.Transform, base = b }
-	end
+	local cur = getTransform(joint)
+	local b = if st and cur:FuzzyEq(st.written, 1e-4) then st.base else cur
+	local written = b:Lerp(rot, w)
+	setTransform(joint, written)
+	layered[joint] = { written = written, base = b }
 end
 
 -- The throwing shoulder turns about the upper arm's own axis (the twist that
