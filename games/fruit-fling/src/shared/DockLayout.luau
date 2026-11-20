@@ -73,6 +73,7 @@ export type DockConfig = {
 	GroupSize: { number },
 	BuntingEvery: number,
 	BuntingPoleHeight: number,
+	OverheadLanterns: number?,
 	LaneLength: number,
 	BuoyEvery: number,
 	SeaStackEvery: number,
@@ -220,6 +221,36 @@ local function pier(plan: Plan, cfg: DockConfig, rng: Rng.Rng)
 	end
 end
 
+-- Ref R3: lanterns hang under a rope at even points, skipping the ends (poles) and
+-- the centre of the pier so the camera line over the thrower stays clean (M10).
+local CORD = 0.8
+local LANTERN = { x = 0.8, y = 1.2, z = 0.8 }
+
+local function hangLanterns(plan: Plan, cfg: DockConfig, points: { Vec3 })
+	local count = cfg.OverheadLanterns or 3
+	if count <= 0 then
+		return
+	end
+	for k = 1, count do
+		local i = math.clamp(math.floor(k / (count + 1) * (#points - 1) + 0.5) + 1, 2, #points - 1)
+		local at = points[i]
+		if math.abs(at.x) >= cfg.LaneKeepClearHalfWidth then
+			addPlacement(plan, {
+				kind = "HangingLantern",
+				area = "Pier",
+				tier = "Micro",
+				pos = v(at.x, at.y - CORD - LANTERN.y / 2, at.z),
+				size = v(LANTERN.x, LANTERN.y, LANTERN.z),
+				yaw = 0,
+				tilt = 0,
+				why = "ref R3 warm lanterns hung overhead; M41 light pools",
+			})
+		end
+	end
+end
+
+DockLayout.LanternCord = CORD
+
 -- Overhead layer (M36): bunting across the pier between pole pairs.
 local function overhead(plan: Plan, cfg: DockConfig)
 	local z = cfg.ThrowEdgeZ + cfg.BuntingEvery
@@ -239,15 +270,33 @@ local function overhead(plan: Plan, cfg: DockConfig)
 			})
 			table.insert(tops, v(x, cfg.DeckHeight + cfg.BuntingPoleHeight - 0.5, z))
 		end
+		local across = Catenary.points(tops[1], tops[2], Catenary.sagFor(cfg.PierHalfWidth * 2, 0.12), 12)
 		table.insert(plan.ropes, {
 			kind = "Bunting",
 			area = "Pier",
 			tier = "Micro",
-			points = Catenary.points(tops[1], tops[2], Catenary.sagFor(cfg.PierHalfWidth * 2, 0.12), 12),
+			points = across,
 			thickness = 0.15,
 			why = "M36 overhead layer in every shot; M40 sag",
 		})
-		z += cfg.BuntingEvery
+		hangLanterns(plan, cfg, across)
+		-- ref R3: a sagging lantern string also runs along each pier edge to the next pole pair
+		local nextZ = z + cfg.BuntingEvery
+		if nextZ < cfg.ShoreZ - 4 then
+			for _, top in tops do
+				local along = Catenary.points(top, v(top.x, top.y, nextZ), Catenary.sagFor(cfg.BuntingEvery, 0.1), 12)
+				table.insert(plan.ropes, {
+					kind = "Rope",
+					area = "Pier",
+					tier = "Micro",
+					points = along,
+					thickness = 0.12,
+					why = "ref R3 lantern string along the pier edge; M40 sag",
+				})
+				hangLanterns(plan, cfg, along)
+			end
+		end
+		z = nextZ
 	end
 end
 
@@ -469,7 +518,14 @@ local function laneEnd(plan: Plan, cfg: DockConfig)
 	})
 end
 
--- Harbour cove (M44): terraced cliff bowl around the harbour, open toward the lane.
+-- Harbour cove (M44), styled after Sharman's map-style video (2026-11-20): grass
+-- ledges ringed by chunky faceted boulders, low-poly trees and crystal clusters,
+-- a stepping-stone path across a grass beach. Open toward the lane.
+local function arcPoint(centre: Vec3, radius: number, deg: number): (number, number)
+	local r = math.rad(deg)
+	return centre.x + math.cos(r) * radius, centre.z + math.sin(r) * radius
+end
+
 local function cove(plan: Plan, cfg: DockConfig, rng: Rng.Rng)
 	local centre = v(0, 0, cfg.ShoreZ - 40)
 	-- arc from -25 deg to 205 deg, where 90 deg points +Z (behind the player);
@@ -479,42 +535,129 @@ local function cove(plan: Plan, cfg: DockConfig, rng: Rng.Rng)
 		local top = cfg.WaterY + t * cfg.TerraceStep
 		local a = -25
 		while a <= 205 do
-			local rad = math.rad(a)
-			local x = centre.x + math.cos(rad) * radius
-			local z = centre.z + math.sin(rad) * radius
-			local h = top - cfg.SeabedY + rng:range(-4, 6)
+			local x, z = arcPoint(centre, radius, a)
+			local h = top - cfg.SeabedY
+			-- grass ledge (terrain) the boulders sit on
 			table.insert(plan.terrain, {
-				material = if t == 1 then "Rock" else "Slate",
+				material = "Rock",
 				shape = "Block",
-				pos = v(x, cfg.SeabedY + h / 2, z),
-				size = v(radius * math.rad(14) * 1.3, h, 30),
+				pos = v(x, cfg.SeabedY + (h - 4) / 2, z),
+				size = v(radius * math.rad(14) * 1.3, h - 4, 30),
 				yaw = -a + 90,
 				why = "M44 terraced bowl encloses the harbour (M13 boundary scenery)",
 			})
+			table.insert(plan.terrain, {
+				material = "Grass",
+				shape = "Block",
+				pos = v(x, top - 2, z),
+				size = v(radius * math.rad(14) * 1.3, 4, 30),
+				yaw = -a + 90,
+				why = "ref video: lime grass on every ledge",
+			})
 			a += 12
 		end
+		-- boulder ring on the back edge of the ledge, two staggered rows (ref video)
+		for row = 0, 1 do
+			local rr = radius + 10 + row * 7
+			local deg = -25 + rng:range(0, 4)
+			while deg <= 205 do
+				local s = rng:range(16, 28) * (1 - 0.15 * row)
+				local x, z = arcPoint(centre, rr, deg)
+				addPlacement(plan, {
+					kind = "Boulder",
+					area = "Harbour",
+					tier = "Macro",
+					pos = v(x, top + s * (0.18 + 0.12 * row), z),
+					size = v(s, s * rng:range(0.65, 0.9), s * rng:range(0.85, 1.1)),
+					yaw = rng:range(0, 360),
+					tilt = rng:range(-10, 10),
+					why = "ref video: faceted lavender boulder ring is the boundary (M13, M44)",
+				})
+				deg += math.deg(s * 0.62 / rr)
+			end
+		end
+		-- low-poly trees and bushes on the ledge in front of the boulders (M38 clusters)
+		local deg = -20 + rng:range(0, 10)
+		while deg <= 200 do
+			local x, z = arcPoint(centre, radius + rng:range(-6, 4), deg)
+			local isTree = rng:next() < 0.6
+			local s = if isTree then rng:range(9, 14) else rng:range(4, 6)
+			if not (t == 1 and deg > 72 and deg < 112) then -- keep the hut ledge clear
+				addPlacement(plan, {
+					kind = if isTree then "Tree" else "Bush",
+					area = "Harbour",
+					tier = "Meso",
+					pos = v(x, top + s / 2, z),
+					size = v(s * 0.9, s, s * 0.9),
+					yaw = rng:range(0, 360),
+					tilt = 0,
+					why = "ref video: low-poly trees and bushes soften the rock ring",
+				})
+			end
+			deg += rng:range(14, 26)
+		end
 	end
-	-- beach at the back of the cove: the pier starts on it and it runs up to
-	-- the first terrace (M37 material band between deck, water and rock)
+	-- crystal clusters at the foot of the first boulder row
+	for i = 1, 6 do
+		local x, z = arcPoint(centre, cfg.CoveRadius + 4, -15 + i * 34 + rng:range(-6, 6))
+		local s = rng:range(5, 8)
+		addPlacement(plan, {
+			kind = "Crystal",
+			area = "Harbour",
+			tier = "Micro",
+			pos = v(x, cfg.WaterY + cfg.TerraceStep + s / 2, z),
+			size = v(s, s, s),
+			yaw = rng:range(0, 360),
+			tilt = 0,
+			why = "ref video: crystal clusters as glowing accents among the rocks",
+		})
+	end
+	-- grass beach with a sand rim where the pier meets the shore (M37 bands)
 	table.insert(plan.terrain, {
 		material = "Sand",
 		shape = "Cylinder",
-		pos = v(0, cfg.WaterY - 2, cfg.ShoreZ + 70),
-		size = v(160, 8, 160),
+		pos = v(0, cfg.WaterY - 2.5, cfg.ShoreZ + 70),
+		size = v(176, 7, 176),
 		yaw = 0,
-		why = "M37 sand beach where the pier meets the shore",
+		why = "M37 sand rim between water and grass",
 	})
-	-- huts cluster on the first ledge (M44), not spread evenly
+	table.insert(plan.terrain, {
+		material = "Grass",
+		shape = "Cylinder",
+		pos = v(0, cfg.WaterY - 2, cfg.ShoreZ + 72),
+		size = v(150, 8, 150),
+		yaw = 0,
+		why = "ref video: lime grass beach behind the pier",
+	})
+	-- stepping-stone path from the pier foot toward the huts (ref video)
+	local beachTop = cfg.WaterY + 2
+	for i = 0, 11 do
+		local tt = i / 11
+		local px = 10 * math.sin(tt * math.pi * 1.2) + rng:range(-1, 1)
+		local pz = cfg.ShoreZ + 6 + tt * 62
+		local s = rng:range(3.2, 4.2)
+		addPlacement(plan, {
+			kind = "SteppingStone",
+			area = "Harbour",
+			tier = "Gameplay",
+			pos = v(px, beachTop + 0.15, pz),
+			size = v(s, 0.3, s),
+			yaw = rng:range(0, 60),
+			tilt = 0,
+			why = "ref video: purple hex stepping stones lead from the pier to the village (M16)",
+		})
+	end
+	-- huts cluster on the first ledge (M44), in front of the boulder ring
 	for i = 1, 4 do
-		local a = math.rad(70 + i * 9 + rng:range(-3, 3))
-		local r = cfg.CoveRadius + 8
+		local a = 72 + i * 10 + rng:range(-1, 1)
+		local x, z = arcPoint(centre, cfg.CoveRadius - 4, a)
 		addPlacement(plan, {
 			kind = "Hut",
 			area = "Harbour",
 			tier = "Meso",
-			pos = v(math.cos(a) * r, cfg.WaterY + cfg.TerraceStep + 5, centre.z + math.sin(a) * r),
+			pos = v(x, cfg.WaterY + cfg.TerraceStep + 5, z),
 			size = v(rng:range(10, 14), 10, rng:range(9, 12)),
-			yaw = -math.deg(a) + 90 + rng:range(-8, 8),
+			yaw = -a + 90 + rng:range(-8, 8),
 			tilt = 0,
 			why = "M44 buildings cluster on a ledge; a village lives here (M11)",
 		})

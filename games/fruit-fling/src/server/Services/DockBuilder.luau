@@ -40,6 +40,26 @@ local PALETTE = {
 	Whitewash = Color3.fromRGB(236, 232, 224),
 	Red = Color3.fromRGB(176, 44, 38),
 	Fruit = Color3.fromRGB(122, 52, 168),
+	-- Style A (Sharman's map-style video, 2026-11-20): bright low-poly fantasy.
+	Boulder = Color3.fromRGB(125, 143, 230),
+	Leaf = Color3.fromRGB(78, 196, 92),
+	Trunk = Color3.fromRGB(138, 75, 42),
+	Crystal = Color3.fromRGB(90, 230, 255),
+	Hex = Color3.fromRGB(107, 95, 201),
+	Timber = Color3.fromRGB(196, 104, 44),
+	Plaster = Color3.fromRGB(244, 236, 220),
+	TealRoof = Color3.fromRGB(44, 150, 140),
+	Grass = Color3.fromRGB(96, 214, 96),
+	Water = Color3.fromRGB(30, 170, 190),
+}
+
+-- Style A terrain colours. Terrain:SetMaterialColor and Terrain.WaterColor are
+-- on the Terrain engine reference page.
+local TERRAIN_COLOURS: { [Enum.Material]: Color3 } = {
+	[Enum.Material.Grass] = PALETTE.Grass,
+	[Enum.Material.Rock] = PALETTE.Boulder,
+	[Enum.Material.Slate] = Color3.fromRGB(104, 118, 200),
+	[Enum.Material.Sand] = Color3.fromRGB(236, 214, 160),
 }
 
 local function cf(p: Placement): CFrame
@@ -77,6 +97,22 @@ local function new(
 	return part
 end
 
+-- A Part with Shape = Cylinder (round axis = local X, rule M19). Every piece
+-- placed with upright() goes through this, else it renders as a square post.
+local function newCyl(
+	parent: Instance,
+	name: string,
+	size: Vector3,
+	cframe: CFrame,
+	color: Color3,
+	material: Enum.Material,
+	micro: boolean
+): Part
+	local part = new(parent, name, size, cframe, color, material, micro)
+	part.Shape = Enum.PartType.Cylinder
+	return part
+end
+
 -- Cylinder whose round axis is world-up. Part cylinders run along X (M19),
 -- so roll by 90 degrees about Z.
 local function upright(cframe: CFrame): CFrame
@@ -108,6 +144,111 @@ local function model(p: Placement, parent: Instance): Model
 		m:SetAttribute("StoryGroup", p.group)
 	end
 	m.Parent = parent
+	return m
+end
+
+-- Style kit meshes: MeshParts under ReplicatedStorage.StyleKit named
+-- <Kind>_<n> (made from assets/kit_styleA). If one exists, clone it at the
+-- placement's CFrame and size; otherwise the caller builds a part stand-in.
+local function styleMesh(p: Placement, m: Model, variants: number): boolean
+	local kit = ReplicatedStorage:FindFirstChild("StyleKit")
+	if not kit then
+		return false
+	end
+	local pick = 1 + (math.floor(math.abs(p.pos.x * 7 + p.pos.z * 13)) % variants)
+	local template = kit:FindFirstChild(`{p.kind}_{pick}`) or kit:FindFirstChild(`{p.kind}_1`)
+	if not (template and template:IsA("BasePart")) then
+		return false
+	end
+	local part = template:Clone()
+	part.Anchored = true
+	part.Size = vec(p.size)
+	part.CFrame = cf(p)
+	part.Parent = m
+	return true
+end
+
+Kit.Boulder = function(p, parent)
+	local m = model(p, parent)
+	if not styleMesh(p, m, 4) then
+		local s = vec(p.size)
+		local rock = new(m, "Rock", s, cf(p), PALETTE.Boulder, Enum.Material.Rock, false)
+		rock.Shape = Enum.PartType.Ball
+	end
+	return m
+end
+
+Kit.Tree = function(p, parent)
+	local m = model(p, parent)
+	if not styleMesh(p, m, 3) then
+		local s = vec(p.size)
+		newCyl(
+			m,
+			"Trunk",
+			Vector3.new(s.Y * 0.55, s.X * 0.14, s.X * 0.14),
+			upright(cf(p) * CFrame.new(0, -s.Y * 0.2, 0)),
+			PALETTE.Trunk,
+			Enum.Material.Wood,
+			false
+		)
+		local crown = new(
+			m,
+			"Crown",
+			Vector3.new(s.X, s.X, s.X),
+			cf(p) * CFrame.new(0, s.Y * 0.2, 0),
+			PALETTE.Leaf,
+			Enum.Material.Grass,
+			false
+		)
+		crown.Shape = Enum.PartType.Ball
+	end
+	return m
+end
+
+Kit.Bush = function(p, parent)
+	local m = model(p, parent)
+	if not styleMesh(p, m, 1) then
+		local bush = new(m, "Bush", vec(p.size), cf(p), PALETTE.Leaf, Enum.Material.Grass, true)
+		bush.Shape = Enum.PartType.Ball
+	end
+	return m
+end
+
+Kit.Crystal = function(p, parent)
+	local m = model(p, parent)
+	if not styleMesh(p, m, 2) then
+		local s = vec(p.size)
+		local c = new(
+			m,
+			"Crystal",
+			Vector3.new(s.X * 0.4, s.Y, s.Z * 0.4),
+			cf(p) * CFrame.Angles(0, 0, math.rad(8)),
+			PALETTE.Crystal,
+			Enum.Material.Neon,
+			false
+		)
+		c.Transparency = 0.15
+	end
+	local glow = m:FindFirstChildWhichIsA("BasePart")
+	if glow then
+		lightOn(glow, PALETTE.Crystal, 14, 1.2)
+	end
+	return m
+end
+
+Kit.SteppingStone = function(p, parent)
+	local m = model(p, parent)
+	if not styleMesh(p, m, 1) then
+		newCyl(
+			m,
+			"Stone",
+			Vector3.new(p.size.y, p.size.x, p.size.z),
+			upright(cf(p)),
+			PALETTE.Hex,
+			Enum.Material.Slate,
+			false
+		)
+	end
 	return m
 end
 
@@ -161,11 +302,11 @@ end
 Kit.Piling = function(p, parent)
 	local m = model(p, parent)
 	local s = vec(p.size)
-	new(m, "Post", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.WoodDark, Enum.Material.Wood, false)
+	newCyl(m, "Post", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.WoodDark, Enum.Material.Wood, false)
 	-- M35 trim: iron band near the top and a cap
 	local top = cf(p) * CFrame.new(0, s.Y / 2 - 1.2, 0)
-	new(m, "Band", Vector3.new(0.35, s.X + 0.2, s.X + 0.2), upright(top), PALETTE.Iron, Enum.Material.Metal, true)
-	new(
+	newCyl(m, "Band", Vector3.new(0.35, s.X + 0.2, s.X + 0.2), upright(top), PALETTE.Iron, Enum.Material.Metal, true)
+	newCyl(
 		m,
 		"Cap",
 		Vector3.new(0.4, s.X + 0.4, s.X + 0.4),
@@ -187,10 +328,26 @@ Kit.Lantern = function(p, parent)
 	return m
 end
 
+Kit.HangingLantern = function(p, parent)
+	local m = Kit.Lantern(p, parent)
+	local s = vec(p.size)
+	local cord = DockLayout.LanternCord
+	new(
+		m,
+		"Cord",
+		Vector3.new(0.08, cord, 0.08),
+		cf(p) * CFrame.new(0, s.Y / 2 + cord / 2, 0),
+		PALETTE.Rope,
+		Enum.Material.Fabric,
+		true
+	)
+	return m
+end
+
 Kit.BuntingPole = function(p, parent)
 	local m = model(p, parent)
 	local s = vec(p.size)
-	new(m, "Pole", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.Wood, Enum.Material.Wood, false)
+	newCyl(m, "Pole", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.Wood, Enum.Material.Wood, false)
 	return m
 end
 
@@ -249,7 +406,7 @@ end
 local function cylinderProp(p: Placement, parent: Instance, color: Color3, material: Enum.Material): Model
 	local m = model(p, parent)
 	local s = vec(p.size)
-	new(m, p.kind, Vector3.new(s.Y, s.X, s.Z), upright(cf(p)), color, material, true)
+	newCyl(m, p.kind, Vector3.new(s.Y, s.X, s.Z), upright(cf(p)), color, material, true)
 	return m
 end
 
@@ -257,7 +414,7 @@ Kit.Barrel = function(p, parent)
 	local m = cylinderProp(p, parent, PALETTE.Wood, Enum.Material.Wood)
 	local s = vec(p.size)
 	for _, y in { -0.3, 0.3 } do
-		new(
+		newCyl(
 			m,
 			"Hoop",
 			Vector3.new(0.2, s.X + 0.08, s.X + 0.08),
@@ -337,7 +494,7 @@ end
 Kit.Mast = function(p, parent)
 	local m = model(p, parent)
 	local s = vec(p.size)
-	new(m, "Mast", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.Wood, Enum.Material.Wood, false)
+	newCyl(m, "Mast", Vector3.new(s.Y, s.X, s.X), upright(cf(p)), PALETTE.Wood, Enum.Material.Wood, false)
 	return m
 end
 
@@ -347,25 +504,92 @@ Kit.Sail = function(p, parent)
 	return m
 end
 
+-- Style A Tudor cottage: stone base, white plaster, orange timber frame, teal roof.
 Kit.Hut = function(p, parent)
 	local m = model(p, parent)
 	local s = vec(p.size)
-	new(m, "Walls", s, cf(p), PALETTE.Whitewash, Enum.Material.Plaster, false)
-	local roof = new(
+	local base = cf(p)
+	local baseH = s.Y * 0.22
+	new(
 		m,
-		"Roof",
-		Vector3.new(s.X + 1.5, s.Y * 0.5, s.Z + 1.5),
-		cf(p) * CFrame.new(0, s.Y * 0.75, 0),
-		PALETTE.Red,
-		Enum.Material.Slate,
+		"StoneBase",
+		Vector3.new(s.X + 0.6, baseH, s.Z + 0.6),
+		base * CFrame.new(0, -s.Y / 2 + baseH / 2, 0),
+		PALETTE.Stone,
+		Enum.Material.Cobblestone,
 		false
 	)
-	roof.Shape = Enum.PartType.Wedge
+	new(
+		m,
+		"Walls",
+		Vector3.new(s.X, s.Y - baseH, s.Z),
+		base * CFrame.new(0, baseH / 2, 0),
+		PALETTE.Plaster,
+		Enum.Material.Plaster,
+		false
+	)
+	-- timber frame: corner posts, a mid rail and diagonal braces on each face
+	local beam = 0.45
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			new(
+				m,
+				"Post",
+				Vector3.new(beam, s.Y - baseH, beam),
+				base * CFrame.new(sx * (s.X / 2 + 0.05), baseH / 2, sz * (s.Z / 2 + 0.05)),
+				PALETTE.Timber,
+				Enum.Material.Wood,
+				true
+			)
+		end
+	end
+	for _, sz in { -1, 1 } do
+		new(
+			m,
+			"Rail",
+			Vector3.new(s.X + 0.2, beam, beam),
+			base * CFrame.new(0, s.Y * 0.18, sz * (s.Z / 2 + 0.1)),
+			PALETTE.Timber,
+			Enum.Material.Wood,
+			true
+		)
+		for _, sx in { -1, 1 } do
+			local h = (s.Y - baseH) * 0.45
+			local w = s.X * 0.35
+			new(
+				m,
+				"Brace",
+				Vector3.new(beam, math.sqrt(h * h + w * w), beam),
+				base
+					* CFrame.new(sx * s.X * 0.28, s.Y * 0.18 + h / 2, sz * (s.Z / 2 + 0.1))
+					* CFrame.Angles(0, 0, sx * math.atan2(w, h)),
+				PALETTE.Timber,
+				Enum.Material.Wood,
+				true
+			)
+		end
+	end
+	-- pitched roof from two wedges meeting at the ridge
+	local roofH = s.Y * 0.6
+	for _, side in { -1, 1 } do
+		local wedge = new(
+			m,
+			"Roof",
+			Vector3.new(s.X + 2, roofH, s.Z / 2 + 1),
+			base
+				* CFrame.new(0, s.Y / 2 + roofH / 2, side * (s.Z / 4 + 0.5))
+				* CFrame.Angles(0, if side < 0 then 0 else math.pi, 0),
+			PALETTE.TealRoof,
+			Enum.Material.Slate,
+			false
+		)
+		wedge.Shape = Enum.PartType.Wedge
+	end
 	local window = new(
 		m,
 		"Window",
 		Vector3.new(2, 2, 0.2),
-		cf(p) * CFrame.new(0, 0.5, -s.Z / 2 - 0.1),
+		base * CFrame.new(0, s.Y * 0.05, -s.Z / 2 - 0.15),
 		PALETTE.LanternGlow,
 		Enum.Material.Neon,
 		true
@@ -377,8 +601,15 @@ end
 Kit.Buoy = function(p, parent)
 	local m = model(p, parent)
 	local s = vec(p.size)
-	local body =
-		new(m, "Body", Vector3.new(s.Y * 0.6, s.X, s.X), upright(cf(p)), PALETTE.Red, Enum.Material.SmoothPlastic, true)
+	local body = newCyl(
+		m,
+		"Body",
+		Vector3.new(s.Y * 0.6, s.X, s.X),
+		upright(cf(p)),
+		PALETTE.Red,
+		Enum.Material.SmoothPlastic,
+		true
+	)
 	body.CanQuery = true -- fruit can bonk it
 	local lamp = new(
 		m,
@@ -443,7 +674,7 @@ Kit.Lighthouse = function(p, parent)
 	for i = 0, drums - 1 do
 		local h = s.Y / drums
 		local w = s.X * (1 - 0.06 * i)
-		new(
+		newCyl(
 			m,
 			"Drum" .. i,
 			Vector3.new(h, w, w),
@@ -453,7 +684,7 @@ Kit.Lighthouse = function(p, parent)
 			false
 		)
 	end
-	new(
+	newCyl(
 		m,
 		"Gallery",
 		Vector3.new(1, s.X * 0.95, s.X * 0.95),
@@ -594,6 +825,11 @@ function DockBuilder.build(): CFrame
 		return f
 	end
 
+	local terrain = workspace.Terrain
+	for material, colour in TERRAIN_COLOURS do
+		terrain:SetMaterialColor(material, colour)
+	end
+	terrain.WaterColor = PALETTE.Water
 	for _, op in plan.terrain do
 		terrainOp(op)
 	end

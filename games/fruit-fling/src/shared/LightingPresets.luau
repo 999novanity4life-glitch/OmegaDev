@@ -135,6 +135,34 @@ local PRESETS: { [string]: Preset } = {
 		bloom = { Intensity = 0.4, Size = 40, Threshold = 1.5 },
 		colorCorrection = { Contrast = 0.1, Saturation = -0.2 },
 	},
+	-- [REF] Sharman's map-style video (2026-11-20, CallMeDogey "What Is The BEST AI
+	-- For BUILDING Roblox Games?", frames in project files map-style-ref-2026-11-20):
+	-- high-key midday, saturated lime/turquoise, soft shadows, light haze. Numbers
+	-- are [INFERRED] to match the frames; tune in Studio.
+	BrightFantasy = {
+		name = "BrightFantasy",
+		source = "[INFERRED] matched to Sharman's map-style video frames (project files map-style-ref-2026-11-20)",
+		lightingStyle = "Soft",
+		lighting = {
+			ClockTime = 13.5,
+			Brightness = 3,
+			Ambient = { 120, 130, 150 },
+			OutdoorAmbient = { 150, 160, 190 },
+			EnvironmentDiffuseScale = 1,
+			EnvironmentSpecularScale = 0.5,
+			ShadowSoftness = 0.6,
+		},
+		atmosphere = {
+			Density = 0.25,
+			Offset = 0.2,
+			Color = { 199, 230, 255 },
+			Decay = { 120, 170, 230 },
+			Glare = 0,
+			Haze = 0.6,
+		},
+		bloom = { Intensity = 0.5, Size = 24, Threshold = 1.4 },
+		colorCorrection = { Brightness = 0.03, Contrast = 0.08, Saturation = 0.25 },
+	},
 }
 
 for _, preset in PRESETS do

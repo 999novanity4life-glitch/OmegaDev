@@ -19,3 +19,8 @@ Per fruit it writes: `<key>.fbx` + `<key>.glb` (low poly, ~2.4k triangles), `<ke
 
 ## Into Roblox (the Mac does this; never a manual step for Sharman)
 Import `<key>.fbx` as a MeshPart (Studio MCP / Open Cloud upload), upload the three PNGs, add a `SurfaceAppearance` with ColorMap/NormalMap/RoughnessMap. Emissive parts (Magma seams, Black Dragon seams, Soul wisp) need an in-game glow on top (a PointLight or a Neon shell), since the baked colour map has no emission. Judge it in Studio, not from these renders (rule M31).
+
+
+## v2: fruit2.py (current)
+
+`python fruit2.py <key> <outdir> [--fast]` with the PyPI `bpy` wheel. Builds a subdivided icosphere, displaces it with numpy height fields (swirl buns, crack fields, scallop scales), stores colour/glow/roughness as vertex attributes, then bakes to a decimated low poly. `fruits.py` is the v1 recipe set, kept for reference.

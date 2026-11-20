@@ -7,7 +7,7 @@ local RunService = game:GetService("RunService")
 local NAMES = {
 	"RequestAction", -- client -> server: player intent, always validated server-side
 	"StateChanged", -- server -> client: authoritative state updates
-	"Throw", -- client -> server: wind-up zone ratio + release ring offset
+	"Throw", -- client -> server: locked meter power + release ring offset
 	"AirTap", -- client -> server: air ring offset during the flight
 }
 
