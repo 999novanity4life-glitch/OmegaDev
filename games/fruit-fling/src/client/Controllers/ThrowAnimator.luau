@@ -187,11 +187,11 @@ local function fxFor(character: Model): Fx?
 	-- the overhand arc sweeps a sheet, the way a slash trail reads.
 	local a0 = Instance.new("Attachment")
 	a0.Name = "TrailTop"
-	a0.Position = Vector3.new(0, 0.35, 0)
+	a0.Position = Vector3.new(0, 0.1, 0)
 	a0.Parent = hand
 	local a1 = Instance.new("Attachment")
 	a1.Name = "TrailTip"
-	a1.Position = Vector3.new(0, -1.1, 0)
+	a1.Position = Vector3.new(0, -0.95, 0)
 	a1.Parent = hand
 	local trail = Instance.new("Trail")
 	trail.Attachment0 = a0
@@ -202,11 +202,12 @@ local function fxFor(character: Model): Fx?
 		ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 70, 20)),
 	})
 	trail.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.05),
-		NumberSequenceKeypoint.new(0.6, 0.55),
+		NumberSequenceKeypoint.new(0, 0.15),
+		NumberSequenceKeypoint.new(0.35, 0.45),
+		NumberSequenceKeypoint.new(0.7, 0.8),
 		NumberSequenceKeypoint.new(1, 1),
 	})
-	trail.LightEmission = 1
+	trail.LightEmission = 0.35 -- full emission washes out to white on the sunny dock
 	trail.LightInfluence = 0
 	trail.MinLength = 0.05
 	trail.Lifetime = Config.UI.TrailSeconds
