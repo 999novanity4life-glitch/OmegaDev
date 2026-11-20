@@ -390,11 +390,34 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 
 	local isPlaying = false
 	local anims: { Anim } = {}
-	local last = os.clock()
-	RunService.RenderStepped:Connect(function()
-		local now = os.clock()
-		local dt = now - last
-		last = now
+	-- Showcase clock: real time scaled by the workspace attribute
+	-- ShowcaseTimeScale (Studio slow-motion capture; 1 when unset), so every
+	-- beat, anim and scheduled step can be slowed down together.
+	local vnow = 0
+	local scheduled: { { at: number, fn: () -> () } } = {}
+	RunService.RenderStepped:Connect(function(realDt: number)
+		local scale = workspace:GetAttribute("ShowcaseTimeScale")
+		local dt = realDt * (if typeof(scale) == "number" and scale > 0 then scale else 1)
+		vnow += dt
+		local now = vnow
+		if #scheduled > 0 then
+			local due: { () -> () } = {}
+			local later = {}
+			for _, job in scheduled do
+				if job.at <= now then
+					table.insert(due, job.fn)
+				else
+					table.insert(later, job)
+				end
+			end
+			scheduled = later
+			for _, fn in due do
+				local ok, err = pcall(fn)
+				if not ok then
+					warn("[FruitShowcase]", err)
+				end
+			end
+		end
 		if #anims == 0 then
 			return
 		end
@@ -409,6 +432,9 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 		end
 		anims = keep
 	end)
+	local function after(seconds: number, fn: () -> ())
+		table.insert(scheduled, { at = vnow + seconds, fn = fn })
+	end
 	local function run(a: Anim)
 		table.insert(anims, a)
 	end
@@ -434,7 +460,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 		local layers = ShowcaseBeats.layers(plan.rank)
 		local calm = reduced()
 		local fx = if calm then 0.35 else 1 -- particle scale
-		local start = os.clock()
+		local start = vnow
 		local color = tierColor(Config.Rarity.Order[1])
 		local rainbow = false
 
@@ -748,7 +774,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 					local p0 = Vector3.new(pts[i][1], pts[i][2], pts[i][3])
 					local p1 = Vector3.new(pts[i + 1][1], pts[i + 1][2], pts[i + 1][3])
 					local len = (p1 - p0).Magnitude
-					local seg = part("Bolt", stage, Vector3.new(0.09, 0.09, len), CFrame.lookAt((p0 + p1) / 2, p1))
+					local seg = part("Bolt", stage, Vector3.new(0.05, 0.05, len), CFrame.lookAt((p0 + p1) / 2, p1))
 					seg.Material = Enum.Material.Neon
 					seg.Color = c:Lerp(WHITE, 0.55)
 					seg.Transparency = 0
@@ -764,7 +790,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 			for _, b in beams do
 				b.Color = ColorSequence.new(c:Lerp(WHITE, 0.4))
 			end
-			local t0 = os.clock()
+			local t0 = vnow
 			local seconds = if big then 0.6 else 0.45
 			local r1 = if big then 13 else 8
 			-- painted ring + a star pop on top of the beam ring
@@ -877,7 +903,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 		local function slamWord(tier: string, c: Color3, big: boolean)
 			word.set(string.upper(tier), c, nil)
 			wordVisible = true
-			slamAt = os.clock()
+			slamAt = vnow
 			slamBig = big
 		end
 
@@ -1069,7 +1095,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 		oddsLabel.Text = ""
 		for i, step in plan.steps do
 			local final = i == #plan.steps
-			task.delay(step.time, function()
+			after(step.time, function()
 				if not isPlaying then
 					return
 				end
@@ -1111,7 +1137,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 				end
 				if plan.zoom > 0 then
 					wordVisible = false -- the fruit owns the screen during the lunge
-					task.delay(plan.zoom, function()
+					after(plan.zoom, function()
 						if isPlaying then
 							slamWord(step.tier, color, true)
 							shockwave(color, true)
@@ -1127,7 +1153,7 @@ function FruitShowcase.new(gui: ScreenGui): Showcase
 		end
 
 		-- 3) Out: fade the post, drop the stage, hand the camera back.
-		task.delay(plan.total, function()
+		after(plan.total, function()
 			isPlaying = false
 			rainbow = false
 			overlay.Visible = false
