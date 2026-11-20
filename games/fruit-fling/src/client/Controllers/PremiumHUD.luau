@@ -593,16 +593,26 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 	local body = frame("Body", card, Color3.new(1, 1, 1), UDim2.new(1, -10, 1, -10))
 	corner(body, 0.07)
 	gradient(body, { { 0, 34, 24, 58 }, { 0.6, 14, 10, 26 }, { 1, 7, 6, 12 } }, 90)
+	-- Art window: a tier-tinted backdrop with the real fruit in a ViewportFrame
+	-- on top (a UIGradient on the ViewportFrame itself would tint the fruit).
+	local artBack = frame(
+		"ArtBack",
+		body,
+		Color3.new(1, 1, 1),
+		UDim2.fromScale(0.9, 0.56),
+		UDim2.fromScale(0.5, 0.04),
+		Vector2.new(0.5, 0)
+	)
+	corner(artBack, 0.08)
+	local artGradient = gradient(artBack, { { 0, 255, 255, 255 }, { 1, 40, 20, 70 } }, 90)
 	local art = Instance.new("ViewportFrame")
 	art.Name = "Art"
-	art.BackgroundColor3 = Color3.fromRGB(59, 26, 110)
-	art.BorderSizePixel = 0
-	art.AnchorPoint = Vector2.new(0.5, 0)
-	art.Position = UDim2.fromScale(0.5, 0.04)
-	art.Size = UDim2.fromScale(0.9, 0.56)
-	art.Parent = body
-	corner(art, 0.08)
-	local artGradient = gradient(art, { { 0, 255, 255, 255 }, { 1, 40, 20, 70 } }, 90)
+	art.BackgroundTransparency = 1
+	art.Size = UDim2.fromScale(1, 1)
+	art.Ambient = Color3.fromRGB(210, 210, 210)
+	art.LightColor = Color3.new(1, 1, 1)
+	art.LightDirection = Vector3.new(-1, -1, -1)
+	art.Parent = artBack
 	local tier = text("Tier", body, "", Color3.new(1, 1, 1))
 	tier.Size = UDim2.fromScale(0.9, 0.11)
 	tier.Position = UDim2.fromScale(0.5, 0.68)
@@ -622,6 +632,20 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 
 	local playing = false
 	local mythical = false
+	local spin: Instance? = nil -- the fruit copy turning slowly on the card
+	RunService.RenderStepped:Connect(function(dt: number)
+		local f = spin
+		if not root.Visible or not f or reduced() then
+			return
+		end
+		local turn = CFrame.Angles(0, dt * 1.2, 0)
+		if f:IsA("Model") then
+			local pivot = f:GetPivot()
+			f:PivotTo(CFrame.new(pivot.Position) * turn * pivot.Rotation)
+		elseif f:IsA("BasePart") then
+			f.CFrame = CFrame.new(f.Position) * turn * f.CFrame.Rotation
+		end
+	end)
 	RunService.RenderStepped:Connect(function()
 		if not root.Visible or not mythical or reduced() then
 			return
@@ -676,7 +700,7 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 				end
 			end
 			for _, child in art:GetChildren() do
-				if not child:IsA("UICorner") and not child:IsA("UIGradient") then
+				if not child:IsA("UIGradient") then
 					child:Destroy()
 				end
 			end
@@ -686,13 +710,19 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 				local cam = Instance.new("Camera")
 				cam.Parent = art
 				art.CurrentCamera = cam
-				local center = Vector3.zero
+				local center, size = Vector3.zero, 2
 				if copy:IsA("Model") then
 					center = copy:GetPivot().Position
+					local e = copy:GetExtentsSize()
+					size = math.max(e.X, e.Y, e.Z)
 				elseif copy:IsA("BasePart") then
 					center = copy.Position
+					size = math.max(copy.Size.X, copy.Size.Y, copy.Size.Z)
 				end
-				cam.CFrame = CFrame.lookAt(center + Vector3.new(0, 0.6, 5.5), center)
+				-- frame the fruit to fill ~70% of the window
+				cam.FieldOfView = 40
+				cam.CFrame = CFrame.lookAt(center + Vector3.new(0, size * 0.25, size * 2.1), center)
+				spin = copy
 			end
 			card.Visible = false
 			root.Visible = true
