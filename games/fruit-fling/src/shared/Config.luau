@@ -131,6 +131,38 @@ Config.Rarity = {
 	} :: { [string]: Pace },
 }
 
+-- Landing impact, one row per rarity rank (Rare..Mythical): rarer = bigger.
+-- column = water column height (studs), crown = droplets in the splash crown,
+-- ripples = expanding rings, reach = widest ripple, rays = radial light rays
+-- on the water, pillar = rarity light pillar height (0 = none), light =
+-- flash brightness, shake = camera shake strength.
+export type SplashTier = {
+	column: number,
+	crown: number,
+	ripples: number,
+	reach: number,
+	rays: number,
+	pillar: number,
+	light: number,
+	shake: number,
+}
+Config.Splash = {
+	Tiers = {
+		{ column = 6, crown = 10, ripples = 2, reach = 18, rays = 0, pillar = 0, light = 4, shake = 0 },
+		{ column = 10, crown = 14, ripples = 3, reach = 26, rays = 6, pillar = 0, light = 6, shake = 0.2 },
+		{ column = 16, crown = 20, ripples = 4, reach = 36, rays = 10, pillar = 70, light = 9, shake = 0.45 },
+		{ column = 24, crown = 28, ripples = 5, reach = 50, rays = 16, pillar = 120, light = 14, shake = 0.8 },
+	} :: { SplashTier },
+	MasterworkScale = 1.35,
+	Gravity = 70, -- studs/s^2 for droplets
+	CrownUp = 0.9, -- droplet up speed as a fraction of sqrt(2*g*column)
+	CrownOut = 0.35, -- droplet sideways speed per stud of column
+	RippleGap = 0.12, -- seconds between ripple rings
+	RippleSeconds = 0.9,
+	ColumnRise = 0.18, -- seconds for the column to reach full height
+	ColumnFall = 0.5,
+}
+
 -- The fruit roster (models in assets/fruits/<key>). Rarity follows the
 -- strength rule in the design doc. Feel test: each throw rolls a fruit by
 -- rarity weight until equipping exists.

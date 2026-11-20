@@ -13,7 +13,9 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local SplashShape = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("SplashShape"))
 local FruitMesh = require(script.Parent.FruitMesh)
+local Juice = require(script.Parent.Juice)
 
 local ThrowFX = {}
 
@@ -329,29 +331,253 @@ function ThrowFX.makeFruit(key: string, glow: Color3, rarityColor: Color3, rank:
 end
 
 -- Landing splash: water ring, spray sparks, and a rarity pillar for rare finds.
+-- Runs `step(t)` every frame until it returns false; t = seconds since start.
+local function animate(step: (number) -> boolean)
+	local start = os.clock()
+	local connection: RBXScriptConnection
+	connection = RunService.Heartbeat:Connect(function()
+		if not step(os.clock() - start) then
+			connection:Disconnect()
+		end
+	end)
+end
+
+local function easeOut(k: number): number
+	local c = math.clamp(k, 0, 1)
+	return 1 - (1 - c) * (1 - c)
+end
+
+-- A ring on the water made of short Neon dashes (Roblox has no torus part).
+-- Grows from 0 to `radius` over `seconds`, fading out. Starts after `delay`.
+local function dashRing(at: Vector3, color: Color3, radius: number, seconds: number, delay: number, thick: number)
+	local dashes = if reduced() then 12 else 28
+	local parts: { Part } = {}
+	for i = 1, dashes do
+		local d = fxPart("RippleDash", Enum.PartType.Block, color, Vector3.new(thick, 0.12, 1), CFrame.new(at))
+		d.Transparency = 1
+		parts[i] = d
+	end
+	animate(function(t: number): boolean
+		local k = (t - delay) / seconds
+		if k < 0 then
+			return true
+		end
+		if k >= 1 then
+			for _, d in parts do
+				d:Destroy()
+			end
+			return false
+		end
+		local r = math.max(0.5, radius * easeOut(k))
+		local len = 2 * math.pi * r / dashes * 0.6
+		for i, d in parts do
+			local a = (i - 1) / dashes * 2 * math.pi
+			local pos = at + Vector3.new(math.cos(a) * r, 0, math.sin(a) * r)
+			d.Size = Vector3.new(thick * (1 - k * 0.6), 0.12, len)
+			-- dash runs along the tangent of the circle
+			d.CFrame = CFrame.lookAt(pos, pos + Vector3.new(-math.sin(a), 0, math.cos(a)))
+			d.Transparency = 0.15 + 0.85 * k
+		end
+		return true
+	end)
+end
+
+-- Landing impact, bigger for rarer fruits (Config.Splash.Tiers, one row per
+-- rarity rank 1..4). Rare: water column, crown of droplets, ripples, foam,
+-- mist. Epic adds a rarity shockwave and light rays across the water.
+-- Legendary and Mythical add a rarity light pillar with rising motes and a
+-- camera shake. Masterwork turns the shockwave gold and scales it all up.
 function ThrowFX.splash(at: Vector3, rarityColor: Color3, rarityRank: number, masterwork: boolean)
-	local ring = fxPart(
-		"Splash",
+	local cfg = Config.Splash
+	local tier = SplashShape.tier(rarityRank, cfg.Tiers, masterwork, cfg.MasterworkScale)
+	local calm = reduced()
+	local water = Color3.fromRGB(200, 240, 255)
+	local accent = if masterwork then Color3.fromRGB(255, 214, 64) else rarityColor
+
+	-- flash
+	local anchor = fxPart("SplashLight", Enum.PartType.Ball, water, Vector3.new(0.2, 0.2, 0.2), CFrame.new(at))
+	anchor.Transparency = 1
+	local light = Instance.new("PointLight")
+	light.Color = accent:Lerp(Color3.new(1, 1, 1), 0.4)
+	light.Range = math.min(60, tier.reach)
+	light.Brightness = tier.light
+	light.Parent = anchor
+	TweenService:Create(light, TweenInfo.new(0.6, Enum.EasingStyle.Quad), { Brightness = 0 }):Play()
+	task.delay(0.7, function()
+		anchor:Destroy()
+	end)
+
+	-- water column: a glassy cylinder with a white glowing core
+	local width = 2 + tier.column * 0.18
+	local column = fxPart("SplashColumn", Enum.PartType.Cylinder, water, Vector3.new(0.1, width, width), CFrame.new(at))
+	column.Material = Enum.Material.Glass
+	column.Transparency = 0.25
+	local core = fxPart(
+		"SplashCore",
 		Enum.PartType.Cylinder,
-		if masterwork then Color3.fromRGB(255, 214, 64) else Color3.fromRGB(210, 245, 255),
-		Vector3.new(0.4, 2, 2),
-		CFrame.new(at) * CFrame.Angles(0, 0, math.rad(90))
+		Color3.new(1, 1, 1),
+		Vector3.new(0.1, width * 0.45, width * 0.45),
+		CFrame.new(at)
 	)
-	local grow = if masterwork then 42 else 24
-	fadeOut(ring, 0.7, { Size = Vector3.new(0.4, grow, grow) })
-	sparks(at + Vector3.new(0, 1, 0), Color3.fromRGB(220, 250, 255), 30, 24)
-	if rarityRank >= 3 then
-		-- Legendary and Mythical: a light pillar in the rarity colour
+	core.Transparency = 0.2
+	local upright = CFrame.Angles(0, 0, math.rad(90))
+	animate(function(t: number): boolean
+		local h: number, fade: number
+		if t < cfg.ColumnRise then
+			h = tier.column * easeOut(t / cfg.ColumnRise)
+			fade = 0
+		else
+			local k = (t - cfg.ColumnRise) / cfg.ColumnFall
+			if k >= 1 then
+				column:Destroy()
+				core:Destroy()
+				return false
+			end
+			h = tier.column * (1 - k * k)
+			fade = k
+		end
+		h = math.max(h, 0.1)
+		local mid = CFrame.new(at + Vector3.new(0, h / 2, 0)) * upright
+		column.Size = Vector3.new(h, width * (1 + fade * 0.5), width * (1 + fade * 0.5))
+		column.CFrame = mid
+		column.Transparency = 0.25 + 0.75 * fade
+		core.Size = Vector3.new(h * 0.9, width * 0.45, width * 0.45)
+		core.CFrame = mid
+		core.Transparency = 0.2 + 0.8 * fade
+		return true
+	end)
+
+	-- crown of droplets on ballistic arcs
+	local n = if calm then math.ceil(tier.crown / 3) else tier.crown
+	for i = 1, n do
+		local vx, vy, vz = SplashShape.crownVelocity(i, n, tier.column, cfg.Gravity, cfg.CrownUp, cfg.CrownOut)
+		local size = if i % 2 == 0 then 0.9 else 0.6
+		local drop = fxPart(
+			"Droplet",
+			Enum.PartType.Ball,
+			if i % 3 == 0 then Color3.new(1, 1, 1) else water,
+			Vector3.one * size,
+			CFrame.new(at)
+		)
+		drop.Material = if i % 3 == 0 then Enum.Material.Neon else Enum.Material.Glass
+		drop.Transparency = 0.1
+		local airTime = SplashShape.airTime(vy, cfg.Gravity)
+		animate(function(t: number): boolean
+			if t >= airTime then
+				drop:Destroy()
+				return false
+			end
+			local x, y, z = SplashShape.ballistic(t, vx, vy, vz, cfg.Gravity)
+			drop.CFrame = CFrame.new(at + Vector3.new(x, y, z))
+			-- droplets stretch along their fall
+			local stretch = 1 + math.abs(vy - cfg.Gravity * t) / 40
+			drop.Size = Vector3.new(size, size * stretch, size)
+			return true
+		end)
+	end
+
+	-- foam disc and ripples
+	local foam =
+		fxPart("Foam", Enum.PartType.Cylinder, Color3.new(1, 1, 1), Vector3.new(0.15, 2, 2), CFrame.new(at) * upright)
+	foam.Material = Enum.Material.SmoothPlastic
+	foam.Transparency = 0.25
+	fadeOut(foam, 1.1, { Size = Vector3.new(0.15, tier.reach * 0.45, tier.reach * 0.45) })
+	for k = 1, tier.ripples do
+		dashRing(at, water, tier.reach * k / tier.ripples, cfg.RippleSeconds, (k - 1) * cfg.RippleGap, 0.5)
+	end
+	sparks(at + Vector3.new(0, 1, 0), water, 20 + 6 * tier.ripples, 10 + tier.column)
+
+	-- Epic and up: rarity shockwave + light rays across the water
+	if tier.rays > 0 then
+		dashRing(at + Vector3.new(0, 0.1, 0), accent, tier.reach * 1.1, 0.45, 0, 1.2)
+		if not calm then
+			for i = 1, tier.rays do
+				local a = (i - 1) / tier.rays * 2 * math.pi + math.random() * 0.2
+				local dir = Vector3.new(math.cos(a), 0, math.sin(a))
+				local ray = fxPart("ImpactRay", Enum.PartType.Block, accent, Vector3.new(0.35, 0.1, 1), CFrame.new(at))
+				ray.Transparency = 0.1
+				local length = tier.reach * (0.6 + math.random() * 0.3)
+				animate(function(t: number): boolean
+					local k = t / 0.5
+					if k >= 1 then
+						ray:Destroy()
+						return false
+					end
+					local len = length * easeOut(k)
+					local mid = at + dir * (len / 2 + 1) + Vector3.new(0, 0.15, 0)
+					ray.Size = Vector3.new(0.35 * (1 - k), 0.1, math.max(len, 0.1))
+					ray.CFrame = CFrame.lookAt(mid, mid + dir)
+					ray.Transparency = 0.1 + 0.9 * k
+					return true
+				end)
+			end
+		end
+	end
+
+	-- Legendary and up: a rarity light pillar with motes rising inside it
+	if tier.pillar > 0 then
+		local thick = 3 + tier.column * 0.12
 		local pillar = fxPart(
 			"RarityPillar",
 			Enum.PartType.Cylinder,
-			rarityColor,
-			Vector3.new(60, 3, 3),
-			CFrame.new(at + Vector3.new(0, 30, 0)) * CFrame.Angles(0, 0, math.rad(90))
+			accent,
+			Vector3.new(0.1, thick, thick),
+			CFrame.new(at) * upright
 		)
-		pillar.Transparency = 0.35
-		fadeOut(pillar, 1.6, { Size = Vector3.new(60, 0.2, 0.2) })
-		sparks(at + Vector3.new(0, 3, 0), rarityColor, 40, 40)
+		pillar.Transparency = 0.3
+		local inner = fxPart(
+			"PillarCore",
+			Enum.PartType.Cylinder,
+			Color3.new(1, 1, 1),
+			Vector3.new(0.1, thick * 0.35, thick * 0.35),
+			CFrame.new(at) * upright
+		)
+		inner.Transparency = 0.1
+		local motes = Instance.new("ParticleEmitter")
+		motes.Color = ColorSequence.new(Color3.new(1, 1, 1), accent)
+		motes.LightEmission = 1
+		motes.LightInfluence = 0
+		motes.Rate = if calm then 15 else 60
+		motes.Lifetime = NumberRange.new(0.8, 1.4)
+		motes.Speed = NumberRange.new(25, 45)
+		motes.SpreadAngle = Vector2.new(8, 8)
+		motes.Acceleration = Vector3.zero
+		motes.Size = NumberSequence.new(0.6, 0)
+		motes.Transparency = NumberSequence.new(0, 1)
+		motes.EmissionDirection = Enum.NormalId.Right -- the cylinder's X axis points up
+		motes.Parent = inner
+		local rise, hold, shrink = 0.25, 0.6, 0.7
+		animate(function(t: number): boolean
+			local h: number, w: number, fade: number
+			if t < rise then
+				h, w, fade = tier.pillar * easeOut(t / rise), 1, 0
+			elseif t < rise + hold then
+				h, w, fade = tier.pillar, 1 + 0.08 * math.sin((t - rise) * 25), 0
+			else
+				local k = (t - rise - hold) / shrink
+				if k >= 1 then
+					pillar:Destroy()
+					inner:Destroy()
+					return false
+				end
+				h, w, fade = tier.pillar, 1 - k, k
+				motes.Enabled = false
+			end
+			h = math.max(h, 0.1)
+			local mid = CFrame.new(at + Vector3.new(0, h / 2, 0)) * upright
+			pillar.Size = Vector3.new(h, thick * w, thick * w)
+			pillar.CFrame = mid
+			pillar.Transparency = 0.3 + 0.7 * fade
+			inner.Size = Vector3.new(h, thick * 0.35 * w, thick * 0.35 * w)
+			inner.CFrame = mid
+			inner.Transparency = 0.1 + 0.9 * fade
+			return true
+		end)
+		sparks(at + Vector3.new(0, 3, 0), accent, 30 + 10 * rarityRank, 40)
+	end
+
+	if tier.shake > 0 then
+		Juice.shakeCamera(tier.shake)
 	end
 end
 
