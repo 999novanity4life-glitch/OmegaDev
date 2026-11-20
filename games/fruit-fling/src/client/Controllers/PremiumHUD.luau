@@ -192,29 +192,44 @@ local function bolts(parent: Instance, inset: number, size: number, constraint: 
 	end
 end
 
--- Carbon-fibre weave: alternating diagonal strands under a soft top sheen.
-local function carbon(parent: Instance)
-	local clip = frame("Carbon", parent, Color3.fromRGB(16, 17, 21), UDim2.fromScale(1, 1))
-	clip.ClipsDescendants = true
+-- Carbon-fibre weave: two crossed layers of diagonal stripes made with
+-- rotated UIGradients (rotated GuiObjects escape ClipsDescendants, gradients
+-- don't), under a soft top sheen.
+local function stripes(parent: Instance, rotation: number, dark: Color3, light: Color3, alpha: number)
+	local layer = frame("Weave", parent, Color3.new(1, 1, 1), UDim2.fromScale(1, 1))
+	layer.BackgroundTransparency = alpha
 	local c = parent:FindFirstChildOfClass("UICorner")
 	if c then
-		c:Clone().Parent = clip
+		c:Clone().Parent = layer
 	end
-	for i = -10, 60 do
-		local strand = frame(
-			"Strand",
-			clip,
-			if i % 2 == 0 then Color3.fromRGB(38, 40, 47) else Color3.fromRGB(22, 23, 28),
-			UDim2.new(0, 7, 3, 0),
-			UDim2.new(0, i * 10, 0.5, 0)
-		)
-		strand.Rotation = 45
-		strand.BackgroundTransparency = 0.15
+	local pts = {}
+	local n = 18
+	for i = 0, n do
+		table.insert(pts, ColorSequenceKeypoint.new(i / n, if i % 2 == 0 then dark else light))
 	end
-	local sheen =
-		frame("Sheen", clip, Color3.new(1, 1, 1), UDim2.fromScale(1, 0.5), UDim2.fromScale(0.5, 0), Vector2.new(0.5, 0))
-	fade(sheen, 0.82, 1, 90)
-	return clip
+	local g = Instance.new("UIGradient")
+	g.Color = ColorSequence.new(pts)
+	g.Rotation = rotation
+	g.Parent = layer
+	return layer
+end
+
+local function carbon(parent: Instance)
+	stripes(parent, 45, Color3.fromRGB(18, 19, 24), Color3.fromRGB(44, 46, 54), 0)
+	stripes(parent, -45, Color3.fromRGB(14, 15, 19), Color3.fromRGB(36, 38, 45), 0.55)
+	local sheen = frame(
+		"Sheen",
+		parent,
+		Color3.new(1, 1, 1),
+		UDim2.fromScale(1, 0.5),
+		UDim2.fromScale(0.5, 0),
+		Vector2.new(0.5, 0)
+	)
+	local c = parent:FindFirstChildOfClass("UICorner")
+	if c then
+		c:Clone().Parent = sheen
+	end
+	fade(sheen, 0.85, 1, 90)
 end
 
 -- Notches round a circular bezel (like a watch or a dial).
@@ -447,7 +462,7 @@ function PremiumHUD.meter(parent: Instance): Meter
 		local v = 20 - i * 5
 		local n = text("Scale" .. v, plate, tostring(v), Color3.fromRGB(200, 204, 216), BODY_FONT)
 		n.Size = UDim2.fromScale(0.28, 0.04)
-		n.Position = UDim2.fromScale(0.16, 0.08 + i * 0.21)
+		n.Position = UDim2.fromScale(0.17, 0.12 + i * 0.19)
 		n.TextXAlignment = Enum.TextXAlignment.Center
 	end
 	local bezel = frame("Bezel", root, Color3.new(1, 1, 1), UDim2.fromScale(1, 1))
