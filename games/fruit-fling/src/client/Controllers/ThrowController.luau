@@ -216,7 +216,7 @@ function ThrowController.start()
 	local marker = Instance.new("Frame")
 	marker.Name = "Marker"
 	marker.AnchorPoint = Vector2.new(0.5, 0.5)
-	marker.Size = UDim2.new(1.5, 0, 0.045, 0)
+	marker.Size = UDim2.fromScale(1.5, 0.045)
 	marker.BackgroundColor3 = Color3.new(1, 1, 1)
 	marker.BorderSizePixel = 0
 	marker.ZIndex = 3
@@ -228,11 +228,11 @@ function ThrowController.start()
 	markerStroke.Thickness = 3
 	markerStroke.Color = Color3.new(0, 0, 0)
 	markerStroke.Parent = marker
-	local plusLabel = UIKit.label("+5", UDim2.new(2.4, 0, 0, 0), UITokens.Text.Title)
+	local plusLabel = UIKit.label("+5", UDim2.fromScale(2.4, 0), UITokens.Text.Title)
 	plusLabel.Name = "Plus"
 	plusLabel.AnchorPoint = Vector2.new(0, 0.5)
-	plusLabel.Position = UDim2.new(1.3, 0, 0.5, 0)
-	plusLabel.Size = UDim2.new(2.6, 0, 3.2, 0)
+	plusLabel.Position = UDim2.fromScale(1.3, 0.5)
+	plusLabel.Size = UDim2.fromScale(2.6, 3.2)
 	plusLabel.Font = Enum.Font.GothamBlack
 	plusLabel.TextScaled = true
 	plusLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -498,7 +498,7 @@ function ThrowController.start()
 		end
 		leave.Visible = false
 		task.delay(cfg.MeterLockHold, function()
-			if phase ~= "Locked" then
+			if (phase :: Phase) ~= "Locked" then
 				return
 			end
 			meter.Visible = false
