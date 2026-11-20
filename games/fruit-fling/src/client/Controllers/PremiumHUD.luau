@@ -885,9 +885,9 @@ function PremiumHUD.reveal(parent: Instance): Reveal
 	end
 
 	-- God rays behind the card in the tier colour.
-	local cardRays = rays(root, 20, Color3.new(1, 1, 1), 0.03, 0.2)
+	local cardRays = rays(root, 24, Color3.new(1, 1, 1), 0.018, 0.45)
 	cardRays.SizeConstraint = Enum.SizeConstraint.RelativeYY
-	cardRays.Size = UDim2.fromScale(1.15, 1.15)
+	cardRays.Size = UDim2.fromScale(0.95, 0.95)
 	cardRays.Position = UDim2.fromScale(0.5, 0.48)
 	cardRays.Visible = false
 
