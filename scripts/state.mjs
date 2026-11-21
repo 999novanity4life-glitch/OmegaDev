@@ -24,6 +24,45 @@ export const readJson = (file, fallback) => {
 	}
 };
 
+// Last lines of a .jsonl file in the state dir (bad lines are skipped).
+const tailJsonl = (name, n) => {
+	const file = path.join(STATE, name);
+	if (!fs.existsSync(file)) return [];
+	return fs
+		.readFileSync(file, "utf8")
+		.trim()
+		.split("\n")
+		.slice(-n)
+		.map((l) => {
+			try {
+				return JSON.parse(l);
+			} catch {
+				return null;
+			}
+		})
+		.filter(Boolean);
+};
+
+// What the Lead cycles used, from each run's own report (`omega lead` writes usage.jsonl).
+// costUsd is the API-equivalent price Claude Code reports; on a subscription plan it
+// counts toward plan limits instead of being billed.
+export function usageSummary() {
+	const rows = tailJsonl("usage.jsonl", 5000);
+	const since = (ms) => rows.filter((r) => Date.now() - Date.parse(r.ts) < ms);
+	const sum = (list) => ({
+		cycles: list.length,
+		tokens: list.reduce((a, r) => a + (r.tokens || 0), 0),
+		costUsd: list.reduce((a, r) => a + (r.costUsd || 0), 0),
+	});
+	const midnight = new Date();
+	midnight.setHours(0, 0, 0, 0);
+	return {
+		today: sum(since(Date.now() - midnight.getTime())),
+		week: sum(since(7 * 86400000)),
+		last: rows.at(-1) || null,
+	};
+}
+
 export function readState() {
 	const list = (dir) => {
 		const full = path.join(STATE, dir);
@@ -57,5 +96,7 @@ export function readState() {
 		review: list("review"),
 		tryit: list("tryit"),
 		pitches,
+		feed: tailJsonl("feed.jsonl", 40).reverse(),
+		usage: usageSummary(),
 	};
 }

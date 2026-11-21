@@ -7,10 +7,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { AGENTS, GAMES, ROOT, STATE, readJson, readState } from "./state.mjs";
+import { AGENTS, GAMES, ROOT, STATE, readJson, readState, usageSummary } from "./state.mjs";
 
 const TASK_STATUSES = ["queued", "working", "blocked", "needs_you", "done", "later"];
-const VERDICTS = ["pending", "approved", "changes", "rejected"];
+// "polish": the human liked it but wants another pass by the strongest model (Fable).
+const VERDICTS = ["pending", "approved", "changes", "polish", "rejected"];
+const MODELS = ["default", "fable"];
+const SHOT_TYPES = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
 
 const now = () => new Date().toISOString();
 const ensure = (dir) => fs.mkdirSync(dir, { recursive: true });
@@ -24,6 +27,11 @@ const newId = (prefix) => `${prefix}-${Date.now().toString(36)}${Math.random().t
 const log = (entry) => {
 	ensure(STATE);
 	fs.appendFileSync(path.join(STATE, "log.jsonl"), JSON.stringify({ ts: now(), ...entry }) + "\n");
+};
+// The live "What's happening" feed on the control room's Today page.
+const feed = (entry) => {
+	ensure(STATE);
+	fs.appendFileSync(path.join(STATE, "feed.jsonl"), JSON.stringify({ ts: now(), ...entry }) + "\n");
 };
 const die = (msg) => {
 	console.error(`omega: ${msg}`);
@@ -48,6 +56,44 @@ const need = (args, key) => (args[key] === undefined || args[key] === true ? die
 const oneOf = (value, allowed, name) =>
 	allowed.includes(value) ? value : die(`${name} must be one of: ${allowed.join(", ")} (got "${value}")`);
 
+// The result line of `claude -p --output-format json`, reduced to what the usage meter needs.
+export function parseRunReport(stdout) {
+	const lines = String(stdout || "")
+		.trim()
+		.split("\n")
+		.reverse();
+	for (const line of lines) {
+		let j;
+		try {
+			j = JSON.parse(line);
+		} catch {
+			continue;
+		}
+		if (!j || j.type !== "result") continue;
+		const u = j.usage || {};
+		const tokens =
+			(u.input_tokens || 0) +
+			(u.output_tokens || 0) +
+			(u.cache_creation_input_tokens || 0) +
+			(u.cache_read_input_tokens || 0);
+		const models = Object.fromEntries(
+			Object.entries(j.modelUsage || {}).map(([m, v]) => [m, Number(v?.costUSD) || 0]),
+		);
+		return {
+			result: String(j.result || ""),
+			usage: {
+				costUsd: Number(j.total_cost_usd) || 0,
+				tokens,
+				turns: Number(j.num_turns) || 0,
+				ms: Number(j.duration_ms) || 0,
+				error: !!j.is_error,
+				models,
+			},
+		};
+	}
+	return null;
+}
+
 // ---------- commands ----------
 const commands = {
 	help() {
@@ -60,11 +106,11 @@ Games
 
 State (used by agents)
   status                                    one-screen summary for the Lead
-  task add --game g --agent a --title t [--detail d] [--status queued]
+  task add --game g --agent a --title t [--detail d] [--status queued] [--from who] [--model default|fable]
   task set <id> [--status s] [--agent a] [--detail d]
-  agent <name> --status idle|working [--line "what I'm doing"] [--game g]
+  agent <name> --status idle|working [--line "what I'm doing"] [--game g] [--shot screenshot.png]
   review add --game g --agent a --kind image|video|stage|doc --title t [--file path] [--doc repo/path.md] [--note n]
-  review set <id> --verdict approved|changes|rejected [--comment c]
+  review set <id> --verdict approved|changes|polish|rejected [--comment c]
   tryit add --game g --title t --steps "1. ... 2. ..."
   tryit done <id> [--reply r]
   inbox add <text>        |  inbox take   (Lead reads and clears)
@@ -72,6 +118,7 @@ State (used by agents)
   pause | resume
 
 Running
+  usage                                     what the Lead cycles used (today and last 7 days)
   room [--port 4321]                        open the control room
   lead [--cycles N] [--sleep 120]           run Lead cycles headless (overnight)`);
 	},
@@ -161,9 +208,11 @@ Running
 		for (const g of s.games) console.log(`  ${g.slug} [${g.stage}] v${g.version ?? "-"}`);
 		console.log("\nTASKS (not done)");
 		for (const t of s.tasks.filter((t) => t.status !== "done"))
-			console.log(`  ${t.id} ${t.status.padEnd(9)} ${t.agent.padEnd(12)} ${t.game}: ${t.title}`);
-		console.log("\nREVIEW VERDICTS WAITING FOR AN AGENT (changes/rejected not yet picked up)");
-		for (const r of s.review.filter((r) => ["changes", "rejected"].includes(r.verdict) && !r.pickedUp))
+			console.log(
+				`  ${t.id} ${t.status.padEnd(9)} ${t.agent.padEnd(12)} ${t.game}: ${t.title}${t.model === "fable" ? " [fable]" : ""}`,
+			);
+		console.log("\nREVIEW VERDICTS WAITING FOR AN AGENT (changes/polish/rejected not yet picked up)");
+		for (const r of s.review.filter((r) => ["changes", "polish", "rejected"].includes(r.verdict) && !r.pickedUp))
 			console.log(`  ${r.id} ${r.verdict} ${r.agent} ${r.game}: ${r.title} — ${r.comment || ""}`);
 		console.log(`\nREVIEW PENDING HUMAN: ${s.review.filter((r) => r.verdict === "pending").length}`);
 		console.log(`TRY-IT CARDS OPEN: ${s.tryit.filter((t) => t.status === "open").length}`);
@@ -184,6 +233,8 @@ Running
 				title: need(args, "title"),
 				detail: args.detail || "",
 				status: oneOf(args.status || "queued", TASK_STATUSES, "status"),
+				from: typeof args.from === "string" ? args.from : "lead",
+				model: oneOf(args.model || "default", MODELS, "model"),
 				created: now(),
 				updated: now(),
 			};
@@ -196,6 +247,7 @@ Running
 			if (args.status) task.status = oneOf(args.status, TASK_STATUSES, "status");
 			if (args.agent) task.agent = oneOf(args.agent, AGENTS, "agent");
 			if (args.detail) task.detail = args.detail;
+			if (args.model) task.model = oneOf(args.model, MODELS, "model");
 			task.updated = now();
 			writeJson(file, tasks);
 			log({ kind: "task-set", id, status: task.status });
@@ -204,12 +256,23 @@ Running
 
 	agent(args) {
 		const name = oneOf(args._[0], AGENTS, "agent");
-		writeJson(path.join(STATE, "agents", `${name}.json`), {
-			status: oneOf(need(args, "status"), ["idle", "working"], "status"),
-			line: args.line || "",
-			game: args.game || null,
-			updated: now(),
-		});
+		const status = oneOf(need(args, "status"), ["idle", "working"], "status");
+		const line = typeof args.line === "string" ? args.line : "";
+		const game = typeof args.game === "string" ? args.game : null;
+		let shot = null;
+		if (args.shot) {
+			const src = path.resolve(String(args.shot));
+			const ext = path.extname(src).toLowerCase();
+			if (!SHOT_TYPES.includes(ext)) die(`--shot must be one of ${SHOT_TYPES.join(" ")}`);
+			if (!fs.existsSync(src)) die(`file not found: ${args.shot}`);
+			const media = path.join(STATE, "review", "media");
+			ensure(media);
+			const file = `${newId("f")}${ext}`;
+			fs.copyFileSync(src, path.join(media, file));
+			shot = `media/${file}`;
+		}
+		writeJson(path.join(STATE, "agents", `${name}.json`), { status, line, game, shot, updated: now() });
+		if (line) feed({ agent: name, game, line, shot });
 	},
 
 	review(args) {
@@ -247,6 +310,7 @@ Running
 			}
 			writeJson(path.join(dir, `${item.id}.json`), item);
 			log({ kind: "review-add", id: item.id, title: item.title });
+			feed({ agent: item.agent, game: item.game, line: `Sent for your review: ${item.title}`, shot: item.kind === "image" ? item.file : null });
 			console.log(item.id);
 		} else if (sub === "set") {
 			const file = path.join(dir, `${id}.json`);
@@ -326,6 +390,16 @@ Running
 		console.log("resumed");
 	},
 
+	usage() {
+		const u = usageSummary();
+		for (const [label, x] of [
+			["today", u.today],
+			["last 7 days", u.week],
+		])
+			console.log(`${label.padEnd(12)} ${x.cycles} cycles  ${x.tokens} tokens  ~$${x.costUsd.toFixed(2)} API-equivalent`);
+		if (u.last) console.log(`last cycle   ${u.last.ts}  models: ${Object.keys(u.last.models || {}).join(", ") || "?"}`);
+	},
+
 	async room(args) {
 		const { startRoom } = await import("../control-room/server.mjs");
 		startRoom(Number(args.port) || 4321);
@@ -340,13 +414,30 @@ Running
 				break;
 			}
 			console.log(`\n=== Lead cycle ${i}/${cycles} ${now()} ===`);
+			// JSON output gives us the cycle's own usage report for the control room meter.
 			const r = spawnSync(
 				"claude",
-				["-p", "--agent", "lead", "Run one Lead cycle now, following your instructions exactly."],
-				{ cwd: ROOT, stdio: "inherit" },
+				[
+					"-p",
+					"--agent",
+					"lead",
+					"--output-format",
+					"json",
+					"Run one Lead cycle now, following your instructions exactly.",
+				],
+				{ cwd: ROOT, stdio: ["ignore", "pipe", "inherit"], encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
 			);
 			log({ kind: "lead-cycle", i, exit: r.status });
 			if (r.error) die(`could not start claude: ${r.error.message}`);
+			const report = parseRunReport(r.stdout);
+			if (report) {
+				console.log(report.result);
+				ensure(STATE);
+				fs.appendFileSync(
+					path.join(STATE, "usage.jsonl"),
+					JSON.stringify({ ts: now(), cycle: i, ...report.usage }) + "\n",
+				);
+			} else console.log(r.stdout || "");
 			if (i < cycles) await new Promise((res) => setTimeout(res, sleepSec * 1000));
 		}
 	},

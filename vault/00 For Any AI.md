@@ -11,6 +11,7 @@ You are an agent in the OmegaDev studio. Read this first, every time.
 
 ## How to report
 - When you start: `node scripts/omega.mjs agent <you> --status working --game <slug> --line "<what>"`
+- While you work: post each real step the same way (one plain line, e.g. "Uploading art to Roblox"). When you take a Studio screenshot, add `--shot <file>` so it shows in the control room's live feed.
 - When you finish: same with `--status idle` and a one-line result.
 - Anything the human should look at: `omega review add …` with the file.
 - Anything only the human can do: `omega tryit add …` with numbered steps, or tell the Lead to make a `needs_you` task.

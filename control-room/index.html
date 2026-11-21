@@ -108,6 +108,16 @@
 	.btn.primary:hover, .btn.primary:focus-visible { color: #1a0900; box-shadow: 0 0 22px var(--neon-glow); }
 	.btn.ok:hover { color: var(--ok); border-color: var(--ok); box-shadow: inset 0 0 14px rgba(61, 220, 132, 0.2); }
 	.btn.bad:hover { color: var(--bad); border-color: var(--bad); box-shadow: inset 0 0 14px rgba(255, 77, 94, 0.2); }
+	.btn.fable { color: #c9b6ff; }
+	.btn.fable:hover, .btn.fable:focus-visible { color: #e2d8ff; border-color: #a78bfa; box-shadow: inset 0 0 14px rgba(167, 139, 250, 0.25); }
+	.tag { display: inline-block; margin-left: 6px; padding: 1px 6px; font: 600 11px/1.5 var(--font-mono); border: 1px solid var(--seam); color: var(--dim); vertical-align: middle; }
+	.tag.fable { color: #c9b6ff; border-color: #6d5bb8; }
+	.feed-item { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 6px; border-bottom: 1px solid var(--seam); }
+	.feed-item:last-child { border-bottom: 0; }
+	.feed-item b { font: 600 14px/1.2 var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; }
+	.feed-item img { display: block; margin-top: 8px; width: min(320px, 100%); aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--seam); background: #000; cursor: zoom-in; }
+	.meter { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+	.meter div b { display: block; font: 700 22px/1.2 var(--font-display); color: var(--chrome-hi); }
 
 	h1 {
 		font: 700 24px/1.2 var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 4px; text-wrap: balance;
@@ -333,10 +343,14 @@ const VIEWS = {
 		const pending = S.review.filter((r) => r.verdict === "pending").length;
 		if (pending) todo.push(el("div", { class: "card alert" }, el("div", { class: "k" }, "Waiting for your verdict"), el("b", {}, `${pending} thing${pending > 1 ? "s" : ""} to review`), " ", el("button", { class: "btn", onclick: () => go("review") }, "Open Review")));
 		if (S.pitches.length) todo.push(el("div", { class: "card" }, el("div", { class: "k" }, "Pick the next game"), `${S.pitches.length} game ideas are waiting. `, el("button", { class: "btn", onclick: () => go("pitches") }, "See the ideas")));
-		wrap.append(el("h1", { style: "margin-top:8px" }, "Your to-do"), todo.length ? todo : el("p", { class: "muted" }, "Nothing needs you. The team will ask here when it does."));
+		wrap.append(el("h1", { style: "margin-top:8px" }, "Your to-do"), ...(todo.length ? todo : [el("p", { class: "muted" }, "Nothing needs you. The team will ask here when it does.")]));
 		wrap.append(el("h1", { style: "margin-top:20px" }, "Working right now"));
 		const live = Object.entries(S.agents).filter(([, a]) => a.status === "working");
 		wrap.append(live.length ? el("div", { class: "card" }, live.map(agentRow)) : el("p", { class: "muted" }, "Nobody is working. Start a cycle with ", el("code", { class: "mono" }, "node scripts/omega.mjs lead")));
+		wrap.append(el("h1", { style: "margin-top:20px" }, "What's happening"));
+		const feed = (S.feed || []).slice(0, 15);
+		wrap.append(feed.length ? el("div", { class: "card" }, feed.map(feedItem)) : el("p", { class: "muted" }, "Each step a helper takes shows up here, with its Studio screenshots."));
+		wrap.append(el("h1", { style: "margin-top:20px" }, "Team usage"), usageCard());
 		wrap.append(el("h1", { style: "margin-top:20px" }, "Your games"), gamesTable());
 		return wrap;
 	},
@@ -356,7 +370,10 @@ const VIEWS = {
 			["Lead", "The main AI helper. It reads this room, decides the next jobs and hands them out."],
 			["Cycle", "One round of work by the Lead and the helpers it calls. Start one with the command below."],
 			["Pitch", "A one-page game idea with the loop, references, money plan and risks."],
-			["Verdict", "Your answer on a piece of work: Approve, Changes (say what), or Reject."],
+			["Verdict", "Your answer on a piece of work: Approve, Changes (say what), Polish with Fable, or Reject."],
+			["Polish with Fable", "You like it, but want one more pass by Fable, the strongest (and most expensive) model. Use it for the screens and effects players see most."],
+			["What's happening", "The live feed on Today. Every step a helper reports, with its Studio screenshots."],
+			["Team usage", "How much the Lead cycles used, from Claude Code's own report for each cycle."],
 			["Studio lock", "Only one helper can use Roblox Studio at a time. The bottom-left box shows who has it."],
 			["Playtest", "Pressing Play in Roblox Studio to prove the game works, with screenshots as evidence."],
 			["Pause all", "Stops every helper after its current step. Press again to resume."],
@@ -382,15 +399,15 @@ const VIEWS = {
 		const chips = el("div", { class: "tabs" }, filters.map(([v, label]) => el("button", { class: taskFilter === v ? "on" : "", onclick: () => { taskFilter = v; render(); } }, `${label} ${S.tasks.filter((t) => v === "all" || (v === "open" ? t.status !== "done" : t.status === v)).length}`)));
 		return el("div", {}, ...head("Work queue", "Every job the Lead has handed out. “Needs you” jobs also show on Today."), chips,
 			rows.length ? el("div", { class: "table-wrap" }, el("table", {}, el("tr", {}, ["Status", "Helper", "Game", "Job", "Updated"].map((h) => el("th", {}, h))),
-				rows.map((t) => el("tr", {}, el("td", {}, el("span", { class: `st ${t.status}` }, STATUS_WORDS[t.status] || t.status)), el("td", {}, t.agent), el("td", {}, t.game), el("td", {}, t.title, t.detail ? el("div", { class: "muted" }, t.detail) : null), el("td", { class: "muted mono" }, ago(t.updated))))))
+				rows.map((t) => el("tr", {}, el("td", {}, el("span", { class: `st ${t.status}` }, STATUS_WORDS[t.status] || t.status)), el("td", {}, t.agent), el("td", {}, t.game), el("td", {}, t.title, t.model === "fable" ? el("span", { class: "tag fable" }, "Fable") : null, el("div", { class: "muted" }, [t.from ? `Asked by ${t.from}` : "", t.detail].filter(Boolean).join(" · "))), el("td", { class: "muted mono" }, ago(t.updated))))))
 				: el("p", { class: "muted" }, "No jobs here."));
 	},
 	review() {
 		const counts = (v) => S.review.filter((r) => v === "all" || r.verdict === v).length;
-		const tabs = el("div", { class: "tabs" }, [["pending", "To review"], ["changes", "Changes asked"], ["approved", "Approved"], ["rejected", "Rejected"], ["all", "Everything"]]
+		const tabs = el("div", { class: "tabs" }, [["pending", "To review"], ["changes", "Changes asked"], ["polish", "Polishing"], ["approved", "Approved"], ["rejected", "Rejected"], ["all", "Everything"]]
 			.map(([v, label]) => el("button", { class: reviewFilter === v ? "on" : "", onclick: () => { reviewFilter = v; render(); } }, `${label} ${counts(v)}`)));
 		const items = S.review.filter((r) => reviewFilter === "all" || r.verdict === reviewFilter).sort((a, b) => b.created.localeCompare(a.created));
-		return el("div", {}, ...head("Review", "Look at what a helper made, then press Approve, Changes (type what to change) or Reject. The helper picks up your answer on its next cycle."), tabs,
+		return el("div", {}, ...head("Review", "Look at what a helper made, then press Approve, Changes (type what to change), Polish with Fable (good, but give it one more pass with the strongest model) or Reject. The helper picks up your answer on its next cycle."), tabs,
 			items.length ? el("div", { class: "grid" }, items.map(reviewTile)) : el("p", { class: "muted" }, "All caught up."));
 	},
 	games() {
@@ -446,6 +463,20 @@ function agentRow([name, a], withRole) {
 			el("div", { class: withRole ? "mono" : "muted" }, a.game ? `On ${a.game}: ${a.line}` : a.line || (withRole ? "" : "—"))),
 		el("div", { style: "text-align:right" }, el("span", { class: `st ${a.status}` }, (STATUS_WORDS[a.status] || a.status).toUpperCase()), el("div", { class: "muted" }, ago(a.updated))));
 }
+function feedItem(f) {
+	const shot = f.shot && /^media\/[\w.-]+$/.test(f.shot) ? el("img", { src: `/${f.shot}`, alt: `Screenshot from ${f.agent}`, loading: "lazy", onclick: () => window.open(`/${f.shot}`, "_blank") }) : null;
+	return el("div", { class: "feed-item" }, el("div", { class: "av" }, el("span", {}, (f.agent || "?")[0].toUpperCase())),
+		el("div", {}, el("b", {}, f.agent), f.game ? el("span", { class: "muted" }, ` · ${f.game}`) : null, el("div", {}, f.line), shot),
+		el("div", { class: "muted mono" }, ago(f.ts)));
+}
+function usageCard() {
+	const u = S.usage || { today: { cycles: 0, tokens: 0, costUsd: 0 }, week: { cycles: 0, tokens: 0, costUsd: 0 } };
+	const tok = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n);
+	const cell = (label, x) => el("div", {}, el("div", { class: "k" }, label), el("b", {}, `${x.cycles} cycle${x.cycles === 1 ? "" : "s"}`), el("div", { class: "muted" }, `${tok(x.tokens)} tokens · ~$${x.costUsd.toFixed(2)} if billed by the API`));
+	const models = u.last && u.last.models ? Object.keys(u.last.models).map((m) => el("span", { class: /fable/.test(m) ? "tag fable" : "tag" }, m)) : [];
+	return el("div", { class: "card" }, el("div", { class: "meter" }, cell("Today", u.today), cell("Last 7 days", u.week)),
+		el("p", { class: "muted", style: "margin:10px 0 0" }, "From each Lead cycle's own report. On your Claude plan this counts toward plan limits, it is not a bill. ", u.last ? ["Last cycle ", ago(u.last.ts), models.length ? ": " : "", ...models] : "No cycles recorded yet."));
+}
 function gamesTable() {
 	if (!S.games.length) return el("p", { class: "muted" }, "No games yet. Pick one in Game ideas to start.");
 	return el("div", { class: "table-wrap" }, el("table", {}, el("tr", {}, ["Game", "Stage", "Version", "Open jobs"].map((h) => el("th", {}, h))),
@@ -464,7 +495,8 @@ function reviewTile(r) {
 	return el("div", { class: "card tile" }, media, el("div", { class: "k", style: "margin-top:8px" }, `${r.kind} · ${r.agent} · ${r.game}`), el("b", {}, r.title),
 		r.note ? el("pre", { class: "muted" }, r.note) : null, r.doc ? el("button", { class: "btn", onclick: () => openDoc(r.doc) }, doc ? "Read it in the Library" : "Open in Library") : null,
 		el("div", { class: "muted" }, `${r.verdict} · ${ago(r.updated)}`), comment,
-		el("div", { class: "row", style: "margin-top:6px" }, el("button", { class: "btn ok", onclick: act("approved") }, "Approve"), el("button", { class: "btn warn", onclick: act("changes") }, "Changes"), el("button", { class: "btn bad", onclick: act("rejected") }, "Reject")));
+		el("div", { class: "row", style: "margin-top:6px" }, el("button", { class: "btn ok", onclick: act("approved") }, "Approve"), el("button", { class: "btn warn", onclick: act("changes") }, "Changes"),
+			el("button", { class: "btn fable", title: "Keep it, but send it back for one more pass by Fable, the strongest model", onclick: act("polish") }, "Polish with Fable"), el("button", { class: "btn bad", onclick: act("rejected") }, "Reject")));
 }
 
 // Small, safe Markdown renderer (text nodes only; links limited to http/https).
