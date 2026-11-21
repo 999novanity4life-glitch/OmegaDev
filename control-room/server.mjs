@@ -110,7 +110,7 @@ async function handle(req, res) {
 		const id = safeId(body.id);
 		const file = id && path.join(STATE, "review", `${id}.json`);
 		if (!file || !fs.existsSync(file)) return send(res, 404, { error: "no such item" });
-		if (!["approved", "changes", "rejected"].includes(body.verdict)) return send(res, 400, { error: "bad verdict" });
+		if (!["approved", "changes", "polish", "rejected"].includes(body.verdict)) return send(res, 400, { error: "bad verdict" });
 		const item = JSON.parse(fs.readFileSync(file, "utf8"));
 		Object.assign(item, { verdict: body.verdict, comment: String(body.comment || ""), pickedUp: false, updated: new Date().toISOString() });
 		writeJson(file, item);

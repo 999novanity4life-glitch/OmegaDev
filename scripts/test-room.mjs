@@ -48,6 +48,37 @@ try {
 	assert.equal(form.status, 415);
 
 	assert.match(omega("status"), /changes splash demo: Icon A — bigger text/);
+
+	// Polish with Fable: the room accepts it, status lists it, tasks can carry the model.
+	assert.equal((await post("/api/verdict", { id: docReview, verdict: "polish", comment: "make it shine" })).status, 200);
+	assert.equal((await post("/api/verdict", { id: docReview, verdict: "fable-max" })).status, 400);
+	assert.match(omega("status"), /polish pulse demo: Chapter — make it shine/);
+	omega("task", "add", "--game", "demo", "--agent", "pulse", "--title", "Polish pass on Chapter", "--model", "fable", "--from", "human");
+	assert.match(omega("status"), /Polish pass on Chapter \[fable\]/);
+	assert.throws(() => omega("task", "add", "--game", "demo", "--agent", "pulse", "--title", "x", "--model", "gpt"), /model must be one of/);
+
+	// Live feed: status lines with a screenshot land on Today, newest first, and the shot is served.
+	omega("agent", "frame", "--status", "working", "--game", "demo", "--line", "Uploading art to Roblox", "--shot", png);
+	assert.throws(() => omega("agent", "frame", "--status", "working", "--line", "x", "--shot", path.join(state, "tasks.json")), /--shot must be/);
+	const fed = (await (await fetch(`${base}/api/state`)).json()).feed;
+	assert.equal(fed[0].line, "Uploading art to Roblox");
+	assert.match(fed[0].shot, /^media\/f-[\w]+\.png$/);
+	assert.equal((await fetch(`${base}/${fed[0].shot}`)).status, 200);
+	assert.ok(fed.some((f) => f.line === "Sent for your review: Icon A"), "review items show in the feed");
+
+	// Usage meter: a Claude Code JSON report becomes one usage row.
+	const { parseRunReport } = await import("./omega.mjs");
+	const rep = parseRunReport('noise\n{"type":"result","result":"moved 2 tasks","total_cost_usd":1.25,"num_turns":9,"usage":{"input_tokens":100,"output_tokens":50,"cache_read_input_tokens":1000},"modelUsage":{"claude-fable-5-2":{"costUSD":1}}}');
+	assert.equal(rep.result, "moved 2 tasks");
+	assert.equal(rep.usage.tokens, 1150);
+	assert.equal(rep.usage.costUsd, 1.25);
+	assert.deepEqual(Object.keys(rep.usage.models), ["claude-fable-5-2"]);
+	assert.equal(parseRunReport("not json"), null);
+	fs.appendFileSync(path.join(state, "usage.jsonl"), JSON.stringify({ ts: new Date().toISOString(), cycle: 1, ...rep.usage }) + "\n");
+	const usage = (await (await fetch(`${base}/api/state`)).json()).usage;
+	assert.equal(usage.today.cycles, 1);
+	assert.equal(usage.week.tokens, 1150);
+	assert.match(omega("usage"), /today\s+1 cycles\s+1150 tokens/);
 	assert.match(omega("inbox", "take"), /make the boss harder/);
 	omega("pause");
 	assert.equal((await (await fetch(`${base}/api/state`)).json()).paused, true);

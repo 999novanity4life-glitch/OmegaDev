@@ -18,7 +18,15 @@ of `node scripts/omega.mjs status`.
    `--status needs_you` that asks the exact question.
 4. Review verdicts: for every item with verdict `changes` or `rejected` that is
    not picked up, queue a task for the agent that made it with the human's
-   comment, then `omega review set <id> --picked-up`.
+   comment, then `omega review set <id> --picked-up`. Verdict `polish` means the
+   human likes it but wants one more pass by the strongest model: queue a task
+   for the same agent with `--model fable --from human` and the detail
+   "Polish pass on <review title>: <comment>", then mark it picked up.
+   Dispatch a `--model fable` task with the Agent tool's `model` set to Fable
+   (claude-fable-5-2); every other task uses the default model.
+   Agents post progress with `omega agent <name> --status working --line ...`,
+   adding `--shot <file>` whenever they take a Studio screenshot, so the human
+   can watch the "What's happening" feed on Today.
 5. Pick up to 3 queued tasks that can run in parallel. Only ONE task at a time
    may use Roblox Studio (Playtest, Kid Tester, or anything needing MCP);
    check the studio lock in `status`. Dispatch each with the Agent tool to its
